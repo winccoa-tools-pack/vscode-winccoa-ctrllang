@@ -1,208 +1,144 @@
-# WinCC OA VS Code Extension Template
+# WinCC OA CTRL Language Support
 
-Minimal starter template for creating VS Code extensions for WinCC OA with Git Flow workflow.
+<div align="center">
 
-## 🚀 Quick Start
+![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
+![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
 
-### Initial Setup
+**Comprehensive language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
 
-1. **Create repository from this template**
+⚠️ *Pre-Release Version - Not all features have been fully tested yet*
 
-   ```bash
-   # Via GitHub CLI
-   gh repo create winccoa-tools-pack/<your-extension-name> \
-     --template winccoa-tools-pack/template-vscode-extension \
-     --public
-   ```
-
-2. **Clone and initialize Git Flow**
-
-   ```bash
-   git clone https://github.com/winccoa-tools-pack/<your-extension-name>
-   cd <your-extension-name>
-   
-   # Run the setup script (PowerShell)
-   .\setup-gitflow.ps1
-   
-   # Or manually
-   git flow init -d
-   git push -u origin develop
-   ```
-
-3. **Install dependencies and build**
-
-   ```bash
-   npm install
-   npm run compile
-   npm test
-   ```
-
-## 🌳 Git Flow Workflow
-
-This template uses [Git Flow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) for branch management:
-
-### Branch Structure
-
-- **`main`** - Production-ready code (stable releases)
-- **`develop`** - Integration branch (pre-release features)
-- **`feature/*`** - New features
-- **`release/*`** - Release preparation
-- **`hotfix/*`** - Emergency fixes for production
-
-### Common Commands
-
-```bash
-# Start a new feature
-git flow feature start my-feature
-
-# Finish feature (merges to develop)
-git flow feature finish my-feature
-
-# Start a release
-git flow release start 1.0.0
-
-# Finish release (merges to main and develop, creates tag)
-git flow release finish 1.0.0
-
-# Hotfix for production
-git flow hotfix start 1.0.1
-git flow hotfix finish 1.0.1
-```
-
-### Branch Protection
-
-The `setup-gitflow.ps1` script applies protection rules:
-
-- **main**: Requires PR reviews, status checks, no force pushes
-- **develop**: Requires PR reviews, status checks, allows force pushes (for rebasing)
-
-## 🔐 VS Code Marketplace Publishing Setup
-
-To enable automatic publishing to the VS Code Marketplace when creating releases, you need to configure a Personal Access Token:
-
-### Why VSCE_PAT is Required
-
-The `release.yml` workflow automatically publishes your extension to the VS Code Marketplace when you merge a release PR to `main`. This requires authentication with Azure DevOps.
-
-### How to Get a Personal Access Token
-
-1. **Go to Azure DevOps**
-   - Navigate to: <https://dev.azure.com>
-
-2. **Create Personal Access Token**
-   - Click on your profile → **Personal access tokens**
-   - Click **+ New Token**
-   - Name: `VS Code Marketplace Publishing`
-   - Organization: **All accessible organizations**
-   - Expiration: Choose appropriate duration
-   - Scopes: **Marketplace** → **Manage** (check the box)
-   - Click **Create**
-   - **Copy the token** (you won't see it again!)
-
-3. **Add Token to Repository**
-   - Go to your GitHub repository settings
-   - Navigate to **Settings** → **Secrets and variables** → **Actions**
-   - Click **"New repository secret"**
-   - Name: `VSCE_PAT`
-   - Value: Paste your Personal Access Token
-   - Click **"Add secret"**
-
-### Publisher Setup
-
-You also need a publisher account on the VS Code Marketplace:
-
-1. **Create Publisher**
-   - Go to <https://marketplace.visualstudio.com/manage>
-   - Click **Create publisher**
-   - Fill in publisher details (ID, name, etc.)
-   - Your publisher ID should match the `publisher` field in `package.json`
-
-2. **Update package.json**
-
-   ```json
-   {
-     "publisher": "your-publisher-id",
-     "name": "your-extension-name"
-   }
-   ```
-
-### Testing Without VSCE_PAT
-
-If `VSCE_PAT` is not configured, the workflow will:
-
-- ✅ Still run tests and build the extension
-- ✅ Create GitHub releases with VSIX files
-- ⚠️ Skip Marketplace publishing with a warning message
-
-You can always publish manually later:
-
-```bash
-vsce publish
-```
-
-## 📦 Development
-
-```bash
-# Install dependencies
-npm install
-
-# Compile TypeScript
-npm run compile
-
-# Watch mode (auto-compile on changes)
-npm run watch
-
-# Run tests
-npm test
-
-# Package extension (.vsix file)
-npm run package
-
-# Run lint
-npm run lint
-```
-
-## 🎯 Testing Your Extension
-
-Press `F5` in VS Code to open a new Extension Development Host window with your extension loaded.
-
-## 🏆 Recognition
-
-Special thanks to all our [contributors](https://github.com/orgs/winccoa-tools-pack/people) who make this project possible!
-
-### Key Contributors
-
-- **Martin Pokorny** ([@mPokornyETM](https://github.com/mPokornyETM)) - Creator & Lead Developer
-- And many more amazing contributors!
+</div>
 
 ---
 
-## 📜 License
+## ✨ Features
 
-This project is basically licensed under the **MIT License** - see the [LICENSE](https://github.com/winccoa-tools-pack/.github/blob/main/LICENSE) file for details.
+### 🎨 Syntax Highlighting
+Full syntax highlighting for `.ctl` and `.ctlpp`, files with support for WinCC OA built-in functions.
 
-It might happens, that the partial repositories contains third party SW which are using other license models.
+### 🧠 IntelliSense
+- **Auto-completion** for WinCC OA built-in functions
+- **Function signatures** with parameter information
+- **Hover documentation** with descriptions and links to official docs
+
+### 🔍 Code Navigation
+- **Goto Definition** (`F12` or `Ctrl+Click`) for functions and `#uses` imports
+- **Find References** to see where functions are used
+- Automatic detection of project structure from `config/config` file
+
+### 📚 Documentation Access
+Quick access to official WinCC OA documentation:
+1. Place cursor on a function name
+2. Press `Ctrl+Shift+P` → `WinCC OA: Open Documentation for CTRL Function`
+3. Opens documentation in your browser
+
+### 🔧 Code Formatting (Optional)
+Astyle-based code formatting for `.ctl` and `.ctrlpp` files
+- Enable in settings: `winccoa.astyleFormatter.enabled`
+- Format on save: `winccoa.astyleFormatter.runOnSave`
+
+### ✅ Syntax Checking (Optional)
+Native WinCC OA syntax validation
+- Enable in settings: `winccoa.syntaxCheck.enabled`
+- Check on save: `winccoa.syntaxCheck.executeOnSave`
 
 ---
 
-## ⚠️ Disclaimer
+## 🚀 Getting Started
 
-**WinCC OA** and **Siemens** are trademarks of Siemens AG. This project is not affiliated with, endorsed by, or sponsored by Siemens AG. This is a community-driven open source project created to enhance the development experience for WinCC OA developers.
+### Installation
+1. Open VS Code
+2. Go to Extensions (`Ctrl+Shift+X`)
+3. Search for "WinCC OA CTRL Language Support"
+4. Click Install
+
+### Configuration
+
+The extension auto-detects your WinCC OA project structure when you open a workspace containing a `config/config` file.
 
 ---
 
-## 🎉 Thank You
+## ⚙️ Settings
 
-Thank you for using WinCC OA tools package!
-We're excited to be part of your development journey. **Happy Coding! 🚀**
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `winccoa.ctrlLang.pathSource` | `workspace` | How to resolve project paths: `workspace` or `manual` |
+| `winccoa.astyleFormatter.enabled` | `false` | Enable Astyle code formatting |
+| `winccoa.astyleFormatter.runOnSave` | `false` | Automatically format on save |
+| `winccoa.syntaxCheck.enabled` | `false` | Enable WinCC OA syntax checking |
+| `winccoa.syntaxCheck.executeOnSave` | `false` | Run syntax check on save |
 
 ---
 
-## Quick Links
+## 📋 Commands
 
-- [📦 VS Code Marketplace](https://marketplace.visualstudio.com/search?term=tag%3Awincc-oa&target=VSCode&category=All%20categories&sortBy=Relevance)
-- [SIMATIC WinCC Open Architecture](https://www.siemens.com/global/en/products/automation/industry-software/automation-software/scada/simatic-wincc-oa.html)
-- [SIMATIC WinCC Open Architecture official documentation](https://www.winccoa.com/documentation/WinCCOA/latest/en_US/index.html)
-- [ETM Company](https://www.winccoa.com/company.html)
+| Command | Description |
+|---------|-------------|
+| `WinCC OA: Open Documentation for CTRL Function` | Opens official documentation for the function under cursor |
+| `WinCC OA: Format Document with Astyle` | Formats the current document |
+| `WinCC OA: Run WinCC OA Syntax Check` | Runs syntax validation on current file |
 
-<center>Made with ❤️ for and by the WinCC OA community</center>
+---
+
+## 🛠️ Requirements
+
+- Visual Studio Code 1.105.0 or higher
+- For syntax checking: WinCC OA installation with `WCCOActrl` executable
+
+---
+
+## 📜 Disclaimer
+
+WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliated with, endorsed by, or sponsored by Siemens AG. This is a community-driven open source project created to enhance the development experience for WinCC OA developers.
+
+---
+
+## 📄 License
+
+This project is licensed under the **GNU General Public License v3.0**.
+
+---
+
+## 🙏 Third-Party Code
+
+This project includes and is derived from files originating from:
+
+**vscode-ctrlpptools**  
+https://github.com/LukasSchopp/vscode-ctrlpptools  
+License: GNU GPL v3.0
+
+Included and modified files:
+- `language-configuration.json`
+- `syntaxes/ctrl.tmLanguage.json`
+- `syntaxes/ctrlpp.tmLanguage.json`
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether you want to:
+- Report bugs or issues
+- Suggest new features
+- Improve documentation
+- Submit code improvements
+
+Please open an issue or submit a pull request on [GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang).
+
+---
+
+## 🔗 Links
+
+- [GitHub Repository](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang)
+- [Issue Tracker](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues)
+- [WinCC OA Documentation](https://www.winccoa.com)
+
+---
+
+<div align="center">
+
+Made with ❤️ for the WinCC OA community
+
+</div>

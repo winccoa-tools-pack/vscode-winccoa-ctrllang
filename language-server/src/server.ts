@@ -1,0 +1,603 @@
+import {
+    createConnection,
+    TextDocuments,
+    ProposedFeatures,
+    InitializeParams,
+    DidChangeConfigurationNotification,
+    CompletionItem,
+    CompletionItemKind,
+    TextDocumentPositionParams,
+    TextDocumentSyncKind,
+    InitializeResult,
+    Hover,
+    MarkupKind,
+    Definition,
+    Location
+} from 'vscode-languageserver/node';
+
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { getBuiltinFunction, getAllBuiltinFunctions } from './builtins';
+import { resolveUsesPath, getUsesAtPosition, ProjectInfo } from './usesResolver';
+import { 
+    findFunctionDefinitions, 
+    findGlobalVariables, 
+    getSymbolAtPosition,
+    isFunctionCall 
+} from './symbolFinder';
+import * as fs from 'fs';
+import * as path from 'path';
+import { pathToFileURL, fileURLToPath } from 'url';
+
+const connection = createConnection(ProposedFeatures.all);
+const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+// Cache for project info
+let projectInfo: ProjectInfo | null = null;
+
+// Configuration settings
+interface ServerSettings {
+    pathSource: 'api' | 'workspace' | 'manual';
+    apiUrl: string;
+    projectPath: string;
+    installPath: string;
+    subProjects: string[];
+    additionalScriptsPaths: string[];
+}
+
+let globalSettings: ServerSettings = {
+    pathSource: 'workspace',
+    apiUrl: 'http://localhost:3000/api/getProjectInfo',
+    projectPath: '',
+    installPath: '',
+    subProjects: [],
+    additionalScriptsPaths: []
+};
+
+function parseSubProjectsFromConfig(configPath: string, mainProjectPath: string): string[] {
+    const subProjects: string[] = [];
+    
+    connection.console.log('[parseSubProjectsFromConfig] Reading config: ' + configPath);
+    connection.console.log('[parseSubProjectsFromConfig] Main project: ' + mainProjectPath);
+    
+    if (!fs.existsSync(configPath)) {
+        connection.console.log('[parseSubProjectsFromConfig] Config file not found');
+        return subProjects;
+    }
+    
+    try {
+        const configContent = fs.readFileSync(configPath, 'utf-8');
+        const lines = configContent.split('\n');
+        
+        const normalizedMainPath = path.normalize(mainProjectPath).toLowerCase();
+        
+        for (const line of lines) {
+            const trimmed = line.trim();
+            
+            // Skip comments and empty lines
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            
+            // Match proj_path = "..." or proj_path = '...'
+            const match = trimmed.match(/^proj_path\s*=\s*["']([^"']+)["']/);
+            if (match) {
+                let projPath = match[1];
+                
+                // Normalize for comparison
+                const normalizedPath = path.normalize(projPath).toLowerCase();
+                
+                // Skip if it's the main project
+                if (normalizedPath === normalizedMainPath) {
+                    continue;
+                }
+                
+                connection.console.log('[parseSubProjectsFromConfig] Found subproject: ' + projPath);
+                subProjects.push(projPath);
+            }
+        }
+        
+        connection.console.log(`[parseSubProjectsFromConfig] Found ${subProjects.length} subprojects`);
+    } catch (err) {
+        connection.console.log('[parseSubProjectsFromConfig] Error: ' + err);
+    }
+    
+    return subProjects;
+}
+
+async function fetchProjectInfo(): Promise<ProjectInfo | null> {
+    if (projectInfo) return projectInfo;
+    
+    connection.console.log(`[fetchProjectInfo] Mode: ${globalSettings.pathSource}`);
+    
+    switch (globalSettings.pathSource) {
+        case 'api':
+            return await fetchFromApi();
+        case 'workspace':
+            return await fetchFromWorkspace();
+        case 'manual':
+            return await fetchFromConfig();
+        default:
+            connection.console.log('[fetchProjectInfo] Unknown mode, falling back to workspace');
+            return await fetchFromWorkspace();
+    }
+}
+
+async function fetchFromApi(): Promise<ProjectInfo | null> {
+    try {
+        const http = await import('http');
+        const https = await import('https');
+        const apiUrl = globalSettings.apiUrl;
+        const protocol = apiUrl.startsWith('https') ? https : http;
+        
+        connection.console.log(`[fetchFromApi] Fetching from: ${apiUrl}`);
+        
+        return new Promise((resolve) => {
+            const req = protocol.get(apiUrl, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        connection.console.log('[fetchProjectInfo] Raw API response: ' + data);
+                        const response = JSON.parse(data);
+                        
+                        // API returns {success: true, projectInfo: {...}}
+                        const info = response.projectInfo || response;
+                        
+                        connection.console.log('[fetchProjectInfo] Parsed projectPath: ' + info.projectPath);
+                        connection.console.log('[fetchProjectInfo] Parsed installPath: ' + info.installPath);
+                        
+                        // Extract subProjects paths from array of objects {name, path}
+                        let subProjectPaths: string[] = [];
+                        if (info.subProjects && Array.isArray(info.subProjects)) {
+                            subProjectPaths = info.subProjects.map((sp: any) => sp.path || sp);
+                        }
+                        
+                        // Fallback: If subProjects is empty but config file exists, parse it
+                        if (subProjectPaths.length === 0 && info.configPath) {
+                            connection.console.log('[fetchProjectInfo] SubProjects empty, parsing config file...');
+                            subProjectPaths = parseSubProjectsFromConfig(info.configPath, info.projectPath);
+                        }
+                        
+                        projectInfo = {
+                            projectPath: info.projectPath || '',
+                            projectName: info.projectName || '',
+                            configPath: info.configPath || '',
+                            logPath: info.logPath || '',
+                            installPath: info.installPath || '',
+                            version: info.version || '',
+                            subProjects: subProjectPaths
+                        };
+                        connection.console.log('[fetchProjectInfo] Final projectInfo: ' + JSON.stringify(projectInfo));
+                        resolve(projectInfo);
+                    } catch (err) {
+                        connection.console.log('[fetchProjectInfo] Parse error: ' + err);
+                        resolve(null);
+                    }
+                });
+            });
+            req.on('error', (err) => {
+                connection.console.log('[fetchProjectInfo] HTTP error: ' + err);
+                resolve(null);
+            });
+            req.setTimeout(2000, () => {
+                connection.console.log('[fetchProjectInfo] Request timeout');
+                req.destroy();
+                resolve(null);
+            });
+        });
+    } catch (err) {
+        connection.console.log('[fetchFromApi] Exception: ' + err);
+        return null;
+    }
+}
+
+async function fetchFromWorkspace(): Promise<ProjectInfo | null> {
+    try {
+        const workspaceFolders = await connection.workspace.getWorkspaceFolders();
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            connection.console.log('[fetchFromWorkspace] No workspace folders');
+            return null;
+        }
+
+        for (const folder of workspaceFolders) {
+            const folderPath = fileURLToPath(folder.uri);
+            const configPath = path.join(folderPath, 'config', 'config');
+            
+            connection.console.log(`[fetchFromWorkspace] Checking: ${configPath}`);
+
+            if (fs.existsSync(configPath)) {
+                connection.console.log(`[fetchFromWorkspace] Found WinCC OA project at: ${folderPath}`);
+                
+                const subProjects = parseSubProjectsFromConfig(configPath, folderPath);
+                const installPath = detectInstallPath(configPath);
+
+                projectInfo = {
+                    projectPath: folderPath,
+                    projectName: path.basename(folderPath),
+                    configPath: configPath,
+                    logPath: path.join(folderPath, 'log'),
+                    installPath: installPath,
+                    version: '',
+                    subProjects: subProjects
+                };
+
+                connection.console.log('[fetchFromWorkspace] Project info: ' + JSON.stringify(projectInfo));
+                return projectInfo;
+            }
+        }
+
+        connection.console.log('[fetchFromWorkspace] No WinCC OA project found in workspace');
+        return null;
+    } catch (err) {
+        connection.console.log('[fetchFromWorkspace] Error: ' + err);
+        return null;
+    }
+}
+
+function fetchFromConfig(): ProjectInfo | null {
+    const projectPath = globalSettings.projectPath;
+    
+    if (!projectPath) {
+        connection.console.log('[fetchFromConfig] No project path configured');
+        return null;
+    }
+
+    projectInfo = {
+        projectPath: projectPath,
+        projectName: path.basename(projectPath),
+        configPath: path.join(projectPath, 'config', 'config'),
+        logPath: path.join(projectPath, 'log'),
+        installPath: globalSettings.installPath,
+        version: '',
+        subProjects: globalSettings.subProjects
+    };
+
+    connection.console.log('[fetchFromConfig] Project info: ' + JSON.stringify(projectInfo));
+    return projectInfo;
+}
+
+function detectInstallPath(configPath: string): string {
+    try {
+        const configContent = fs.readFileSync(configPath, 'utf-8');
+        const lines = configContent.split('\n');
+        
+        for (const line of lines) {
+            const trimmed = line.trim();
+            const match = trimmed.match(/^(?:pvss_path|winccoa_path|install_path)\s*=\s*["']([^"']+)["']/);
+            if (match) {
+                connection.console.log(`[detectInstallPath] Found: ${match[1]}`);
+                return match[1];
+            }
+        }
+    } catch (err) {
+        connection.console.log(`[detectInstallPath] Error: ${err}`);
+    }
+
+    // Platform-specific defaults
+    const defaultPaths = process.platform === 'win32'
+        ? ['C:\\Siemens\\Automation\\WinCC_OA\\3.19', 'C:\\Siemens\\Automation\\WinCC_OA\\3.18']
+        : ['/opt/WinCC_OA/3.19', '/opt/WinCC_OA/3.18'];
+
+    for (const defaultPath of defaultPaths) {
+        if (fs.existsSync(defaultPath)) {
+            connection.console.log(`[detectInstallPath] Using default: ${defaultPath}`);
+            return defaultPath;
+        }
+    }
+
+    return '';
+}
+
+let hasConfigCapability = false;
+let hasWorkspaceCapability = false;
+
+connection.onInitialize((params: InitializeParams) => {
+    const caps = params.capabilities;
+    hasConfigCapability = !!(caps.workspace?.configuration);
+    hasWorkspaceCapability = !!(caps.workspace?.workspaceFolders);
+
+    const result: InitializeResult = {
+        capabilities: {
+            textDocumentSync: TextDocumentSyncKind.Incremental,
+            completionProvider: { resolveProvider: true },
+            hoverProvider: true,
+            definitionProvider: true,
+            executeCommandProvider: {
+                commands: ['getDocUrl']
+            }
+        }
+    };
+    
+    if (hasWorkspaceCapability) {
+        result.capabilities.workspace = { workspaceFolders: { supported: true } };
+    }
+    return result;
+});
+
+connection.onInitialized(async () => {
+    if (hasConfigCapability) {
+        connection.client.register(DidChangeConfigurationNotification.type, undefined);
+        
+        // Load initial configuration
+        try {
+            const settings = await connection.workspace.getConfiguration('winccoa.ctrlLang');
+            globalSettings = {
+                pathSource: settings.pathSource || 'workspace',
+                apiUrl: settings.apiUrl || 'http://localhost:3000/api/getProjectInfo',
+                projectPath: settings.projectPath || '',
+                installPath: settings.installPath || '',
+                subProjects: settings.subProjects || [],
+                additionalScriptsPaths: settings.additionalScriptsPaths || []
+            };
+            connection.console.log(`[Init] Loaded settings - pathSource: ${globalSettings.pathSource}`);
+        } catch (err) {
+            connection.console.log('[Init] Error loading settings: ' + err);
+        }
+    }
+    connection.console.log('WinCC OA Language Server initialized!');
+});
+
+const docSettings: Map<string, Thenable<any>> = new Map();
+
+connection.onDidChangeConfiguration(async () => {
+    if (hasConfigCapability) {
+        docSettings.clear();
+        
+        // Update global settings
+        try {
+            const settings = await connection.workspace.getConfiguration('winccoa.ctrlLang');
+            globalSettings = {
+                pathSource: settings.pathSource || 'workspace',
+                apiUrl: settings.apiUrl || 'http://localhost:3000/api/getProjectInfo',
+                projectPath: settings.projectPath || '',
+                installPath: settings.installPath || '',
+                subProjects: settings.subProjects || [],
+                additionalScriptsPaths: settings.additionalScriptsPaths || []
+            };
+            
+            // Clear project info cache to force re-fetch
+            projectInfo = null;
+            connection.console.log(`[Config] Settings updated - pathSource: ${globalSettings.pathSource}`);
+        } catch (err) {
+            connection.console.log('[Config] Error updating settings: ' + err);
+        }
+    }
+});
+
+documents.onDidClose(e => docSettings.delete(e.document.uri));
+
+connection.onCompletion((): CompletionItem[] => {
+    return getAllBuiltinFunctions().map((fn, idx) => {
+        const paramList = fn.parameters.map(p => {
+            let s = p.byRef ? '&' : '';
+            s += `${p.type} ${p.name}`;
+            if (p.optional) s = `[${s}]`;
+            if (p.variadic) s = `...${s}`;
+            return s;
+        }).join(', ');
+
+        return {
+            label: fn.name,
+            kind: CompletionItemKind.Function,
+            detail: `${fn.returnType} ${fn.name}(${paramList})`,
+            documentation: fn.description || '',
+            insertText: fn.name,
+            data: idx
+        };
+    });
+});
+
+connection.onCompletionResolve((item: CompletionItem) => item);
+
+connection.onHover((params: TextDocumentPositionParams): Hover | null => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return null;
+
+    const txt = doc.getText();
+    const pos = doc.offsetAt(params.position);
+    
+    let start = pos, end = pos;
+    while (start > 0 && /[a-zA-Z0-9_]/.test(txt[start - 1])) start--;
+    while (end < txt.length && /[a-zA-Z0-9_]/.test(txt[end])) end++;
+    
+    const word = txt.substring(start, end);
+    if (!word) return null;
+    
+    const fn = getBuiltinFunction(word);
+    if (!fn) return null;
+
+    const paramList = fn.parameters.map(p => {
+        let s = p.byRef ? '&' : '';
+        s += `${p.type} ${p.name}`;
+        if (p.optional) s = `[${s}]`;
+        if (p.variadic) s = `...${s}`;
+        return s;
+    }).join(', ');
+    
+    const sig = `${fn.returnType} ${fn.name}(${paramList})`;
+    let md = `**${fn.name}**\n\n\`\`\`ctrl\n${sig}\n\`\`\`\n\n`;
+    
+    if (fn.description) md += fn.description;
+    if (fn.deprecated) md += '\n\n---\n\n⚠️ **Deprecated**';
+    if (fn.docUrl) md += `\n\n---\n\n[📖 Documentation](${fn.docUrl})`;
+    
+    return { contents: { kind: MarkupKind.Markdown, value: md } };
+});
+
+connection.onExecuteCommand((params) => {
+    if (params.command === 'getDocUrl' && params.arguments && params.arguments.length > 0) {
+        const functionName = params.arguments[0] as string;
+        const fn = getBuiltinFunction(functionName);
+        return fn?.docUrl || null;
+    }
+    return null;
+});
+
+connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Definition | null> => {
+    connection.console.log('[Definition] Request received');
+    
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) {
+        connection.console.log('[Definition] Document not found');
+        return null;
+    }
+
+    const offset = doc.offsetAt(params.position);
+    const docText = doc.getText();
+    connection.console.log(`[Definition] Cursor offset: ${offset}`);
+    
+    // 1. Check for #uses statement (highest priority)
+    const usesInfo = getUsesAtPosition(docText, offset);
+    if (usesInfo) {
+        connection.console.log(`[Definition] Found #uses: "${usesInfo.path}"`);
+        return await handleUsesDefinition(usesInfo.path);
+    }
+    
+    // 2. Get symbol at cursor position
+    const symbolInfo = getSymbolAtPosition(docText, offset);
+    if (!symbolInfo) {
+        connection.console.log('[Definition] No symbol found at cursor position');
+        return null;
+    }
+    
+    connection.console.log(`[Definition] Found symbol: "${symbolInfo.name}" at line ${symbolInfo.line}`);
+    
+    // 3. Check if it's a function call or just a reference
+    const isFuncCall = isFunctionCall(docText, offset);
+    connection.console.log(`[Definition] Is function call: ${isFuncCall}`);
+    
+    // 4. Search in current file
+    const currentFilePath = fileURLToPath(doc.uri);
+    connection.console.log(`[Definition] Searching in current file: ${currentFilePath}`);
+    
+    // Try to find function definition
+    if (isFuncCall) {
+        const functions = findFunctionDefinitions(currentFilePath);
+        connection.console.log(`[Definition] Found ${functions.length} functions in current file`);
+        
+        const funcDef = functions.find(f => f.name === symbolInfo.name);
+        if (funcDef) {
+            connection.console.log(`[Definition] Found function definition at line ${funcDef.line}`);
+            const uri = pathToFileURL(funcDef.filePath).href;
+            return Location.create(uri, {
+                start: { line: funcDef.line - 1, character: funcDef.column },
+                end: { line: funcDef.line - 1, character: funcDef.column + funcDef.name.length }
+            });
+        }
+    }
+    
+    // Try to find global variable
+    const globals = findGlobalVariables(currentFilePath);
+    connection.console.log(`[Definition] Found ${globals.length} global variables in current file`);
+    
+    const globalVar = globals.find(v => v.name === symbolInfo.name);
+    if (globalVar) {
+        connection.console.log(`[Definition] Found global variable at line ${globalVar.line}`);
+        const uri = pathToFileURL(globalVar.filePath).href;
+        return Location.create(uri, {
+            start: { line: globalVar.line - 1, character: globalVar.column },
+            end: { line: globalVar.line - 1, character: globalVar.column + globalVar.name.length }
+        });
+    }
+    
+    // 5. Search in #uses dependencies
+    connection.console.log('[Definition] Symbol not found in current file, searching in dependencies...');
+    const info = await fetchProjectInfo();
+    if (info) {
+        const dependencies = await findSymbolInDependencies(symbolInfo.name, currentFilePath, info, isFuncCall);
+        if (dependencies) {
+            return dependencies;
+        }
+    }
+    
+    connection.console.log(`[Definition] Symbol "${symbolInfo.name}" not found`);
+    return null;
+});
+
+async function handleUsesDefinition(usesPath: string): Promise<Location | null> {
+    const info = await fetchProjectInfo();
+    if (!info) {
+        connection.console.log('[Definition] Failed to fetch project info from API');
+        return null;
+    }
+    
+    connection.console.log(`[Definition] Project info: projectPath="${info.projectPath}", installPath="${info.installPath}", subProjects=${info.subProjects.length}`);
+    
+    const resolvedPath = resolveUsesPath(usesPath, info);
+    
+    if (!resolvedPath) {
+        connection.console.log(`[Definition] Could not resolve path for: "${usesPath}"`);
+        return null;
+    }
+
+    connection.console.log(`[Definition] Resolved to: ${resolvedPath}`);
+
+    const uri = pathToFileURL(resolvedPath).href;
+    connection.console.log(`[Definition] URI: ${uri}`);
+    
+    return Location.create(uri, {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: 0 }
+    });
+}
+
+async function findSymbolInDependencies(
+    symbolName: string, 
+    currentFilePath: string, 
+    projectInfo: ProjectInfo,
+    isFunctionCall: boolean
+): Promise<Location | null> {
+    // Get all #uses statements from current file
+    const content = fs.readFileSync(currentFilePath, 'utf-8');
+    const lines = content.split('\n');
+    const usesPaths: string[] = [];
+    
+    for (const line of lines) {
+        const match = line.match(/#uses\s+["']([^"']+)["']/);
+        if (match) {
+            usesPaths.push(match[1]);
+        }
+    }
+    
+    connection.console.log(`[Definition] Found ${usesPaths.length} #uses statements in current file`);
+    
+    // Search each dependency
+    for (const usesPath of usesPaths) {
+        const resolvedPath = resolveUsesPath(usesPath, projectInfo);
+        if (!resolvedPath) {
+            connection.console.log(`[Definition] Could not resolve dependency: ${usesPath}`);
+            continue;
+        }
+        
+        connection.console.log(`[Definition] Searching in dependency: ${resolvedPath}`);
+        
+        // Search for function
+        if (isFunctionCall) {
+            const functions = findFunctionDefinitions(resolvedPath);
+            const funcDef = functions.find(f => f.name === symbolName);
+            if (funcDef) {
+                connection.console.log(`[Definition] Found function "${symbolName}" in ${resolvedPath} at line ${funcDef.line}`);
+                const uri = pathToFileURL(funcDef.filePath).href;
+                return Location.create(uri, {
+                    start: { line: funcDef.line - 1, character: funcDef.column },
+                    end: { line: funcDef.line - 1, character: funcDef.column + funcDef.name.length }
+                });
+            }
+        }
+        
+        // Search for global variable
+        const globals = findGlobalVariables(resolvedPath);
+        const globalVar = globals.find(v => v.name === symbolName);
+        if (globalVar) {
+            connection.console.log(`[Definition] Found global variable "${symbolName}" in ${resolvedPath} at line ${globalVar.line}`);
+            const uri = pathToFileURL(globalVar.filePath).href;
+            return Location.create(uri, {
+                start: { line: globalVar.line - 1, character: globalVar.column },
+                end: { line: globalVar.line - 1, character: globalVar.column + globalVar.name.length }
+            });
+        }
+    }
+    
+    return null;
+}
+
+documents.listen(connection);
+connection.listen();

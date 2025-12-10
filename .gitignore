@@ -3,9 +3,20 @@ node_modules/
 
 # Build output
 dist/
+out/
+bin/
+
+# TypeScript compilation
+*.js.map
+language-server/src/*.js
+language-server/src/*.js.map
 
 # IDE
 .vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
@@ -24,7 +35,23 @@ yarn-error.log*
 
 # Testing
 coverage/
+.vscode-test/
 
 # Temporary files
 *.tmp
 .cache/
+
+# Python (for tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+
+# Package files
+*.vsix
+

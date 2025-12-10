@@ -1,35 +1,169 @@
 {
-  "name": "winccoa-vscode-extension",
-  "displayName": "WinCC OA Tools (template)",
-  "publisher": "winccoa-tools-pack",
+  "name": "winccoa-ctrllang",
+  "displayName": "WinCC OA CTRL Language Support",
+  "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
+  "publisher": "RichardJanisch",
   "version": "0.1.0",
   "author": "winccoa-tools-pack",
-  "license": "MIT",
+  "license": "GNU General Public License v3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang"
+  },
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.105.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages"
   ],
-  "activationEvents": [],
-  "main": "dist/extension.js",
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "ctrl",
+        "aliases": [
+          "WinCC OA Control",
+          "ctrl"
+        ],
+        "extensions": [
+          ".ctl",
+          ".ctrl"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "ctrlpp",
+        "aliases": [
+          "WinCC OA Control++",
+          "ctrl++"
+        ],
+        "extensions": [
+          ".ctlpp",
+          ".ctrlpp"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ctrl",
+        "scopeName": "source.ctrl",
+        "path": "./syntaxes/ctrl.tmLanguage.json"
+      },
+      {
+        "language": "ctrlpp",
+        "scopeName": "source.ctrlpp",
+        "path": "./syntaxes/ctrlpp.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "winccoa.openDocumentation",
+        "title": "Open Documentation for CTRL Function",
+        "category": "WinCC OA"
+      },
+      {
+        "command": "winccoa.formatDocument",
+        "title": "Format Document with Astyle",
+        "category": "WinCC OA"
+      },
+      {
+        "command": "winccoa.runSyntaxCheck",
+        "title": "Run WinCC OA Syntax Check",
+        "category": "WinCC OA"
+      }
+    ],
+    "configuration": {
+      "title": "WinCC OA CTRL Language",
+      "properties": {
+        "winccoa.ctrlLang.pathSource": {
+          "type": "string",
+          "enum": ["workspace", "manual"],
+          "default": "workspace",
+          "description": "How to resolve WinCC OA project paths",
+          "enumDescriptions": [
+            "Auto-detect from workspace (searches for config/config file in all workspace folders)",
+            "Manual configuration (specify paths below)"
+          ]
+        },
+        "winccoa.ctrlLang.projectPath": {
+          "type": "string",
+          "default": "",
+          "description": "Main WinCC OA project path (only used when pathSource is 'manual')"
+        },
+        "winccoa.ctrlLang.installPath": {
+          "type": "string",
+          "default": "",
+          "description": "WinCC OA installation path (only used when pathSource is 'manual')"
+        },
+        "winccoa.ctrlLang.subProjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of subproject paths (only used when pathSource is 'manual')"
+        },
+        "winccoa.ctrlLang.additionalScriptsPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional scripts folders to search in (only used when pathSource is 'manual')"
+        },
+        "winccoa.astyleFormatter.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Astyle code formatting for .ctl/.ctrlpp files"
+        },
+        "winccoa.astyleFormatter.runOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically format files when saving"
+        },
+        "winccoa.syntaxCheck.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable WinCC OA native syntax checking"
+        },
+        "winccoa.syntaxCheck.executeOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run syntax check automatically when saving .ctl/.ctrlpp files"
+        }
+      }
+    }
+  },
   "scripts": {
-    "build": "tsc --build",
-    "compile": "tsc --build",
-    "lint": "echo \"Lint passed\"",
-    "test": "node ./dist/test/runTest.js",
-    "watch": "tsc --build --watch",
+    "vscode:prepublish": "npm run compile",
+    "compile": "npm run build:functions && tsc -p ./ && cd language-server && tsc -p ./",
+    "build": "npm run compile",
+    "build:functions": "ts-node tools/scripts/build-functions.ts",
+    "watch": "tsc -watch -p ./",
+    "watch:server": "cd language-server && tsc -watch -p ./",
     "package": "vsce package",
-    "vscode:prepublish": "npm run compile"
+    "lint": "echo \"Lint passed\"",
+    "test": "node ./dist/test/runTest.js"
   },
   "devDependencies": {
-    "typescript": "^5.2.0",
-    "@types/vscode": "^1.80.0",
     "@types/node": "^24.10.1",
-    "@types/mocha": "^10.0.6",
+    "@types/vscode": "^1.105.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
     "@vscode/vsce": "^3.7.1",
     "@vscode/test-electron": "^2.3.9",
+    "eslint": "^9.36.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "@types/mocha": "^10.0.6",
     "mocha": "^11.7.5",
     "glob": "^13.0.0"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.0",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
   }
 }
