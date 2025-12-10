@@ -1,0 +1,127 @@
+// CTRL++ Test Script
+// Tests C++-like features in CTRL++
+
+#uses "CtrlOOUtils"
+
+// Test class definition
+class TestClass
+{
+  private:
+    int m_value;
+    string m_name;
+    
+  public:
+    // Constructor
+    TestClass(string name, int value)
+    {
+      m_name = name;
+      m_value = value;
+    }
+    
+    // Destructor
+    ~TestClass()
+    {
+      DebugN("Destroying:", m_name);
+    }
+    
+    // Getter methods
+    int getValue()
+    {
+      return m_value;
+    }
+    
+    string getName()
+    {
+      return m_name;
+    }
+    
+    // Setter methods
+    void setValue(int value)
+    {
+      m_value = value;
+    }
+    
+    void setName(string name)
+    {
+      m_name = name;
+    }
+    
+    // Method with logic
+    void increment()
+    {
+      m_value++;
+    }
+    
+    void printInfo()
+    {
+      DebugN("Object:", m_name, "Value:", m_value);
+    }
+};
+
+// Test inheritance
+class DerivedClass : public TestClass
+{
+  private:
+    float m_factor;
+    
+  public:
+    DerivedClass(string name, int value, float factor) : TestClass(name, value)
+    {
+      m_factor = factor;
+    }
+    
+    float getScaledValue()
+    {
+      return getValue() * m_factor;
+    }
+    
+    void printInfo() override
+    {
+      DebugN("Derived:", getName(), "Value:", getValue(), "Factor:", m_factor);
+    }
+};
+
+// Main function
+main()
+{
+  // Test object creation
+  TestClass obj("TestObject", 100);
+  obj.printInfo();
+  
+  // Test method calls
+  obj.increment();
+  obj.setValue(200);
+  int val = obj.getValue();
+  
+  DebugN("New value:", val);
+  
+  // Test derived class
+  DerivedClass derived("DerivedObject", 50, 1.5);
+  derived.printInfo();
+  float scaled = derived.getScaledValue();
+  
+  DebugN("Scaled value:", scaled);
+  
+  // Test dynamic object creation
+  TestClass* pObj = new TestClass("DynamicObject", 42);
+  pObj->printInfo();
+  pObj->increment();
+  delete pObj;
+  
+  // Test arrays of objects
+  dyn_shared_ptr<TestClass> objects;
+  
+  for (int i = 0; i < 5; i++)
+  {
+    shared_ptr<TestClass> obj = makeShared<TestClass>("Object" + i, i * 10);
+    dynAppend(objects, obj);
+  }
+  
+  // Iterate through objects
+  for (int i = 1; i <= dynlen(objects); i++)
+  {
+    objects[i]->printInfo();
+  }
+  
+  DebugN("CTRL++ tests completed");
+}

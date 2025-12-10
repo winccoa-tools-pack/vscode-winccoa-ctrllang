@@ -7,10 +7,12 @@ VS Code extension providing comprehensive language support for WinCC OA CTRL and
 ## Features
 
 - **Syntax Highlighting** - Full syntax highlighting for `.ctl`, `.ctlpp` files
-- **IntelliSense** - Code completion for WinCC OA built-in functions
 - **Goto Definition** - Navigate to function definitions and `#uses` libraries
 - **Hover Information** - Documentation for built-in functions
 - **Open Documentation** - Quick access to online WinCC OA documentation
+- **Astyle Formatter** - todo:
+- **Ctrlpp Check** - todo:
+- 
 
 ## Usage
 

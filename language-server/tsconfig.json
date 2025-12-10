@@ -3,7 +3,7 @@
     "module": "Node16",
     "target": "ES2022",
     "lib": ["ES2022"],
-    "outDir": "dist",
+    "outDir": "../dist/language-server",
     "rootDir": "src",
     "sourceMap": true,
     "strict": true,
@@ -13,5 +13,5 @@
     "moduleResolution": "Node16"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "language-server", "dist", "tools"]
+  "exclude": ["node_modules"]
 }
