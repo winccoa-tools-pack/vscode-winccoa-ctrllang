@@ -3,6 +3,7 @@
 # Variables
 BIN_DIR := bin
 EXTENSION_NAME := winccoa-ctrllang
+VERSION := $(shell node -p "require('./package.json').version")
 NPM := npm
 VSCE := npx vsce
 
@@ -32,8 +33,8 @@ build:
 package: build
 	@echo "Packaging extension..."
 	@mkdir -p $(BIN_DIR)
-	@$(VSCE) package --out $(BIN_DIR)/$(EXTENSION_NAME).vsix
-	@echo "Extension packaged to $(BIN_DIR)/$(EXTENSION_NAME).vsix"
+	@$(VSCE) package --out $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix
+	@echo "Extension packaged to $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix"
 
 # Quick build without cleaning
 quick: build package
