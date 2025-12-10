@@ -17,7 +17,7 @@
 ## ✨ Features
 
 ### 🎨 Syntax Highlighting
-Full syntax highlighting for `.ctl`, `.ctrl`, `.ctlpp`, and `.ctrlpp` files with support for 983 WinCC OA built-in functions.
+Full syntax highlighting for `.ctl` and `.ctlpp`, files with support for WinCC OA built-in functions.
 
 ### 🧠 IntelliSense
 - **Auto-completion** for WinCC OA built-in functions
