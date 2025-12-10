@@ -147,7 +147,7 @@
     "test": "node ./dist/test/runTest.js"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.10.2",
     "@types/vscode": "^1.105.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
