@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 let outputChannel: vscode.OutputChannel | undefined;
 
 export class ExtensionOutputChannel {
-    private static instance: vscode.OutputChannel;
+    public static instance: vscode.OutputChannel;
 
     public static initialize(): vscode.OutputChannel {
         if (!ExtensionOutputChannel.instance) {
