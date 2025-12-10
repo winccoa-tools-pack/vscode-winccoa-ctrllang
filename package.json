@@ -83,19 +83,13 @@
       "properties": {
         "winccoa.ctrlLang.pathSource": {
           "type": "string",
-          "enum": ["api", "workspace", "manual"],
+          "enum": ["workspace", "manual"],
           "default": "workspace",
           "description": "How to resolve WinCC OA project paths",
           "enumDescriptions": [
-            "Use WinCC OA Manager API (requires running API server)",
-            "Auto-detect from workspace (searches for config/config file)",
+            "Auto-detect from workspace (searches for config/config file in all workspace folders)",
             "Manual configuration (specify paths below)"
           ]
-        },
-        "winccoa.ctrlLang.apiUrl": {
-          "type": "string",
-          "default": "http://localhost:3000/api/getProjectInfo",
-          "description": "API URL for project info (only used when pathSource is 'api')"
         },
         "winccoa.ctrlLang.projectPath": {
           "type": "string",

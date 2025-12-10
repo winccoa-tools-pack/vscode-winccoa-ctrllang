@@ -11,7 +11,7 @@ export interface ProjectPaths {
     scriptsPaths: string[];  // All resolved scripts folders
 }
 
-export type PathSourceMode = 'api' | 'workspace' | 'manual';
+export type PathSourceMode = 'workspace' | 'manual';
 
 export class ProjectPathResolver {
     private static instance: ProjectPathResolver;
@@ -34,8 +34,6 @@ export class ProjectPathResolver {
         ExtensionOutputChannel.info(`Path resolution mode: ${mode}`);
 
         switch (mode) {
-            case 'api':
-                return await this.getPathsFromApi();
             case 'workspace':
                 return await this.getPathsFromWorkspace();
             case 'manual':
@@ -47,82 +45,8 @@ export class ProjectPathResolver {
     }
 
     /**
-     * Mode 1: Get paths from WinCC OA Manager API
-     */
-    private async getPathsFromApi(): Promise<ProjectPaths | null> {
-        const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
-        const apiUrl = config.get<string>('apiUrl', 'http://localhost:3000/api/getProjectInfo');
-
-        ExtensionOutputChannel.info(`Fetching project info from API: ${apiUrl}`);
-
-        try {
-            const http = await import('http');
-            const https = await import('https');
-            const protocol = apiUrl.startsWith('https') ? https : http;
-
-            return new Promise((resolve) => {
-                const req = protocol.get(apiUrl, (res) => {
-                    let data = '';
-                    res.on('data', chunk => data += chunk);
-                    res.on('end', () => {
-                        try {
-                            ExtensionOutputChannel.debug(`API response: ${data}`);
-                            const response = JSON.parse(data);
-                            const info = response.projectInfo || response;
-
-                            // Extract subProjects paths from array of objects {name, path}
-                            let subProjectPaths: string[] = [];
-                            if (info.subProjects && Array.isArray(info.subProjects)) {
-                                subProjectPaths = info.subProjects.map((sp: any) => sp.path || sp);
-                            }
-
-                            // Fallback: If subProjects is empty but config file exists, parse it
-                            if (subProjectPaths.length === 0 && info.configPath) {
-                                ExtensionOutputChannel.info('SubProjects empty, parsing config file...');
-                                subProjectPaths = this.parseSubProjectsFromConfig(info.configPath, info.projectPath);
-                            }
-
-                            const paths: ProjectPaths = {
-                                projectPath: this.normalizePath(info.projectPath || ''),
-                                installPath: this.normalizePath(info.installPath || ''),
-                                subProjects: subProjectPaths.map(p => this.normalizePath(p)),
-                                scriptsPaths: this.buildScriptsPaths({
-                                    projectPath: this.normalizePath(info.projectPath || ''),
-                                    installPath: this.normalizePath(info.installPath || ''),
-                                    subProjects: subProjectPaths.map(p => this.normalizePath(p)),
-                                    scriptsPaths: []
-                                })
-                            };
-
-                            ExtensionOutputChannel.success('Project paths loaded from API');
-                            this.cachedPaths = paths;
-                            resolve(paths);
-                        } catch (err) {
-                            ExtensionOutputChannel.error(`Failed to parse API response: ${err}`);
-                            resolve(null);
-                        }
-                    });
-                });
-
-                req.on('error', (err) => {
-                    ExtensionOutputChannel.error(`API request failed: ${err}`);
-                    resolve(null);
-                });
-
-                req.setTimeout(5000, () => {
-                    ExtensionOutputChannel.warn('API request timeout');
-                    req.destroy();
-                    resolve(null);
-                });
-            });
-        } catch (err) {
-            ExtensionOutputChannel.error(`API error: ${err}`);
-            return null;
-        }
-    }
-
-    /**
-     * Mode 2: Get paths from workspace (auto-detect WinCC OA project structure)
+     * Get paths from workspace (auto-detect WinCC OA project structure)
+     * Searches all workspace folders for config/config file
      */
     private async getPathsFromWorkspace(): Promise<ProjectPaths | null> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -131,43 +55,58 @@ export class ProjectPathResolver {
             return null;
         }
 
-        // Try to find WinCC OA project in workspace
+        ExtensionOutputChannel.info(`Searching for WinCC OA project in ${workspaceFolders.length} workspace folder(s)...`);
+
+        // Try to find WinCC OA project in all workspace folders
         for (const folder of workspaceFolders) {
             const folderPath = folder.uri.fsPath;
             const configPath = path.join(folderPath, 'config', 'config');
             
-            ExtensionOutputChannel.debug(`Checking for config: ${configPath}`);
+            ExtensionOutputChannel.debug(`Checking folder: ${folderPath}`);
+            ExtensionOutputChannel.debug(`  Looking for: ${configPath}`);
 
-            if (fs.existsSync(configPath)) {
-                ExtensionOutputChannel.info(`Found WinCC OA project at: ${folderPath}`);
-                
-                const subProjects = this.parseSubProjectsFromConfig(configPath, folderPath);
-                const installPath = this.detectInstallPath(configPath);
+            try {
+                if (fs.existsSync(configPath)) {
+                    ExtensionOutputChannel.success(`✓ Found WinCC OA project at: ${folderPath}`);
+                    ExtensionOutputChannel.info(`  Config file: ${configPath}`);
+                    
+                    const subProjects = this.parseSubProjectsFromConfig(configPath, folderPath);
+                    const installPath = this.detectInstallPath(configPath);
 
-                const paths: ProjectPaths = {
-                    projectPath: this.normalizePath(folderPath),
-                    installPath: this.normalizePath(installPath),
-                    subProjects: subProjects.map(p => this.normalizePath(p)),
-                    scriptsPaths: this.buildScriptsPaths({
+                    const paths: ProjectPaths = {
                         projectPath: this.normalizePath(folderPath),
                         installPath: this.normalizePath(installPath),
                         subProjects: subProjects.map(p => this.normalizePath(p)),
-                        scriptsPaths: []
-                    })
-                };
+                        scriptsPaths: this.buildScriptsPaths({
+                            projectPath: this.normalizePath(folderPath),
+                            installPath: this.normalizePath(installPath),
+                            subProjects: subProjects.map(p => this.normalizePath(p)),
+                            scriptsPaths: []
+                        })
+                    };
 
-                ExtensionOutputChannel.success('Project paths detected from workspace');
-                this.cachedPaths = paths;
-                return paths;
+                    ExtensionOutputChannel.success('Project paths detected from workspace');
+                    ExtensionOutputChannel.info(`  Main project: ${paths.projectPath}`);
+                    ExtensionOutputChannel.info(`  Install path: ${paths.installPath}`);
+                    ExtensionOutputChannel.info(`  Subprojects: ${paths.subProjects.length}`);
+                    ExtensionOutputChannel.info(`  Scripts paths: ${paths.scriptsPaths.length}`);
+                    
+                    this.cachedPaths = paths;
+                    return paths;
+                } else {
+                    ExtensionOutputChannel.debug(`  ✗ No config/config found in ${folderPath}`);
+                }
+            } catch (error) {
+                ExtensionOutputChannel.error(`Error checking folder ${folderPath}: ${error}`);
             }
         }
 
-        ExtensionOutputChannel.warn('No WinCC OA project found in workspace');
+        ExtensionOutputChannel.warn('No WinCC OA project (config/config) found in any workspace folder');
         return null;
     }
 
     /**
-     * Mode 3: Get paths from manual configuration
+     * Get paths from manual configuration
      */
     private getPathsFromConfig(): ProjectPaths | null {
         const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
