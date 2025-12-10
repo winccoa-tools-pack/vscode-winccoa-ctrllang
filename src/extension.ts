@@ -8,12 +8,14 @@ import {
 } from 'vscode-languageclient/node';
 import { ExtensionOutputChannel } from './extensionOutput';
 import { ProjectPathResolver } from './services/projectPathResolver';
-import { CtrlppCheckService } from './services/ctrlppCheckService';
+// TODO: CtrlppCheck feature will be completed in a future release
+// import { CtrlppCheckService } from './services/ctrlppCheckService';
 import { AstyleFormatterService } from './services/astyleFormatterService';
 import { WinccoaSyntaxCheckService } from './services/winccoaSyntaxCheckService';
 
 let client: LanguageClient;
-let ctrlppCheckService: CtrlppCheckService;
+// TODO: CtrlppCheck feature will be completed in a future release
+// let ctrlppCheckService: CtrlppCheckService;
 let astyleFormatterService: AstyleFormatterService;
 let syntaxCheckService: WinccoaSyntaxCheckService;
 
@@ -24,10 +26,11 @@ export function activate(context: vscode.ExtensionContext) {
 	ExtensionOutputChannel.info('WinCC OA CTRL Language Support is now active!');
 	ExtensionOutputChannel.info('Extension Path: ' + context.extensionPath);
 
-	// Initialize CtrlppCheck Service
-	ctrlppCheckService = new CtrlppCheckService(extensionOutput);
-	context.subscriptions.push(ctrlppCheckService);
-	ExtensionOutputChannel.info('CtrlppCheck Service initialized');
+	// TODO: CtrlppCheck feature will be completed in a future release
+	// // Initialize CtrlppCheck Service
+	// ctrlppCheckService = new CtrlppCheckService(extensionOutput);
+	// context.subscriptions.push(ctrlppCheckService);
+	// ExtensionOutputChannel.info('CtrlppCheck Service initialized');
 
 	// Initialize Astyle Formatter Service
 	astyleFormatterService = new AstyleFormatterService(extensionOutput);
@@ -68,43 +71,47 @@ export function activate(context: vscode.ExtensionContext) {
 				await syntaxCheckService.checkFile(document);
 			}
 
-			// Finally run CtrlppCheck (if enabled)
-			const ctrlppCheckConfig = vscode.workspace.getConfiguration('winccoa.ctrlppCheck');
-			const ctrlppCheckRunOnSave = ctrlppCheckConfig.get<boolean>('runOnSave', true);
-			
-			if (ctrlppCheckRunOnSave) {
-				ExtensionOutputChannel.info(`Running CtrlppCheck on save: ${document.fileName}`);
-				await ctrlppCheckService.checkFile(document);
-			}
+			// TODO: CtrlppCheck feature will be completed in a future release
+			// // Finally run CtrlppCheck (if enabled)
+			// const ctrlppCheckConfig = vscode.workspace.getConfiguration('winccoa.ctrlppCheck');
+			// const ctrlppCheckRunOnSave = ctrlppCheckConfig.get<boolean>('runOnSave', true);
+			// 
+			// if (ctrlppCheckRunOnSave) {
+			// 	ExtensionOutputChannel.info(`Running CtrlppCheck on save: ${document.fileName}`);
+			// 	await ctrlppCheckService.checkFile(document);
+			// }
 		})
 	);
 
-	// Setup CtrlppCheck on open
-	context.subscriptions.push(
-		vscode.workspace.onDidOpenTextDocument(async (document) => {
-			if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
-				ExtensionOutputChannel.info(`Running CtrlppCheck on open: ${document.fileName}`);
-				await ctrlppCheckService.checkFile(document);
-			}
-		})
-	);
+	// TODO: CtrlppCheck feature will be completed in a future release
+	// // Setup CtrlppCheck on open
+	// context.subscriptions.push(
+	// 	vscode.workspace.onDidOpenTextDocument(async (document) => {
+	// 		if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
+	// 			ExtensionOutputChannel.info(`Running CtrlppCheck on open: ${document.fileName}`);
+	// 			await ctrlppCheckService.checkFile(document);
+	// 		}
+	// 	})
+	// );
 
-	// Check already open documents
-	vscode.workspace.textDocuments.forEach(async (document) => {
-		if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
-			ExtensionOutputChannel.info(`Running CtrlppCheck on already open: ${document.fileName}`);
-			await ctrlppCheckService.checkFile(document);
-		}
-	});
+	// TODO: CtrlppCheck feature will be completed in a future release
+	// // Check already open documents
+	// vscode.workspace.textDocuments.forEach(async (document) => {
+	// 	if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
+	// 		ExtensionOutputChannel.info(`Running CtrlppCheck on already open: ${document.fileName}`);
+	// 		await ctrlppCheckService.checkFile(document);
+	// 	}
+	// });
 
-	// Clear diagnostics when file is closed
-	context.subscriptions.push(
-		vscode.workspace.onDidCloseTextDocument((document) => {
-			if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
-				ctrlppCheckService.clearDiagnostics(document.uri);
-			}
-		})
-	);
+	// TODO: CtrlppCheck feature will be completed in a future release
+	// // Clear diagnostics when file is closed
+	// context.subscriptions.push(
+	// 	vscode.workspace.onDidCloseTextDocument((document) => {
+	// 		if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
+	// 			ctrlppCheckService.clearDiagnostics(document.uri);
+	// 		}
+	// 	})
+	// );
 
 	// Watch for configuration changes
 	context.subscriptions.push(
@@ -114,37 +121,39 @@ export function activate(context: vscode.ExtensionContext) {
 				ProjectPathResolver.getInstance().clearCache();
 			}
 			
-			if (e.affectsConfiguration('winccoa.ctrlppCheck')) {
-				ExtensionOutputChannel.info('CtrlppCheck configuration changed, re-checking open files');
-				// Re-check all open ctrl files
-				vscode.workspace.textDocuments.forEach(async (document) => {
-					if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
-						await ctrlppCheckService.checkFile(document);
-					}
-				});
-			}
+			// TODO: CtrlppCheck feature will be completed in a future release
+			// if (e.affectsConfiguration('winccoa.ctrlppCheck')) {
+			// 	ExtensionOutputChannel.info('CtrlppCheck configuration changed, re-checking open files');
+			// 	// Re-check all open ctrl files
+			// 	vscode.workspace.textDocuments.forEach(async (document) => {
+			// 		if (document.languageId === 'ctrl' || document.languageId === 'ctrlpp') {
+			// 			await ctrlppCheckService.checkFile(document);
+			// 		}
+			// 	});
+			// }
 		})
 	);
 
-	// Register manual check command
-	context.subscriptions.push(
-		vscode.commands.registerCommand('winccoa.runCtrlppCheck', async () => {
-			const editor = vscode.window.activeTextEditor;
-			if (!editor) {
-				vscode.window.showErrorMessage('No active editor');
-				return;
-			}
-			
-			if (editor.document.languageId !== 'ctrl' && editor.document.languageId !== 'ctrlpp') {
-				vscode.window.showErrorMessage('Current file is not a Ctrl or Ctrl++ file');
-				return;
-			}
-
-			ExtensionOutputChannel.info(`Manual CtrlppCheck run: ${editor.document.fileName}`);
-			await ctrlppCheckService.checkFile(editor.document);
-			vscode.window.showInformationMessage('CtrlppCheck analysis complete');
-		})
-	);
+	// TODO: CtrlppCheck feature will be completed in a future release
+	// // Register manual check command
+	// context.subscriptions.push(
+	// 	vscode.commands.registerCommand('winccoa.runCtrlppCheck', async () => {
+	// 		const editor = vscode.window.activeTextEditor;
+	// 		if (!editor) {
+	// 			vscode.window.showErrorMessage('No active editor');
+	// 			return;
+	// 		}
+	// 		
+	// 		if (editor.document.languageId !== 'ctrl' && editor.document.languageId !== 'ctrlpp') {
+	// 			vscode.window.showErrorMessage('Current file is not a Ctrl or Ctrl++ file');
+	// 			return;
+	// 		}
+	//
+	// 		ExtensionOutputChannel.info(`Manual CtrlppCheck run: ${editor.document.fileName}`);
+	// 		await ctrlppCheckService.checkFile(editor.document);
+	// 		vscode.window.showInformationMessage('CtrlppCheck analysis complete');
+	// 	})
+	// );
 
 	// Register manual format command
 	context.subscriptions.push(

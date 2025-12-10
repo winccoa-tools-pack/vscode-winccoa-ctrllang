@@ -63,11 +63,6 @@
         "category": "WinCC OA"
       },
       {
-        "command": "winccoa.runCtrlppCheck",
-        "title": "Run CtrlppCheck on Current File",
-        "category": "WinCC OA"
-      },
-      {
         "command": "winccoa.formatDocument",
         "title": "Format Document with Astyle",
         "category": "WinCC OA"
@@ -116,34 +111,6 @@
           },
           "default": [],
           "description": "Additional scripts folders to search in (only used when pathSource is 'manual')"
-        },
-        "winccoa.ctrlppCheck.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable CtrlppCheck static code analysis"
-        },
-        "winccoa.ctrlppCheck.binaryPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the ctrlppcheck binary executable. Leave empty to disable CtrlppCheck."
-        },
-        "winccoa.ctrlppCheck.projectName": {
-          "type": "string",
-          "default": "DevEnv",
-          "description": "WinCC OA project name to pass to ctrlppcheck (--winccoa-projectName)"
-        },
-        "winccoa.ctrlppCheck.runOnSave": {
-          "type": "boolean",
-          "default": true,
-          "description": "Run CtrlppCheck automatically when saving .ctl/.ctrlpp files"
-        },
-        "winccoa.ctrlppCheck.additionalArgs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Additional command line arguments to pass to ctrlppcheck"
         },
         "winccoa.astyleFormatter.enabled": {
           "type": "boolean",
