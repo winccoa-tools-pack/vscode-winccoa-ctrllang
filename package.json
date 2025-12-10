@@ -16,6 +16,10 @@
   "categories": [
     "Programming Languages"
   ],
+  "activationEvents": [
+    "onLanguage:ctrl",
+    "onLanguage:ctrlpp"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
