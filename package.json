@@ -114,22 +114,22 @@
         },
         "winccoa.astyleFormatter.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable Astyle code formatting for .ctl/.ctrlpp files"
         },
         "winccoa.astyleFormatter.runOnSave": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Automatically format files when saving"
         },
         "winccoa.syntaxCheck.enabled": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable WinCC OA native syntax checking"
         },
         "winccoa.syntaxCheck.executeOnSave": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Run syntax check automatically when saving .ctl/.ctrlpp files"
         }
       }
