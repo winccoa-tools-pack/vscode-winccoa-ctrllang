@@ -18,6 +18,7 @@
     "Programming Languages"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onLanguage:ctrl",
     "onLanguage:ctrlpp"
   ],

@@ -3,6 +3,7 @@ import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ProjectPathResolver } from './projectPathResolver';
+import { ExtensionOutputChannel } from '../extensionOutput';
 
 export class AstyleFormatterService {
     private outputChannel: vscode.OutputChannel;
@@ -16,6 +17,7 @@ export class AstyleFormatterService {
         
         // Check if formatter is enabled
         if (!config.get<boolean>('enabled', true)) {
+            ExtensionOutputChannel.trace('Formatter', 'Astyle formatter disabled in settings');
             return false;
         }
 
@@ -25,22 +27,23 @@ export class AstyleFormatterService {
         }
 
         const filePath = document.uri.fsPath;
-        this.outputChannel.appendLine(`Astyle: Formatting file ${filePath}`);
+        ExtensionOutputChannel.debug('Formatter', `Formatting file: ${path.basename(filePath)}`);
 
         try {
             const { astylePath, configPath } = await this.resolveAstylePaths();
             
             if (!astylePath || !configPath) {
-                this.outputChannel.appendLine('Astyle: Could not resolve astyle binary or config path');
+                ExtensionOutputChannel.error('Formatter', 'Could not resolve astyle binary or config path');
                 return false;
             }
 
             await this.runAstyle(astylePath, configPath, filePath);
-            this.outputChannel.appendLine(`Astyle: Successfully formatted ${filePath}`);
+            ExtensionOutputChannel.debug('Formatter', `Successfully formatted: ${path.basename(filePath)}`);
             return true;
 
         } catch (error) {
-            this.outputChannel.appendLine(`Astyle: Error formatting file: ${error}`);
+            const err = error as Error;
+            ExtensionOutputChannel.error('Formatter', `Error formatting file: ${err.message}`, err);
             return false;
         }
     }
@@ -50,7 +53,7 @@ export class AstyleFormatterService {
         const projectPaths = await resolver.getProjectPaths();
 
         if (!projectPaths || !projectPaths.installPath) {
-            this.outputChannel.appendLine('Astyle: WinCC OA installation path not found');
+            ExtensionOutputChannel.warn('Formatter', 'WinCC OA installation path not found');
             return { astylePath: null, configPath: null };
         }
 
@@ -64,19 +67,19 @@ export class AstyleFormatterService {
 
         // Verify paths exist
         if (!fs.existsSync(astylePath)) {
-            this.outputChannel.appendLine(`Astyle: Binary not found at: ${astylePath}`);
+            ExtensionOutputChannel.error('Formatter', `Binary not found: ${astylePath}`);
             vscode.window.showWarningMessage(`Astyle binary not found at: ${astylePath}`);
             return { astylePath: null, configPath: null };
         }
 
         if (!fs.existsSync(configPath)) {
-            this.outputChannel.appendLine(`Astyle: Config file not found at: ${configPath}`);
+            ExtensionOutputChannel.error('Formatter', `Config file not found: ${configPath}`);
             vscode.window.showWarningMessage(`Astyle config not found at: ${configPath}`);
             return { astylePath: null, configPath: null };
         }
 
-        this.outputChannel.appendLine(`Astyle: Using binary: ${astylePath}`);
-        this.outputChannel.appendLine(`Astyle: Using config: ${configPath}`);
+        ExtensionOutputChannel.trace('Formatter', `Using binary: ${astylePath}`);
+        ExtensionOutputChannel.trace('Formatter', `Using config: ${configPath}`);
 
         return { astylePath, configPath };
     }
@@ -88,7 +91,7 @@ export class AstyleFormatterService {
             filePath
         ];
 
-        this.outputChannel.appendLine(`Astyle: Running: ${astylePath} ${args.join(' ')}`);
+        ExtensionOutputChannel.trace('Formatter', `Command: ${astylePath} ${args.join(' ')}`);
 
         return new Promise((resolve, reject) => {
             const process = cp.spawn(astylePath, args);
@@ -105,22 +108,22 @@ export class AstyleFormatterService {
 
             process.on('close', (code) => {
                 if (stdout) {
-                    this.outputChannel.appendLine(`Astyle stdout: ${stdout}`);
+                    ExtensionOutputChannel.trace('Formatter', `Output: ${stdout.trim()}`);
                 }
                 if (stderr) {
-                    this.outputChannel.appendLine(`Astyle stderr: ${stderr}`);
+                    ExtensionOutputChannel.warn('Formatter', `Stderr: ${stderr.trim()}`);
                 }
 
                 if (code === 0) {
                     resolve();
                 } else {
-                    this.outputChannel.appendLine(`Astyle: Process exited with code ${code}`);
+                    ExtensionOutputChannel.error('Formatter', `Process exited with code ${code}`);
                     reject(new Error(`Astyle exited with code ${code}`));
                 }
             });
 
             process.on('error', (error) => {
-                this.outputChannel.appendLine(`Astyle: Failed to start process: ${error.message}`);
+                ExtensionOutputChannel.error('Formatter', `Failed to start process: ${error.message}`, error);
                 reject(error);
             });
         });

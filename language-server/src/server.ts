@@ -225,6 +225,11 @@ async function fetchFromWorkspace(): Promise<ProjectInfo | null> {
         }
 
         connection.console.log('[fetchFromWorkspace] No WinCC OA project found in workspace');
+        connection.window.showWarningMessage(
+            'WinCC OA Language Server: No project detected. ' +
+            'Please open a folder containing a WinCC OA project with config/config file, ' +
+            'or configure project paths manually in settings.'
+        );
         return null;
     } catch (err) {
         connection.console.log('[fetchFromWorkspace] Error: ' + err);
@@ -515,7 +520,11 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
 async function handleUsesDefinition(usesPath: string): Promise<Location | null> {
     const info = await fetchProjectInfo();
     if (!info) {
-        connection.console.log('[Definition] Failed to fetch project info from API');
+        connection.console.log('[Definition] Failed to fetch project info - no WinCC OA project detected');
+        connection.window.showErrorMessage(
+            `WinCC OA: Cannot resolve #uses "${usesPath}" - No project detected. ` +
+            'Open a WinCC OA project folder or configure paths in settings.'
+        );
         return null;
     }
     

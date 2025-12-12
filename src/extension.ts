@@ -25,9 +25,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(extensionOutput);
 	
 	// Log activation
-	ExtensionOutputChannel.info('Extension', 'WinCC OA CTRL Language Support is now active!');
+	ExtensionOutputChannel.info('Extension', '═══════════════════════════════════════════════════════');
+	ExtensionOutputChannel.info('Extension', '  WinCC OA CTRL Language Support - Starting...');
+	ExtensionOutputChannel.info('Extension', '═══════════════════════════════════════════════════════');
 	ExtensionOutputChannel.debug('Extension', `Extension Path: ${context.extensionPath}`);
 	ExtensionOutputChannel.debug('Extension', `VS Code Version: ${vscode.version}`);
+	
+	// Perform startup diagnostics
+	performStartupDiagnostics(context);
 	
 	// Watch for configuration changes
 	context.subscriptions.push(
@@ -319,9 +324,108 @@ function startLanguageServer(context: vscode.ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server client...');
-	ExtensionOutputChannel.trace('LanguageServer', 'Client configuration', clientOptions);
 	client.start();
 	
 	ExtensionOutputChannel.success('LanguageServer', 'WinCC OA Language Server started! 🚀');
 }
 
+async function performStartupDiagnostics(context: vscode.ExtensionContext) {
+	ExtensionOutputChannel.info('Diagnostics', '');
+	ExtensionOutputChannel.info('Diagnostics', '📊 Extension Startup Diagnostics');
+	ExtensionOutputChannel.info('Diagnostics', '─────────────────────────────────────────────────────');
+
+	// 1. Check Workspace
+	const workspaceFolders = vscode.workspace.workspaceFolders;
+	if (!workspaceFolders || workspaceFolders.length === 0) {
+		ExtensionOutputChannel.warn('Diagnostics', '⚠️  No workspace folder opened');
+		ExtensionOutputChannel.info('Diagnostics', '   → Open a folder containing WinCC OA project');
+		vscode.window.showWarningMessage('WinCC OA: No workspace folder opened. Please open a folder containing a WinCC OA project.');
+	} else {
+		ExtensionOutputChannel.info('Diagnostics', `✓ Workspace folders: ${workspaceFolders.length}`);
+		workspaceFolders.forEach((folder, idx) => {
+			ExtensionOutputChannel.debug('Diagnostics', `  [${idx + 1}] ${folder.uri.fsPath}`);
+		});
+	}
+
+	// 2. Check Project Detection
+	ExtensionOutputChannel.info('Diagnostics', '');
+	ExtensionOutputChannel.info('Diagnostics', '🔍 WinCC OA Project Detection');
+	const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
+	const pathSource = config.get<string>('pathSource', 'workspace');
+	ExtensionOutputChannel.info('Diagnostics', `   Path Source Mode: ${pathSource}`);
+
+	try {
+		const projectPaths = await ProjectPathResolver.getInstance().getProjectPaths();
+		if (projectPaths) {
+			ExtensionOutputChannel.success('Diagnostics', '✓ WinCC OA Project detected');
+			ExtensionOutputChannel.info('Diagnostics', `   Project Path: ${projectPaths.projectPath}`);
+			ExtensionOutputChannel.info('Diagnostics', `   Install Path: ${projectPaths.installPath}`);
+			ExtensionOutputChannel.info('Diagnostics', `   Subprojects: ${projectPaths.subProjects.length}`);
+			ExtensionOutputChannel.info('Diagnostics', `   Scripts Paths: ${projectPaths.scriptsPaths.length}`);
+			ExtensionOutputChannel.trace('Diagnostics', '   Full project paths', projectPaths);
+		} else {
+			ExtensionOutputChannel.warn('Diagnostics', '⚠️  No WinCC OA Project detected');
+			if (pathSource === 'workspace') {
+				ExtensionOutputChannel.info('Diagnostics', '   → No config/config file found in workspace');
+				ExtensionOutputChannel.info('Diagnostics', '   → Open a WinCC OA project folder or configure manually');
+				vscode.window.showWarningMessage(
+					'WinCC OA: No project detected. Open a folder with config/config or set manual paths in settings.',
+					'Open Settings'
+				).then(selection => {
+					if (selection === 'Open Settings') {
+						vscode.commands.executeCommand('workbench.action.openSettings', 'winccoa.ctrlLang');
+					}
+				});
+			} else {
+				ExtensionOutputChannel.warn('Diagnostics', '   → Manual mode: Check your path configuration');
+				ExtensionOutputChannel.info('Diagnostics', '   → Verify winccoa.ctrlLang.projectPath setting');
+			}
+		}
+	} catch (error) {
+		const err = error as Error;
+		ExtensionOutputChannel.error('Diagnostics', `Error detecting project: ${err.message}`, err);
+	}
+
+	// 3. Check Feature Status
+	ExtensionOutputChannel.info('Diagnostics', '');
+	ExtensionOutputChannel.info('Diagnostics', '⚙️  Feature Status');
+	
+	const formatterConfig = vscode.workspace.getConfiguration('winccoa.astyleFormatter');
+	const formatterEnabled = formatterConfig.get<boolean>('enabled', false);
+	const formatterOnSave = formatterConfig.get<boolean>('runOnSave', false);
+	
+	const syntaxCheckConfig = vscode.workspace.getConfiguration('winccoa.syntaxCheck');
+	const syntaxCheckEnabled = syntaxCheckConfig.get<boolean>('enabled', false);
+	const syntaxCheckOnSave = syntaxCheckConfig.get<boolean>('executeOnSave', false);
+	
+	const logLevel = config.get<string>('logLevel', 'INFO');
+
+	ExtensionOutputChannel.info('Diagnostics', `   Astyle Formatter: ${formatterEnabled ? '✓ Enabled' : '✗ Disabled'}`);
+	if (formatterEnabled) {
+		ExtensionOutputChannel.info('Diagnostics', `      Format on Save: ${formatterOnSave ? 'Yes' : 'No'}`);
+	}
+	
+	ExtensionOutputChannel.info('Diagnostics', `   Syntax Check: ${syntaxCheckEnabled ? '✓ Enabled' : '✗ Disabled'}`);
+	if (syntaxCheckEnabled) {
+		ExtensionOutputChannel.info('Diagnostics', `      Check on Save: ${syntaxCheckOnSave ? 'Yes' : 'No'}`);
+	}
+	
+	ExtensionOutputChannel.info('Diagnostics', `   Log Level: ${logLevel}`);
+
+	// 4. Available Features (always active)
+	ExtensionOutputChannel.info('Diagnostics', '');
+	ExtensionOutputChannel.info('Diagnostics', '✨ Always Active Features');
+	ExtensionOutputChannel.info('Diagnostics', '   ✓ Syntax Highlighting');
+	ExtensionOutputChannel.info('Diagnostics', '   ✓ IntelliSense (983 built-in functions)');
+	ExtensionOutputChannel.info('Diagnostics', '   ✓ Goto Definition (F12)');
+	ExtensionOutputChannel.info('Diagnostics', '   ✓ Find References');
+	ExtensionOutputChannel.info('Diagnostics', '   ✓ Hover Documentation');
+	ExtensionOutputChannel.info('Diagnostics', '   ✓ Function Signatures');
+
+	// 5. Summary
+	ExtensionOutputChannel.info('Diagnostics', '');
+	ExtensionOutputChannel.info('Diagnostics', '─────────────────────────────────────────────────────');
+	ExtensionOutputChannel.success('Diagnostics', '✓ Startup diagnostics complete');
+	ExtensionOutputChannel.info('Diagnostics', '═══════════════════════════════════════════════════════');
+	ExtensionOutputChannel.info('Diagnostics', '');
+}
