@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.1.0.local.1-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
 
@@ -90,6 +90,42 @@ The extension auto-detects your WinCC OA project structure when you open a works
 
 ---
 
+## 🧪 Development & Local Testing
+
+### Quick Local Test Setup
+
+For rapid development and testing without F5 debugging:
+
+```bash
+make test-local
+```
+
+This will:
+1. Build the extension
+2. Package with a local build counter stamp (e.g., `winccoa-ctrllang-0.1.0-local-42.vsix`)
+3. Uninstall existing extension
+4. Install the new local build
+5. Restart VS Code with the test workspace
+
+### Configuration
+
+Customize the test setup with variables:
+
+```bash
+# Use custom test workspace
+make test-local TEST_WORKSPACE=/path/to/your/workspace
+
+# Use VS Code Insiders
+make test-local CODE_BIN=code-insiders
+
+# Combine both
+make test-local TEST_WORKSPACE=../my-project CODE_BIN=code-insiders
+```
+
+**Build Counter**: Stored in `bin/.local_build_counter` - automatically increments with each `make test-local`
+
+---
+
 ## 📜 Disclaimer
 
 WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliated with, endorsed by, or sponsored by Siemens AG. This is a community-driven open source project created to enhance the development experience for WinCC OA developers.
@@ -102,7 +138,59 @@ This project is licensed under the **GNU General Public License v3.0**.
 
 ---
 
-## 🙏 Third-Party Code
+## �️ Development
+
+### Local Testing with Makefile
+
+For local development and testing without F5/Debug mode:
+
+```bash
+make test-local
+```
+
+This will:
+1. Build the extension
+2. Create a VSIX package with local build counter (e.g., `winccoa-ctrllang-0.1.0-local-8.vsix`)
+3. Install the extension in VS Code
+4. Open the test workspace
+
+**Configuration variables:**
+- `TEST_WORKSPACE` - Path to test workspace (default: `./test-scripts`)
+- `CODE_BIN` - VS Code binary (default: `code`, use `code-insiders` for Insiders)
+- `FORCE_CLOSE_VSCODE` - Close all VS Code instances before opening (default: `no`)
+- `SKIP_UNINSTALL` - Skip uninstalling existing extension (default: `yes`)
+
+**Examples:**
+```bash
+# Use different workspace
+make test-local TEST_WORKSPACE=/path/to/my/test/project
+
+# Use VS Code Insiders
+make test-local CODE_BIN=code-insiders
+
+# Force close all VS Code windows (WARNING: closes ALL instances!)
+make test-local FORCE_CLOSE_VSCODE=yes
+```
+
+**Finding the local build number:**
+- VSIX filename in `bin/` folder: `winccoa-ctrllang-0.1.0-local-X.vsix`
+- Counter file: `bin/.local_build_counter`
+- Extension displayName shows `[LOCAL-X]` suffix (requires VS Code restart to see)
+
+**Note:** To see the `[LOCAL-X]` suffix in VS Code Extensions list, you need to **completely restart VS Code** (close all windows and reopen). Alternatively, the build number is always visible in the VSIX filename.
+
+### Other Makefile Targets
+
+```bash
+make build       # Build TypeScript sources
+make package     # Create production .vsix in bin/
+make clean       # Remove build artifacts
+make help        # Show all available targets
+```
+
+---
+
+## �🙏 Third-Party Code
 
 This project includes and is derived from files originating from:
 

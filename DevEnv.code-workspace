@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "../../wincc_proj/DevEnv"
+		},
+		{
+			"path": "../../repos/simaris-control/Src/Code/SIMARIScontrol_EP"
+		},
+		{
+			"path": "../../repos/simaris-control/Src/Code/SIMARIScontrol_RTP"
+		},
+		{
+			"path": "../../repos/simaris-control/Src/Code/SIMARIScontrol_UnitTest"
+		}
+	],
+	"settings": {
+		"workbench.colorCustomizations": {
+			"activityBar.background": "#2F1A77",
+			"titleBar.activeBackground": "#4225A6",
+			"titleBar.activeForeground": "#FAF9FE"
+		}
+	}
+}
