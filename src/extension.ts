@@ -23,8 +23,20 @@ export function activate(context: vscode.ExtensionContext) {
 	// Initialize Extension Output Channel
 	const extensionOutput = ExtensionOutputChannel.initialize();
 	context.subscriptions.push(extensionOutput);
-	ExtensionOutputChannel.info('WinCC OA CTRL Language Support is now active!');
-	ExtensionOutputChannel.info('Extension Path: ' + context.extensionPath);
+	
+	// Log activation
+	ExtensionOutputChannel.info('Extension', 'WinCC OA CTRL Language Support is now active!');
+	ExtensionOutputChannel.debug('Extension', `Extension Path: ${context.extensionPath}`);
+	ExtensionOutputChannel.debug('Extension', `VS Code Version: ${vscode.version}`);
+	
+	// Watch for configuration changes
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration((e) => {
+			if (e.affectsConfiguration('winccoa.ctrlLang.logLevel')) {
+				ExtensionOutputChannel.updateLogLevel();
+			}
+		})
+	);
 
 	// TODO: CtrlppCheck feature will be completed in a future release
 	// // Initialize CtrlppCheck Service
@@ -33,33 +45,40 @@ export function activate(context: vscode.ExtensionContext) {
 	// ExtensionOutputChannel.info('CtrlppCheck Service initialized');
 
 	// Initialize Astyle Formatter Service
+	ExtensionOutputChannel.trace('Extension', 'Initializing Astyle Formatter Service...');
 	astyleFormatterService = new AstyleFormatterService(extensionOutput);
 	context.subscriptions.push(astyleFormatterService);
-	ExtensionOutputChannel.info('Astyle Formatter Service initialized');
+	ExtensionOutputChannel.info('Services', 'Astyle Formatter Service initialized');
 
 	// Initialize WinCC OA Syntax Check Service
+	ExtensionOutputChannel.trace('Extension', 'Initializing WinCC OA Syntax Check Service...');
 	syntaxCheckService = new WinccoaSyntaxCheckService(extensionOutput);
 	context.subscriptions.push(syntaxCheckService);
-	ExtensionOutputChannel.info('WinCC OA Syntax Check Service initialized');
+	ExtensionOutputChannel.info('Services', 'WinCC OA Syntax Check Service initialized');
 
 	// Start the Language Server
-	ExtensionOutputChannel.info('Starting Language Server...');
+	ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server...');
 	startLanguageServer(context);
 
 	// Setup on save handlers
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument(async (document) => {
 			if (document.languageId !== 'ctrl' && document.languageId !== 'ctrlpp') {
+				ExtensionOutputChannel.trace('SaveHandler', `Ignoring non-ctrl file: ${document.fileName}`);
 				return;
 			}
+
+			ExtensionOutputChannel.debug('SaveHandler', `File saved: ${document.fileName}`);
 
 			// Run Astyle formatter first (if enabled)
 			const astyleConfig = vscode.workspace.getConfiguration('winccoa.astyleFormatter');
 			const astyleRunOnSave = astyleConfig.get<boolean>('runOnSave', true);
 			
 			if (astyleRunOnSave) {
-				ExtensionOutputChannel.info(`Running Astyle formatter on save: ${document.fileName}`);
+				ExtensionOutputChannel.info('Formatter', `Running Astyle formatter: ${path.basename(document.fileName)}`);
 				await astyleFormatterService.formatDocument(document);
+			} else {
+				ExtensionOutputChannel.trace('Formatter', 'Astyle formatter disabled (runOnSave=false)');
 			}
 
 			// Then run WinCC OA Syntax Check (if enabled)
@@ -67,8 +86,10 @@ export function activate(context: vscode.ExtensionContext) {
 			const syntaxCheckOnSave = syntaxCheckConfig.get<boolean>('executeOnSave', true);
 			
 			if (syntaxCheckOnSave) {
-				ExtensionOutputChannel.info(`Running WinCC OA Syntax Check on save: ${document.fileName}`);
+				ExtensionOutputChannel.info('SyntaxCheck', `Running WinCC OA Syntax Check: ${path.basename(document.fileName)}`);
 				await syntaxCheckService.checkFile(document);
+			} else {
+				ExtensionOutputChannel.trace('SyntaxCheck', 'WinCC OA Syntax Check disabled (executeOnSave=false)');
 			}
 
 			// TODO: CtrlppCheck feature will be completed in a future release
@@ -117,7 +138,8 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((e) => {
 			if (e.affectsConfiguration('winccoa.ctrlLang')) {
-				ExtensionOutputChannel.info('Configuration changed, clearing project paths cache');
+				ExtensionOutputChannel.info('Configuration', 'Configuration changed, clearing project paths cache');
+				ExtensionOutputChannel.debug('Configuration', `Affected sections: winccoa.ctrlLang`);
 				ProjectPathResolver.getInstance().clearCache();
 			}
 			
@@ -169,7 +191,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			ExtensionOutputChannel.info(`Manual format: ${editor.document.fileName}`);
+			ExtensionOutputChannel.info('Command', `Manual format: ${path.basename(editor.document.fileName)}`);
 			const success = await astyleFormatterService.formatDocument(editor.document);
 			if (success) {
 				vscode.window.showInformationMessage('File formatted successfully');
@@ -193,7 +215,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			ExtensionOutputChannel.info(`Manual syntax check: ${editor.document.fileName}`);
+			ExtensionOutputChannel.info('Command', `Manual syntax check: ${path.basename(editor.document.fileName)}`);
 			await syntaxCheckService.checkFile(editor.document);
 			vscode.window.showInformationMessage('Syntax check complete');
 		})
@@ -227,17 +249,18 @@ export function activate(context: vscode.ExtensionContext) {
 			};
 			
 			try {
-				ExtensionOutputChannel.info(`Requesting documentation for: ${functionName}`);
-				const docUrl = await client.sendRequest('workspace/executeCommand', params);
-				if (docUrl && typeof docUrl === 'string') {
-					ExtensionOutputChannel.success(`Opening documentation: ${docUrl}`);
-					vscode.env.openExternal(vscode.Uri.parse(docUrl));
-				} else {
-					ExtensionOutputChannel.warn(`No documentation found for '${functionName}'`);
-					vscode.window.showInformationMessage(`No documentation found for '${functionName}'`);
-				}
-			} catch (error) {
-				ExtensionOutputChannel.error(`Error getting documentation: ${error}`);
+			ExtensionOutputChannel.info('Documentation', `Requesting documentation for: ${functionName}`);
+			const docUrl = await client.sendRequest('workspace/executeCommand', params);
+			if (docUrl && typeof docUrl === 'string') {
+				ExtensionOutputChannel.success('Documentation', `Opening documentation: ${docUrl}`);
+				vscode.env.openExternal(vscode.Uri.parse(docUrl));
+			} else {
+				ExtensionOutputChannel.warn('Documentation', `No documentation found for '${functionName}'`);
+				vscode.window.showInformationMessage(`No documentation found for '${functionName}'`);
+			}
+		} catch (error) {
+			const err = error as Error;
+			ExtensionOutputChannel.error('Documentation', `Error getting documentation: ${err.message}`, err);
 				vscode.window.showErrorMessage(`Error getting documentation: ${error}`);
 			}
 		})
@@ -245,7 +268,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate(): Thenable<void> | undefined {
-	ExtensionOutputChannel.info('WinCC OA CTRL Language Support is deactivating...');
+	ExtensionOutputChannel.info('Extension', 'WinCC OA CTRL Language Support is deactivating...');
 	if (!client) {
 		return undefined;
 	}
@@ -258,7 +281,7 @@ function startLanguageServer(context: vscode.ExtensionContext) {
 		path.join('dist', 'language-server', 'server.js')
 	);
 	
-	ExtensionOutputChannel.debug(`Server module path: ${serverModule}`);
+	ExtensionOutputChannel.debug('LanguageServer', `Server module path: ${serverModule}`);
 	
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
@@ -295,9 +318,10 @@ function startLanguageServer(context: vscode.ExtensionContext) {
 	);
 
 	// Start the client. This will also launch the server
-	ExtensionOutputChannel.info('Starting Language Server client...');
+	ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server client...');
+	ExtensionOutputChannel.trace('LanguageServer', 'Client configuration', clientOptions);
 	client.start();
 	
-	ExtensionOutputChannel.success('WinCC OA Language Server started! 🚀');
+	ExtensionOutputChannel.success('LanguageServer', 'WinCC OA Language Server started! 🚀');
 }
 

@@ -31,7 +31,7 @@ export class ProjectPathResolver {
         const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
         const mode = config.get<PathSourceMode>('pathSource', 'workspace');
 
-        ExtensionOutputChannel.info(`Path resolution mode: ${mode}`);
+        ExtensionOutputChannel.info('PathResolver', `Path resolution mode: ${mode}`);
 
         switch (mode) {
             case 'workspace':
@@ -39,7 +39,7 @@ export class ProjectPathResolver {
             case 'manual':
                 return this.getPathsFromConfig();
             default:
-                ExtensionOutputChannel.warn(`Unknown path source mode: ${mode}, falling back to workspace`);
+                ExtensionOutputChannel.warn('PathResolver', `Unknown path source mode: ${mode}, falling back to workspace`);
                 return await this.getPathsFromWorkspace();
         }
     }
@@ -51,24 +51,25 @@ export class ProjectPathResolver {
     private async getPathsFromWorkspace(): Promise<ProjectPaths | null> {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
-            ExtensionOutputChannel.warn('No workspace folder found');
+            ExtensionOutputChannel.warn('PathResolver', 'No workspace folder found');
             return null;
         }
 
-        ExtensionOutputChannel.info(`Searching for WinCC OA project in ${workspaceFolders.length} workspace folder(s)...`);
+        ExtensionOutputChannel.info('PathResolver', `Searching for WinCC OA project in ${workspaceFolders.length} workspace folder(s)...`);
+        ExtensionOutputChannel.trace('PathResolver', 'Workspace folders', workspaceFolders.map(f => f.uri.fsPath));
 
         // Try to find WinCC OA project in all workspace folders
         for (const folder of workspaceFolders) {
             const folderPath = folder.uri.fsPath;
             const configPath = path.join(folderPath, 'config', 'config');
             
-            ExtensionOutputChannel.debug(`Checking folder: ${folderPath}`);
-            ExtensionOutputChannel.debug(`  Looking for: ${configPath}`);
+            ExtensionOutputChannel.debug('PathResolver', `Checking folder: ${folderPath}`);
+            ExtensionOutputChannel.trace('PathResolver', `  Looking for: ${configPath}`);
 
             try {
                 if (fs.existsSync(configPath)) {
-                    ExtensionOutputChannel.success(`✓ Found WinCC OA project at: ${folderPath}`);
-                    ExtensionOutputChannel.info(`  Config file: ${configPath}`);
+                    ExtensionOutputChannel.success('PathResolver', `✓ Found WinCC OA project at: ${folderPath}`);
+                    ExtensionOutputChannel.info('PathResolver', `  Config file: ${configPath}`);
                     
                     const subProjects = this.parseSubProjectsFromConfig(configPath, folderPath);
                     const installPath = this.detectInstallPath(configPath);
@@ -85,23 +86,25 @@ export class ProjectPathResolver {
                         })
                     };
 
-                    ExtensionOutputChannel.success('Project paths detected from workspace');
-                    ExtensionOutputChannel.info(`  Main project: ${paths.projectPath}`);
-                    ExtensionOutputChannel.info(`  Install path: ${paths.installPath}`);
-                    ExtensionOutputChannel.info(`  Subprojects: ${paths.subProjects.length}`);
-                    ExtensionOutputChannel.info(`  Scripts paths: ${paths.scriptsPaths.length}`);
+                    ExtensionOutputChannel.success('PathResolver', 'Project paths detected from workspace');
+                    ExtensionOutputChannel.debug('PathResolver', `  Main project: ${paths.projectPath}`);
+                    ExtensionOutputChannel.debug('PathResolver', `  Install path: ${paths.installPath}`);
+                    ExtensionOutputChannel.debug('PathResolver', `  Subprojects: ${paths.subProjects.length}`);
+                    ExtensionOutputChannel.info('PathResolver', `  Scripts paths: ${paths.scriptsPaths.length}`);
+                    ExtensionOutputChannel.trace('PathResolver', 'Full paths object', paths);
                     
                     this.cachedPaths = paths;
                     return paths;
                 } else {
-                    ExtensionOutputChannel.debug(`  ✗ No config/config found in ${folderPath}`);
+                    ExtensionOutputChannel.debug('PathResolver', `  ✗ No config/config found in ${folderPath}`);
                 }
             } catch (error) {
-                ExtensionOutputChannel.error(`Error checking folder ${folderPath}: ${error}`);
+                const err = error as Error;
+                ExtensionOutputChannel.error('PathResolver', `Error checking folder ${folderPath}: ${err.message}`, err);
             }
         }
 
-        ExtensionOutputChannel.warn('No WinCC OA project (config/config) found in any workspace folder');
+        ExtensionOutputChannel.warn('PathResolver', 'No WinCC OA project (config/config) found in any workspace folder');
         return null;
     }
 
@@ -111,15 +114,18 @@ export class ProjectPathResolver {
     private getPathsFromConfig(): ProjectPaths | null {
         const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
         
+        ExtensionOutputChannel.trace('PathResolver', 'Reading manual configuration...');
         const projectPath = config.get<string>('projectPath', '');
         const installPath = config.get<string>('installPath', '');
         const subProjects = config.get<string[]>('subProjects', []);
         const additionalScriptsPaths = config.get<string[]>('additionalScriptsPaths', []);
 
         if (!projectPath) {
-            ExtensionOutputChannel.warn('No project path configured');
+            ExtensionOutputChannel.warn('PathResolver', 'No project path configured');
             return null;
         }
+
+        ExtensionOutputChannel.trace('PathResolver', 'Manual configuration', { projectPath, installPath, subProjects, additionalScriptsPaths });
 
         const paths: ProjectPaths = {
             projectPath: this.normalizePath(projectPath),
@@ -136,7 +142,7 @@ export class ProjectPathResolver {
             ]
         };
 
-        ExtensionOutputChannel.success('Project paths loaded from configuration');
+        ExtensionOutputChannel.success('PathResolver', 'Project paths loaded from configuration');
         this.cachedPaths = paths;
         return paths;
     }
@@ -180,7 +186,7 @@ export class ProjectPathResolver {
     private parseSubProjectsFromConfig(configPath: string, mainProjectPath: string): string[] {
         const subProjects: string[] = [];
         
-        ExtensionOutputChannel.debug(`Parsing config: ${configPath}`);
+        ExtensionOutputChannel.trace('PathResolver', `Parsing config: ${configPath}`);
         
         if (!fs.existsSync(configPath)) {
             return subProjects;
@@ -211,14 +217,15 @@ export class ProjectPathResolver {
                         continue;
                     }
                     
-                    ExtensionOutputChannel.debug(`Found subproject: ${projPath}`);
+                    ExtensionOutputChannel.debug('PathResolver', `Found subproject: ${projPath}`);
                     subProjects.push(projPath);
                 }
             }
             
-            ExtensionOutputChannel.info(`Found ${subProjects.length} subprojects`);
+            ExtensionOutputChannel.debug('PathResolver', `Found ${subProjects.length} subprojects`);
         } catch (err) {
-            ExtensionOutputChannel.error(`Error parsing config: ${err}`);
+            const error = err as Error;
+            ExtensionOutputChannel.error('PathResolver', `Error parsing config: ${error.message}`, error);
         }
         
         return subProjects;
@@ -238,12 +245,13 @@ export class ProjectPathResolver {
                 // Look for pvss_path or similar
                 const match = trimmed.match(/^(?:pvss_path|winccoa_path|install_path)\s*=\s*["']([^"']+)["']/);
                 if (match) {
-                    ExtensionOutputChannel.info(`Detected install path: ${match[1]}`);
+                    ExtensionOutputChannel.debug('PathResolver', `Detected install path: ${match[1]}`);
                     return match[1];
                 }
             }
         } catch (err) {
-            ExtensionOutputChannel.debug(`Could not detect install path: ${err}`);
+            const error = err as Error;
+            ExtensionOutputChannel.trace('PathResolver', `Could not detect install path: ${error.message}`);
         }
 
         // Default fallback paths
@@ -253,7 +261,7 @@ export class ProjectPathResolver {
 
         for (const defaultPath of defaultPaths) {
             if (fs.existsSync(defaultPath)) {
-                ExtensionOutputChannel.info(`Using default install path: ${defaultPath}`);
+                ExtensionOutputChannel.debug('PathResolver', `Using default install path: ${defaultPath}`);
                 return defaultPath;
             }
         }
@@ -284,7 +292,7 @@ export class ProjectPathResolver {
      */
     public clearCache(): void {
         this.cachedPaths = null;
-        ExtensionOutputChannel.info('Project paths cache cleared');
+        ExtensionOutputChannel.debug('PathResolver', 'Project paths cache cleared');
     }
 
     /**
