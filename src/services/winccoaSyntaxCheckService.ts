@@ -3,6 +3,7 @@ import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ProjectPathResolver } from './projectPathResolver';
+import { ExtensionOutputChannel } from '../extensionOutput';
 
 interface SyntaxError {
     severity: 'ERROR' | 'WARNING' | 'INFO';
@@ -26,6 +27,7 @@ export class WinccoaSyntaxCheckService {
         
         // Check if syntax check is enabled
         if (!config.get<boolean>('enabled', true)) {
+            ExtensionOutputChannel.trace('SyntaxCheck', 'Syntax check disabled in settings');
             return;
         }
 
@@ -35,13 +37,14 @@ export class WinccoaSyntaxCheckService {
         }
 
         const filePath = document.uri.fsPath;
-        this.outputChannel.appendLine(`WinCC OA Syntax Check: Checking file ${filePath}`);
+        ExtensionOutputChannel.debug('SyntaxCheck', `Checking file: ${path.basename(filePath)}`);
 
         try {
             const diagnostics = await this.runSyntaxCheck(filePath);
             this.diagnosticCollection.set(document.uri, diagnostics);
         } catch (error) {
-            this.outputChannel.appendLine(`WinCC OA Syntax Check: Error checking file: ${error}`);
+            const err = error as Error;
+            ExtensionOutputChannel.error('SyntaxCheck', `Error checking file: ${err.message}`, err);
         }
     }
 
@@ -50,24 +53,24 @@ export class WinccoaSyntaxCheckService {
         const projectPaths = await resolver.getProjectPaths();
 
         if (!projectPaths || !projectPaths.projectPath) {
-            this.outputChannel.appendLine('WinCC OA Syntax Check: Project path not found');
+            ExtensionOutputChannel.error('SyntaxCheck', 'Project path not found');
             vscode.window.showWarningMessage('WinCC OA Syntax Check: Project path not configured');
             return [];
         }
 
         if (!projectPaths.installPath) {
-            this.outputChannel.appendLine('WinCC OA Syntax Check: Installation path not found');
+            ExtensionOutputChannel.error('SyntaxCheck', 'Installation path not found');
             vscode.window.showWarningMessage('WinCC OA Syntax Check: Installation path not configured');
             return [];
         }
 
-        this.outputChannel.appendLine(`WinCC OA Syntax Check: Project path: ${projectPaths.projectPath}`);
-        this.outputChannel.appendLine(`WinCC OA Syntax Check: Installation path: ${projectPaths.installPath}`);
+        ExtensionOutputChannel.trace('SyntaxCheck', `Project path: ${projectPaths.projectPath}`);
+        ExtensionOutputChannel.trace('SyntaxCheck', `Installation path: ${projectPaths.installPath}`);
 
         // Find config file
         const configPath = path.join(projectPaths.projectPath, 'config', 'config');
         if (!fs.existsSync(configPath)) {
-            this.outputChannel.appendLine(`WinCC OA Syntax Check: Config file not found at: ${configPath}`);
+            ExtensionOutputChannel.error('SyntaxCheck', `Config file not found: ${configPath}`);
             vscode.window.showWarningMessage(`WinCC OA Syntax Check: Config file not found at: ${configPath}`);
             return [];
         }
@@ -78,7 +81,7 @@ export class WinccoaSyntaxCheckService {
         const binaryPath = path.join(projectPaths.installPath, 'bin', binaryName);
 
         if (!fs.existsSync(binaryPath)) {
-            this.outputChannel.appendLine(`WinCC OA Syntax Check: Binary not found at: ${binaryPath}`);
+            ExtensionOutputChannel.error('SyntaxCheck', `Binary not found: ${binaryPath}`);
             vscode.window.showWarningMessage(`WinCC OA Syntax Check: Binary not found at: ${binaryPath}`);
             return [];
         }
@@ -91,7 +94,7 @@ export class WinccoaSyntaxCheckService {
             '-log', '-file'
         ];
 
-        this.outputChannel.appendLine(`WinCC OA Syntax Check: Running: ${binaryPath} ${args.join(' ')}`);
+        ExtensionOutputChannel.trace('SyntaxCheck', `Command: ${binaryPath} ${args.join(' ')}`);
 
         return new Promise((resolve) => {
             const process = cp.spawn(binaryPath, args);
@@ -107,17 +110,21 @@ export class WinccoaSyntaxCheckService {
             });
 
             process.on('close', (code) => {
-                this.outputChannel.appendLine(`WinCC OA Syntax Check: Process exited with code ${code}`);
+                ExtensionOutputChannel.trace('SyntaxCheck', `Process exited with code ${code}`);
                 
                 const output = stdout + stderr;
                 const diagnostics = this.parseOutput(output, filePath);
                 
-                this.outputChannel.appendLine(`WinCC OA Syntax Check: Found ${diagnostics.length} diagnostic(s)`);
+                if (diagnostics.length > 0) {
+                    ExtensionOutputChannel.debug('SyntaxCheck', `Found ${diagnostics.length} diagnostic(s)`);
+                } else {
+                    ExtensionOutputChannel.trace('SyntaxCheck', 'No issues found');
+                }
                 resolve(diagnostics);
             });
 
             process.on('error', (error) => {
-                this.outputChannel.appendLine(`WinCC OA Syntax Check: Failed to start process: ${error.message}`);
+                ExtensionOutputChannel.error('SyntaxCheck', `Failed to start process: ${error.message}`, error);
                 resolve([]);
             });
         });

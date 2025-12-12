@@ -66,10 +66,21 @@ The extension auto-detects your WinCC OA project structure when you open a works
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `winccoa.ctrlLang.pathSource` | `workspace` | How to resolve project paths: `workspace` or `manual` |
+| `winccoa.ctrlLang.logLevel` | `INFO` | Logging verbosity: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` |
 | `winccoa.astyleFormatter.enabled` | `false` | Enable Astyle code formatting |
 | `winccoa.astyleFormatter.runOnSave` | `false` | Automatically format on save |
 | `winccoa.syntaxCheck.enabled` | `false` | Enable WinCC OA syntax checking |
 | `winccoa.syntaxCheck.executeOnSave` | `false` | Run syntax check on save |
+
+### Log Levels
+
+- **ERROR**: Only critical errors (extension failures, crashes)
+- **WARN**: Errors and warnings (missing config, deprecated features)
+- **INFO**: Recommended default (important events, service initialization)
+- **DEBUG**: Detailed information (file operations, configuration changes)
+- **TRACE**: Very verbose (all internal operations, data structures) - for troubleshooting
+
+💡 Set log level to `DEBUG` or `TRACE` when reporting bugs to get detailed diagnostic information.
 
 ---
 
