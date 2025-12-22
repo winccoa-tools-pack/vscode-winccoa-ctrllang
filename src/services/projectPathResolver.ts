@@ -11,7 +11,7 @@ export interface ProjectPaths {
     scriptsPaths: string[];  // All resolved scripts folders
 }
 
-export type PathSourceMode = 'workspace' | 'manual';
+export type PathSourceMode = 'workspace' | 'manual' | 'automatic';
 
 export class ProjectPathResolver {
     private static instance: ProjectPathResolver;
@@ -38,6 +38,8 @@ export class ProjectPathResolver {
                 return await this.getPathsFromWorkspace();
             case 'manual':
                 return this.getPathsFromConfig();
+            case 'automatic':
+                return this.getPathsFromCore();
             default:
                 ExtensionOutputChannel.warn('PathResolver', `Unknown path source mode: ${mode}, falling back to workspace`);
                 return await this.getPathsFromWorkspace();
@@ -143,6 +145,68 @@ export class ProjectPathResolver {
         };
 
         ExtensionOutputChannel.success('PathResolver', 'Project paths loaded from configuration');
+        this.cachedPaths = paths;
+        return paths;
+    }
+
+    /**
+     * Get paths from Core extension (automatic mode)
+     */
+    private getPathsFromCore(): ProjectPaths | null {
+        const coreExtension = vscode.extensions.getExtension('winccoa-tools-pack.winccoa-core');
+        
+        if (!coreExtension) {
+            ExtensionOutputChannel.error('PathResolver', 'WinCC OA Core extension not found');
+            vscode.window.showErrorMessage(
+                'WinCC OA Core extension is required for automatic mode. Please install it or switch to a different path source.',
+            );
+            return null;
+        }
+
+        if (!coreExtension.isActive) {
+            ExtensionOutputChannel.warn('PathResolver', 'Core extension is not active yet');
+            return null;
+        }
+
+        const coreApi = coreExtension.exports;
+        const currentProject = coreApi.getCurrentProject();
+
+        if (!currentProject) {
+            ExtensionOutputChannel.warn('PathResolver', 'No WinCC OA project selected in Core extension');
+            vscode.window.showWarningMessage(
+                'No WinCC OA project selected. Please select a project using the WinCC OA status bar.',
+            );
+            return null;
+        }
+
+        // Normalize paths by removing trailing slashes
+        const projectDir = currentProject.projectDir.replace(/[\/]+$/, '');
+        const installPath = currentProject.oaInstallPath.replace(/[\/]+$/, '');
+        
+        // Parse subprojects from config if available
+        const configPath = currentProject.configPath;
+        const subProjects = configPath && fs.existsSync(configPath)
+            ? this.parseSubProjectsFromConfig(configPath, projectDir)
+            : [];
+
+        const paths: ProjectPaths = {
+            projectPath: this.normalizePath(projectDir),
+            installPath: this.normalizePath(installPath),
+            subProjects: subProjects.map(p => this.normalizePath(p)),
+            scriptsPaths: this.buildScriptsPaths({
+                projectPath: this.normalizePath(projectDir),
+                installPath: this.normalizePath(installPath),
+                subProjects: subProjects.map(p => this.normalizePath(p)),
+                scriptsPaths: []
+            })
+        };
+
+        ExtensionOutputChannel.success('PathResolver', 'Project paths loaded from Core extension');
+        ExtensionOutputChannel.debug('PathResolver', `  Project: ${currentProject.name}`);
+        ExtensionOutputChannel.debug('PathResolver', `  Project path: ${paths.projectPath}`);
+        ExtensionOutputChannel.debug('PathResolver', `  Install path: ${paths.installPath}`);
+        ExtensionOutputChannel.debug('PathResolver', `  Subprojects: ${paths.subProjects.length}`);
+        
         this.cachedPaths = paths;
         return paths;
     }
