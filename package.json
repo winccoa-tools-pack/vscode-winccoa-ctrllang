@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "author": "winccoa-tools-pack",
   "license": "GNU General Public License v3.0",
   "icon": "resources/code_128.png",
@@ -16,6 +16,9 @@
   },
   "categories": [
     "Programming Languages"
+  ],
+  "extensionDependencies": [
+    "winccoa-tools-pack.winccoa-core"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -84,12 +87,13 @@
       "properties": {
         "winccoa.ctrlLang.pathSource": {
           "type": "string",
-          "enum": ["workspace", "manual"],
+          "enum": ["workspace", "manual", "automatic"],
           "default": "workspace",
           "description": "How to resolve WinCC OA project paths",
           "enumDescriptions": [
             "Auto-detect from workspace (searches for config/config file in all workspace folders)",
-            "Manual configuration (specify paths below)"
+            "Manual configuration (specify paths below)",
+            "Automatically detect from selected WinCC OA project (requires Core extension)"
           ]
         },
         "winccoa.ctrlLang.projectPath": {
