@@ -34,11 +34,19 @@ export function activate(context: vscode.ExtensionContext) {
 	// Perform startup diagnostics
 	performStartupDiagnostics(context);
 	
+	// Setup Core extension integration if in automatic mode
+	setupCoreExtensionIntegration(context);
+	
 	// Watch for configuration changes
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((e) => {
 			if (e.affectsConfiguration('winccoa.ctrlLang.logLevel')) {
 				ExtensionOutputChannel.updateLogLevel();
+			}
+			if (e.affectsConfiguration('winccoa.ctrlLang.pathSource')) {
+				// Clear cache and re-setup Core integration when mode changes
+				ProjectPathResolver.getInstance()['cachedPaths'] = null;
+				setupCoreExtensionIntegration(context);
 			}
 		})
 	);
@@ -428,4 +436,48 @@ async function performStartupDiagnostics(context: vscode.ExtensionContext) {
 	ExtensionOutputChannel.success('Diagnostics', '✓ Startup diagnostics complete');
 	ExtensionOutputChannel.info('Diagnostics', '═══════════════════════════════════════════════════════');
 	ExtensionOutputChannel.info('Diagnostics', '');
+}
+
+async function setupCoreExtensionIntegration(context: vscode.ExtensionContext) {
+	const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
+	const pathSource = config.get<string>('pathSource', 'workspace');
+
+	if (pathSource !== 'automatic') {
+		ExtensionOutputChannel.debug('CoreIntegration', 'Not in automatic mode - Core extension integration disabled');
+		return;
+	}
+
+	const coreExtension = vscode.extensions.getExtension('winccoa-tools-pack.winccoa-core');
+	
+	if (!coreExtension) {
+		ExtensionOutputChannel.warn('CoreIntegration', 'WinCC OA Core extension not found - automatic mode unavailable');
+		return;
+	}
+
+	if (!coreExtension.isActive) {
+		ExtensionOutputChannel.debug('CoreIntegration', 'Activating Core extension...');
+		await coreExtension.activate();
+	}
+
+	const coreApi = coreExtension.exports;
+	
+	// Subscribe to project changes
+	coreApi.onDidChangeProject((project: any) => {
+		if (project) {
+			ExtensionOutputChannel.info('CoreIntegration', `Project changed: ${project.name} → Clearing path cache`);
+			// Clear cached paths to force re-resolution
+			ProjectPathResolver.getInstance()['cachedPaths'] = null;
+		} else {
+			ExtensionOutputChannel.info('CoreIntegration', 'No project selected');
+		}
+	});
+
+	const currentProject = coreApi.getCurrentProject();
+	if (currentProject) {
+		ExtensionOutputChannel.info('CoreIntegration', `Current project: ${currentProject.name}`);
+		ExtensionOutputChannel.debug('CoreIntegration', `  Project path: ${currentProject.projectDir}`);
+		ExtensionOutputChannel.debug('CoreIntegration', `  Install path: ${currentProject.oaInstallPath}`);
+	} else {
+		ExtensionOutputChannel.debug('CoreIntegration', 'No project currently selected');
+	}
 }
