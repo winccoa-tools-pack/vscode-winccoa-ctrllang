@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2025-12-26
+
+### Fixed
+- Method parsing now correctly skips nested method bodies, preventing constructor calls inside methods from being parsed as method definitions
+- Cross-file Go-to-Definition now works correctly for class names in variable declarations
+- Added integration tests to verify full code path from LSP request to dependency resolution
+
+### Added
+- Integration test suite for Language Server cross-file resolution
+- Debug logging for Symbol Table dependency parsing
+
 ## [0.2.0] - TBD
 
 ### Added

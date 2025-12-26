@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "winccoa-tools-pack",
   "license": "GNU General Public License v3.0",
   "icon": "resources/code_128.png",
@@ -87,7 +87,11 @@
       "properties": {
         "winccoa.ctrlLang.pathSource": {
           "type": "string",
-          "enum": ["workspace", "manual", "automatic"],
+          "enum": [
+            "workspace",
+            "manual",
+            "automatic"
+          ],
           "default": "workspace",
           "description": "How to resolve WinCC OA project paths",
           "enumDescriptions": [
@@ -124,7 +128,13 @@
         },
         "winccoa.ctrlLang.logLevel": {
           "type": "string",
-          "enum": ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+          "enum": [
+            "ERROR",
+            "WARN",
+            "INFO",
+            "DEBUG",
+            "TRACE"
+          ],
           "default": "INFO",
           "description": "Logging level for extension output",
           "enumDescriptions": [
@@ -170,18 +180,18 @@
     "test": "node ./dist/test/runTest.js"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.10.4",
     "@types/vscode": "^1.105.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
-    "@vscode/vsce": "^3.7.1",
     "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^9.36.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "@types/mocha": "^10.0.6",
+    "glob": "^13.0.0",
     "mocha": "^11.7.5",
-    "glob": "^13.0.0"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "fast-xml-parser": "^4.5.0",

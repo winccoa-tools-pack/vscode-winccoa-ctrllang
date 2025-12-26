@@ -7,6 +7,7 @@ import {
     CompletionItem,
     CompletionItemKind,
     TextDocumentPositionParams,
+    ReferenceParams,
     TextDocumentSyncKind,
     InitializeResult,
     Hover,
@@ -24,6 +25,7 @@ import {
     getSymbolAtPosition,
     isFunctionCall 
 } from './symbolFinder';
+import { SymbolTable, SymbolKind, SymbolReference } from './symbolTable';
 import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL, fileURLToPath } from 'url';
@@ -305,6 +307,7 @@ connection.onInitialize((params: InitializeParams) => {
             completionProvider: { resolveProvider: true },
             hoverProvider: true,
             definitionProvider: true,
+            referencesProvider: true,
             executeCommandProvider: {
                 commands: ['getDocUrl']
             }
@@ -447,7 +450,7 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
 
     const offset = doc.offsetAt(params.position);
     const docText = doc.getText();
-    connection.console.log(`[Definition] Cursor offset: ${offset}`);
+    connection.console.log(`[Definition] Cursor offset: ${offset}, position: line ${params.position.line}, char ${params.position.character}`);
     
     // 1. Check for #uses statement (highest priority)
     const usesInfo = getUsesAtPosition(docText, offset);
@@ -465,11 +468,36 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
     
     connection.console.log(`[Definition] Found symbol: "${symbolInfo.name}" at line ${symbolInfo.line}`);
     
-    // 3. Check if it's a function call or just a reference
+    // 3. Try NEW Symbol Table approach first (for classes, structs, members)
+    try {
+        const symbols = SymbolTable.parseFile(docText);
+        const resolved = SymbolTable.resolveSymbol(
+            symbolInfo.name, 
+            { line: params.position.line, character: params.position.character },
+            symbols
+        );
+        
+        if (resolved) {
+            connection.console.log(`[Definition] Symbol Table resolved: ${resolved.name} (${resolved.kind}) at line ${resolved.location.line}`);
+            const currentFilePath = fileURLToPath(doc.uri);
+            const uri = pathToFileURL(currentFilePath).href;
+            
+            return Location.create(uri, {
+                start: { line: resolved.location.line, character: resolved.location.column },
+                end: { line: resolved.location.line, character: resolved.location.column + resolved.name.length }
+            });
+        }
+        
+        connection.console.log('[Definition] Symbol Table did not resolve symbol, falling back to legacy finder');
+    } catch (error) {
+        connection.console.log(`[Definition] Symbol Table error: ${error}, falling back to legacy finder`);
+    }
+    
+    // 4. Check if it's a function call or just a reference (LEGACY)
     const isFuncCall = isFunctionCall(docText, offset);
     connection.console.log(`[Definition] Is function call: ${isFuncCall}`);
     
-    // 4. Search in current file
+    // 5. Search in current file (LEGACY)
     const currentFilePath = fileURLToPath(doc.uri);
     connection.console.log(`[Definition] Searching in current file: ${currentFilePath}`);
     
@@ -503,7 +531,7 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
         });
     }
     
-    // 5. Search in #uses dependencies
+    // 6. Search in #uses dependencies
     connection.console.log('[Definition] Symbol not found in current file, searching in dependencies...');
     const info = await fetchProjectInfo();
     if (info) {
@@ -578,7 +606,41 @@ async function findSymbolInDependencies(
         
         connection.console.log(`[Definition] Searching in dependency: ${resolvedPath}`);
         
-        // Search for function
+        // NEW: Try Symbol Table approach for Classes/Structs
+        try {
+            const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+            const depSymbols = SymbolTable.parseFile(depContent);
+            
+            connection.console.log(`[Definition] Parsed dependency: ${depSymbols.classes.length} classes, ${depSymbols.structs.length} structs`);
+            
+            // Check for class
+            const classSymbol = depSymbols.classes.find(c => c.name === symbolName);
+            if (classSymbol) {
+                connection.console.log(`[Definition] Found class "${symbolName}" in ${resolvedPath} at line ${classSymbol.location.line}`);
+                const uri = pathToFileURL(resolvedPath).href;
+                return Location.create(uri, {
+                    start: { line: classSymbol.location.line, character: classSymbol.location.column },
+                    end: { line: classSymbol.location.line, character: classSymbol.location.column + classSymbol.name.length }
+                });
+            }
+            
+            // Check for struct
+            const structSymbol = depSymbols.structs.find(s => s.name === symbolName);
+            if (structSymbol) {
+                connection.console.log(`[Definition] Found struct "${symbolName}" in ${resolvedPath} at line ${structSymbol.location.line}`);
+                const uri = pathToFileURL(resolvedPath).href;
+                return Location.create(uri, {
+                    start: { line: structSymbol.location.line, character: structSymbol.location.column },
+                    end: { line: structSymbol.location.line, character: structSymbol.location.column + structSymbol.name.length }
+                });
+            }
+            
+            connection.console.log(`[Definition] Symbol "${symbolName}" not found as class/struct in ${resolvedPath}`);
+        } catch (error) {
+            connection.console.log(`[Definition] Symbol Table error for ${resolvedPath}: ${error}`);
+        }
+        
+        // Search for function (LEGACY)
         if (isFunctionCall) {
             const functions = findFunctionDefinitions(resolvedPath);
             const funcDef = functions.find(f => f.name === symbolName);
@@ -607,6 +669,63 @@ async function findSymbolInDependencies(
     
     return null;
 }
+
+// ============================================================================
+// Find References Handler
+// ============================================================================
+
+connection.onReferences((params: ReferenceParams): Location[] => {
+    connection.console.log('[References] Request received');
+    
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) {
+        connection.console.log('[References] Document not found');
+        return [];
+    }
+    
+    const offset = doc.offsetAt(params.position);
+    const docText = doc.getText();
+    
+    // Get symbol at cursor position
+    const symbolInfo = getSymbolAtPosition(docText, offset);
+    if (!symbolInfo) {
+        connection.console.log('[References] No symbol found at cursor position');
+        return [];
+    }
+    
+    connection.console.log(`[References] Finding references for: "${symbolInfo.name}"`);
+    
+    try {
+        // Parse file and find all references
+        const symbols = SymbolTable.parseFile(docText);
+        const references = SymbolTable.findReferences(symbolInfo.name, docText, symbols);
+        
+        connection.console.log(`[References] Found ${references.length} references`);
+        
+        // Convert to LSP Location[]
+        const currentFilePath = fileURLToPath(doc.uri);
+        const uri = pathToFileURL(currentFilePath).href;
+        
+        const locations: Location[] = references.map(ref => {
+            return Location.create(uri, {
+                start: { line: ref.location.line, character: ref.location.column },
+                end: { line: ref.location.line, character: ref.location.column + ref.name.length }
+            });
+        });
+        
+        // Filter based on params.context.includeDeclaration
+        if (!params.context.includeDeclaration) {
+            connection.console.log('[References] Filtering out declarations');
+            return locations.filter((_, idx) => !references[idx].isDefinition);
+        }
+        
+        return locations;
+        
+    } catch (error) {
+        connection.console.log(`[References] Error: ${error}`);
+        return [];
+    }
+});
 
 documents.listen(connection);
 connection.listen();
