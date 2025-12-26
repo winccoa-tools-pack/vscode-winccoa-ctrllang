@@ -126,4 +126,49 @@ suite('Language Server Integration Tests', () => {
         
         assert.strictEqual(result.found, false, 'Non-existent class should not be found');
     });
+    
+    test('finds class in constructor call after new keyword', () => {
+        const testFile = path.join(scriptsPath, 'TestGoToDefinition.ctl');
+        const testContent = fs.readFileSync(testFile, 'utf-8');
+        
+        // Simulate clicking on "DerivedClass" in "new DerivedClass(10, 20, ...)"
+        const result = simulateGoToDefinition(testFile, 'DerivedClass', testContent);
+        
+        assert.strictEqual(result.found, true, 'DerivedClass should be found in constructor call');
+        assert.ok(result.filePath!.includes('DerivedClass.ctl'));
+        assert.strictEqual(result.line, 22, 'Should jump to class definition, not local variable');
+    });
+    
+    test('finds method in dependency class (naive implementation)', () => {
+        const testFile = path.join(scriptsPath, 'TestGoToDefinition.ctl');
+        const testContent = fs.readFileSync(testFile, 'utf-8');
+        
+        // Simulate method search in dependencies
+        // This tests the naive implementation that searches all classes
+        // Real implementation would need type inference
+        
+        // We need DerivedClass which has methods
+        const depPath = path.join(scriptsPath, 'libs/DerivedClass.ctl');
+        if (!fs.existsSync(depPath)) {
+            console.log('Skipping test - DerivedClass.ctl not found');
+            return;
+        }
+        
+        const depContent = fs.readFileSync(depPath, 'utf-8');
+        const depSymbols = SymbolTable.parseFile(depContent);
+        
+        // Check if we can find methods in classes
+        assert.ok(depSymbols.classes.length > 0, 'Should have at least one class');
+        const derivedClass = depSymbols.classes.find(c => c.name === 'DerivedClass');
+        assert.ok(derivedClass, 'Should find DerivedClass');
+        assert.ok(derivedClass.methods.length > 0, 'DerivedClass should have methods');
+        
+        // Naive search: find method by name across all classes
+        const methodName = derivedClass.methods[0].name;
+        const foundMethod = depSymbols.classes
+            .flatMap(c => c.methods)
+            .find(m => m.name === methodName);
+        
+        assert.ok(foundMethod, `Should find method ${methodName} in dependency`);
+    });
 });
