@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "winccoa-tools-pack",
   "license": "GNU General Public License v3.0",
   "icon": "resources/code_128.png",

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2025-12-26
+
+### Fixed
+- Legacy function finder now also skips nested scopes (brace depth tracking)
+- Constructor calls after `new` keyword now correctly resolve to class definition
+- Method calls on objects now resolve to method definition in dependency classes (naive implementation - searches all classes)
+
+### Added
+- Method search in cross-file dependency resolution
+- Integration test for constructor calls after `new` keyword
+- E2E test structure (placeholder for future refactoring)
+
+### Technical Debt
+- Legacy symbolFinder.ts still in use alongside Symbol Table (dual code paths)
+- Method resolution is naive - no type inference, searches all classes in dependencies
+- E2E tests require server handler extraction for proper testability
+
 ## [0.2.1] - 2025-12-26
 
 ### Fixed
