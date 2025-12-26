@@ -635,7 +635,20 @@ async function findSymbolInDependencies(
                 });
             }
             
-            connection.console.log(`[Definition] Symbol "${symbolName}" not found as class/struct in ${resolvedPath}`);
+            // Check for methods in all classes (for member access like factory.getDeviceTypeByDPName())
+            for (const cls of depSymbols.classes) {
+                const method = cls.methods.find(m => m.name === symbolName);
+                if (method) {
+                    connection.console.log(`[Definition] Found method "${symbolName}" in class ${cls.name} at line ${method.location.line}`);
+                    const uri = pathToFileURL(resolvedPath).href;
+                    return Location.create(uri, {
+                        start: { line: method.location.line, character: method.location.column },
+                        end: { line: method.location.line, character: method.location.column + method.name.length }
+                    });
+                }
+            }
+            
+            connection.console.log(`[Definition] Symbol "${symbolName}" not found as class/struct/method in ${resolvedPath}`);
         } catch (error) {
             connection.console.log(`[Definition] Symbol Table error for ${resolvedPath}: ${error}`);
         }
