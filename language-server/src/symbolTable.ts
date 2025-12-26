@@ -460,7 +460,9 @@ export class SymbolTable {
             }
         }
         
-        // Now find functions, skipping class/struct ranges
+        // Now find functions, skipping class/struct ranges and nested scopes
+        let braceDepth = 0;  // Track nested braces to skip function bodies
+        
         for (let i = 0; i < tokens.length - 2; i++) {
             // Check if this token is inside a class/struct
             const insideClass = classRanges.some(range => i >= range.start && i < range.end);
@@ -469,6 +471,21 @@ export class SymbolTable {
             const current = tokens[i];
             const next = tokens[i + 1];
             const afterNext = tokens[i + 2];
+            
+            // Track brace depth (only outside classes)
+            if (current.type === TokenType.LBRACE) {
+                braceDepth++;
+                continue;
+            }
+            if (current.type === TokenType.RBRACE) {
+                braceDepth--;
+                continue;
+            }
+            
+            // Only parse at top level (braceDepth === 0)
+            if (braceDepth > 0) {
+                continue;
+            }
             
             // Pattern: type identifier (
             if ((current.type === TokenType.KEYWORD || current.type === TokenType.IDENTIFIER) &&

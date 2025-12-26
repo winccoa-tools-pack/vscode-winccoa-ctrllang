@@ -39,11 +39,29 @@ export function findFunctionDefinitions(filePath: string): SymbolLocation[] {
     const tokenizer = new Tokenizer(content);
     const tokens = tokenizer.tokenize();
     
+    // Track brace depth to skip function bodies and class bodies
+    let braceDepth = 0;
+    
     // Look for pattern: [modifier*] type identifier (
     for (let i = 0; i < tokens.length - 2; i++) {
         const current = tokens[i];
         const next = tokens[i + 1];
         const afterNext = tokens[i + 2];
+        
+        // Track brace depth
+        if (current.type === TokenType.LBRACE) {
+            braceDepth++;
+            continue;
+        }
+        if (current.type === TokenType.RBRACE) {
+            braceDepth--;
+            continue;
+        }
+        
+        // Only parse at top level (braceDepth === 0)
+        if (braceDepth > 0) {
+            continue;
+        }
         
         // Skip 'main' as it's special
         if (next.type === TokenType.IDENTIFIER && 
