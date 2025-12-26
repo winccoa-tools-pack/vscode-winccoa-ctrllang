@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2025-12-26
+
+### Added
+- Local variable parsing and resolution within function scope
+- Function parameter resolution (parameters treated as local variables)
+- Struct field resolution in hover and go-to-definition
+- Hover provider now shows type information for variables (like Python IDEs)
+- Go-to-Definition support for local variables and function parameters
+- Local variables have higher priority than global variables in scope resolution
+
+### Changed
+- Hover display simplified: removed kind labels (e.g., "local variable", "member variable")
+- Hover now shows clean format: `type name` for all variables
+
+### Fixed
+- Line number indexing consistency (0-based) for LSP compatibility in local variable resolution
+- Struct fields now properly resolved across all structs
+
+### Technical Details
+- Extended FunctionSymbol with localVariables array and body line ranges
+- Function parameters parsed and included in local variable scope
+- Symbol resolution now checks local variables (including parameters) before globals
+- Struct fields checked in resolveSymbol for proper type resolution
+
 ## [0.2.2] - 2025-12-26
 
 ### Fixed

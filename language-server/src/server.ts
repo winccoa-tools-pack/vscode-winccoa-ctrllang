@@ -409,6 +409,42 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
     const word = txt.substring(start, end);
     if (!word) return null;
     
+    // Try user-defined symbols first (variables, classes, members) using Symbol Table
+    try {
+        const symbols = SymbolTable.parseFile(txt);
+        const resolved = SymbolTable.resolveSymbol(word, params.position, symbols);
+        
+        if (resolved) {
+            let hoverText = '';
+            
+            // Format based on symbol type
+            if ('dataType' in resolved) {
+                // Variables (local, global, member, struct fields) - show "type name"
+                hoverText = `\`\`\`ctrl\n${resolved.dataType} ${resolved.name}\n\`\`\``;
+            } else if (resolved.kind === SymbolKind.Class) {
+                // Class definition
+                hoverText = `\`\`\`ctrl\nclass ${resolved.name}\n\`\`\``;
+            } else if (resolved.kind === SymbolKind.Struct) {
+                // Struct definition
+                hoverText = `\`\`\`ctrl\nstruct ${resolved.name}\n\`\`\``;
+            } else if (resolved.kind === SymbolKind.Method && 'returnType' in resolved) {
+                // Method - show signature
+                hoverText = `\`\`\`ctrl\n${resolved.returnType} ${resolved.name}()\n\`\`\``;
+            } else if (resolved.kind === SymbolKind.Function && 'returnType' in resolved) {
+                // Global function - show signature
+                hoverText = `\`\`\`ctrl\n${resolved.returnType} ${resolved.name}()\n\`\`\``;
+            }
+            
+            if (hoverText) {
+                return { contents: { kind: MarkupKind.Markdown, value: hoverText } };
+            }
+        }
+    } catch (error) {
+        // Fall through to builtin functions if symbol table fails
+        connection.console.error(`[Hover] Symbol Table error: ${error}`);
+    }
+    
+    // Fallback: Check builtin functions
     const fn = getBuiltinFunction(word);
     if (!fn) return null;
 

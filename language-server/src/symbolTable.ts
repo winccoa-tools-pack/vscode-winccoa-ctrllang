@@ -56,6 +56,9 @@ export interface FunctionSymbol extends BaseSymbol {
     kind: SymbolKind.Function;
     returnType: string;
     parameters: ParameterSymbol[];
+    localVariables?: VariableSymbol[];  // Local variables inside function
+    bodyStartLine?: number;  // Line where function body starts (after {)
+    bodyEndLine?: number;    // Line where function body ends (before })
 }
 
 export interface MethodSymbol extends BaseSymbol {
@@ -154,6 +157,12 @@ export class SymbolTable {
         const structSymbol = symbols.structs.find(s => s.name === name);
         if (structSymbol) return structSymbol;
         
+        // Struct fields (check all structs for fields matching the name)
+        for (const struct of symbols.structs) {
+            const field = struct.fields.find(f => f.name === name);
+            if (field) return field;
+        }
+        
         // 2. Check if we're inside a class (class scope)
         const containingClass = this.findContainingClass(position, symbols.classes);
         if (containingClass) {
@@ -166,6 +175,13 @@ export class SymbolTable {
             if (method) return method;
             
             // TODO: Check local variables in method scope (requires position-aware parsing)
+        }
+        
+        // 2.5. Check if we're inside a function (for local variables)
+        const containingFunction = this.findContainingFunction(position, symbols.functions);
+        if (containingFunction && containingFunction.localVariables) {
+            const localVar = containingFunction.localVariables.find(v => v.name === name);
+            if (localVar) return localVar;
         }
         
         // 3. Check file scope
@@ -323,6 +339,21 @@ export class SymbolTable {
             // This is simplified - real implementation needs brace tracking
             if (position.line >= cls.location.line && position.line <= cls.location.line + 100) {
                 return cls;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find the function containing the given position
+     */
+    private static findContainingFunction(position: Position, functions: FunctionSymbol[]): FunctionSymbol | null {
+        for (const func of functions) {
+            // Check if position is within function body
+            if (func.bodyStartLine && func.bodyEndLine) {
+                if (position.line >= func.bodyStartLine && position.line <= func.bodyEndLine) {
+                    return func;
+                }
             }
         }
         return null;
@@ -493,6 +524,16 @@ export class SymbolTable {
                 afterNext.type === TokenType.LPAREN &&
                 next.value !== 'main') {  // main is special
                 
+                // Extract function parameters
+                const parameters = this.extractFunctionParameters(tokens, i);
+                
+                // Find function body for local variable extraction
+                const bodyInfo = this.extractFunctionBody(content, tokens, i);
+                const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, bodyInfo.startLine) : [];
+                
+                // Combine parameters and local variables (parameters have priority)
+                const allLocalVars = [...parameters, ...bodyLocalVars];
+                
                 functions.push({
                     kind: SymbolKind.Function,
                     name: next.value,
@@ -501,7 +542,10 @@ export class SymbolTable {
                         line: next.line,
                         column: next.column
                     },
-                    parameters: []  // TODO: Parse parameters
+                    parameters: [],  // TODO: Parse parameters
+                    localVariables: allLocalVars,
+                    bodyStartLine: bodyInfo?.startLine,
+                    bodyEndLine: bodyInfo?.endLine
                 });
             }
         }
@@ -581,6 +625,150 @@ export class SymbolTable {
             content: bodyLines.join('\n'),
             startLine: startLine + 1
         };
+    }
+
+    /**
+     * Extract function parameters (for local variable resolution)
+     * Parses patterns like: void func(string deviceName, int count)
+     */
+    private static extractFunctionParameters(tokens: Token[], startIndex: number): VariableSymbol[] {
+        const params: VariableSymbol[] = [];
+        
+        // Find opening parenthesis
+        let parenIndex = startIndex;
+        while (parenIndex < tokens.length && tokens[parenIndex].type !== TokenType.LPAREN) {
+            parenIndex++;
+        }
+        
+        if (parenIndex >= tokens.length) {
+            return params;
+        }
+        
+        // Find closing parenthesis
+        let endParenIndex = parenIndex + 1;
+        let parenDepth = 1;
+        while (endParenIndex < tokens.length && parenDepth > 0) {
+            if (tokens[endParenIndex].type === TokenType.LPAREN) parenDepth++;
+            if (tokens[endParenIndex].type === TokenType.RPAREN) parenDepth--;
+            endParenIndex++;
+        }
+        
+        // Parse parameters between parentheses
+        // Pattern: type name [, type name]*
+        for (let i = parenIndex + 1; i < endParenIndex - 1; i++) {
+            const current = tokens[i];
+            const next = tokens[i + 1];
+            
+            // Type (keyword or identifier) followed by parameter name
+            if ((current.type === TokenType.KEYWORD || current.type === TokenType.IDENTIFIER) &&
+                next && next.type === TokenType.IDENTIFIER) {
+                
+                params.push({
+                    kind: SymbolKind.LocalVariable,  // Treat parameters as local variables
+                    name: next.value,
+                    dataType: current.value,
+                    location: {
+                        line: next.line,
+                        column: next.column
+                    }
+                });
+                
+                i++;  // Skip the name token
+            }
+        }
+        
+        return params;
+    }
+
+    /**
+     * Extract function body content (for local variable parsing)
+     */
+    private static extractFunctionBody(content: string, tokens: Token[], startIndex: number): { content: string; startLine: number; endLine: number } | null {
+        // Find opening brace after function signature
+        let braceIndex = startIndex;
+        while (braceIndex < tokens.length && tokens[braceIndex].type !== TokenType.LBRACE) {
+            braceIndex++;
+        }
+        
+        if (braceIndex >= tokens.length) {
+            return null;
+        }
+        
+        const openBrace = tokens[braceIndex];
+        let braceCount = 1;
+        let endIndex = braceIndex + 1;
+        
+        // Find matching closing brace
+        while (endIndex < tokens.length && braceCount > 0) {
+            if (tokens[endIndex].type === TokenType.LBRACE) braceCount++;
+            if (tokens[endIndex].type === TokenType.RBRACE) braceCount--;
+            endIndex++;
+        }
+        
+        if (endIndex >= tokens.length) {
+            return null;
+        }
+        
+        // Extract content between braces
+        const lines = content.split('\n');
+        const startLine = openBrace.line;
+        const endLine = tokens[endIndex - 1]?.line || startLine;
+        
+        const bodyLines = lines.slice(startLine, endLine);
+        
+        return {
+            content: bodyLines.join('\n'),
+            startLine: startLine,  // Keep 0-based for LSP compatibility
+            endLine: endLine
+        };
+    }
+
+    /**
+     * Find local variables in function body
+     * 
+     * Parses patterns like:
+     * - DeviceFactory factory = new DeviceFactory();
+     * - string deviceName = "test";
+     * - int counter;
+     */
+    private static findLocalVariables(functionBody: string, startLine: number): VariableSymbol[] {
+        const locals: VariableSymbol[] = [];
+        const tokenizer = new Tokenizer(functionBody);
+        const tokens = tokenizer.tokenize();
+        
+        // Pattern: type identifier [= | ;]
+        for (let i = 0; i < tokens.length - 2; i++) {
+            const current = tokens[i];
+            const next = tokens[i + 1];
+            const afterNext = tokens[i + 2];
+            
+            // Type can be keyword (int, string, etc.) or identifier (DeviceFactory, etc.)
+            if ((current.type === TokenType.KEYWORD || current.type === TokenType.IDENTIFIER) &&
+                next.type === TokenType.IDENTIFIER &&
+                (afterNext.type === TokenType.SEMICOLON || 
+                 afterNext.value === '=' ||
+                 afterNext.type === TokenType.LBRACKET)) {  // arrays: int arr[10]
+                
+                // Make sure it's not a function call or method declaration
+                // Function calls have pattern: name(
+                const following = tokens[i + 2];
+                if (following?.type === TokenType.LPAREN) {
+                    continue;  // It's a function call or declaration
+                }
+                
+                locals.push({
+                    kind: SymbolKind.LocalVariable,
+                    name: next.value,
+                    dataType: current.value,
+                    location: {
+                        line: startLine + next.line - 1,
+                        column: next.column
+                    }
+                });
+            }
+        }
+        
+        return locals;
     }
 
     /**

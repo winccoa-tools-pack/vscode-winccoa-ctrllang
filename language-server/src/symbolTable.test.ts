@@ -102,6 +102,77 @@ suite('SymbolTable - Symbol Resolution', () => {
 });
 
 // ================================
+// Local Variables Tests
+// ================================
+
+suite('SymbolTable - Local Variables', () => {
+    
+    test('finds local variable declaration', () => {
+        const content = `
+int testFunction()
+{
+    DeviceFactory factory = new DeviceFactory();
+    string deviceName = "test";
+    int counter;
+    
+    return 0;
+}
+`;
+        
+        const symbols = SymbolTable.parseFile(content);
+        
+        // Should find local variables in function
+        assert.ok(symbols.functions.length > 0, 'Should find function');
+        // TODO: Local variables are stored per-function, not globally
+        // For now, test that we can parse the pattern
+    });
+    
+    test('resolves local variable in function scope', () => {
+        const content = `
+int testFunction()
+{
+    DeviceFactory factory = new DeviceFactory();
+    factory.doSomething();
+    return 0;
+}
+`;
+        
+        const symbols = SymbolTable.parseFile(content);
+        
+        // Try to resolve "factory" at line 4
+        const resolved = SymbolTable.resolveSymbol('factory', { line: 4, character: 5 }, symbols);
+        
+        assert.notStrictEqual(resolved, null, 'Should resolve local variable');
+        assert.strictEqual(resolved?.name, 'factory');
+        if (resolved && 'dataType' in resolved) {
+            assert.strictEqual(resolved.dataType, 'DeviceFactory');
+        }
+    });
+    
+    test('local variable has higher priority than global', () => {
+        const content = `
+global string factory;
+
+int testFunction()
+{
+    DeviceFactory factory = new DeviceFactory();
+    return 0;
+}
+`;
+        
+        const symbols = SymbolTable.parseFile(content);
+        
+        // Resolve "factory" inside function - should find local, not global
+        const resolved = SymbolTable.resolveSymbol('factory', { line: 5, character: 5 }, symbols);
+        
+        assert.notStrictEqual(resolved, null);
+        if (resolved && 'dataType' in resolved) {
+            assert.strictEqual(resolved.dataType, 'DeviceFactory', 'Should resolve to local DeviceFactory, not global string');
+        }
+    });
+});
+
+// ================================
 // Original Tests
 // ================================
 
