@@ -11,3 +11,5 @@ Makefile
 test-scripts/**
 tools/**
 bin/**
+test-workspace/**
+language-server/test/**

@@ -18,16 +18,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - E2E tests for Go-to-Definition with member access (2 tests)
 - Comprehensive hover tests (9 tests covering all hover scenarios)
 - **LSP Integration Tests**: New test suite (`lsp-hover.test.ts`) testing complete request/response flow (5 tests)
+- **Cross-File Resolution Tests**: Integration tests for #uses directive with dependency resolution (6 tests)
 - Method and function signatures in hover now show full parameter lists
+- Test workspace with CTL fixtures and library files for integration testing
 
 ### Changed
 - Hover handler refactored to handle member access patterns for classes and structs
 - Go-to-Definition handler extended with member access resolution logic
 - Symbol resolution now checks object type and resolves members through type system
+- **Test Structure Reorganization**: Moved all tests from `src/` to dedicated `test/` directory
+  - `test/simple/` for unit tests with local fixtures
+  - `test/integration/` for E2E and LSP integration tests
+- Test fixtures now in repository: `test-workspace/scripts/{fixtures,libs}` (self-contained)
+- Build process now copies test fixtures to `dist/` for test execution
 
 ### Fixed
 - Hover on struct fields via member access now works correctly
 - Hover on class methods via member access now shows full signatures
+- Test fixtures are excluded from published VSIX package (via `.vscodeignore`)
+- Cross-file resolution now correctly resolves libs from parent directory's `libs/` folder
 - Parameter parsing for functions, methods, and constructors now returns actual parameters instead of empty arrays
 
 ### Technical Details

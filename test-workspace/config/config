@@ -1,0 +1,9 @@
+[general]
+pvss_path = "/opt/WinCC_OA/3.20"
+proj_path = "/home/testus/vscode_wincc_extenssion/vscode-winccoa-ctrllang/test-workspace"
+proj_version = "3.20"
+useNGA = 1
+useSQLite = 1
+langs = "en_US.utf8"
+[ui]
+defaultFont = "Noto Sans"

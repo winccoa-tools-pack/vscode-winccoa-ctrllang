@@ -1,6 +1,6 @@
 {
   "name": "winccoa-ctrllang",
-  "displayName": "WinCC OA CTRL Language Support",
+  "displayName": "WinCC OA CTRL Language Support [LOCAL-30]",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
   "version": "0.3.0",
