@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-12-27
+
+### Added
+- **Member Access Navigation**: Go-to-Definition and Hover now work on member access patterns (e.g., `manager.createDevice()`, `myStruct.id`)
+- Member access detection in `symbolFinder.ts` - detects `object.member` patterns and returns object context
+- Struct field hover support via member access (e.g., `myStruct.id` shows `int id`)
+- Class method hover support via member access with full signatures (e.g., `manager.createDevice` shows `int createDevice(string deviceName, int deviceType)`)
+- Class member variable hover support via member access
+- E2E tests for Go-to-Definition with member access (2 tests)
+- Comprehensive hover tests (9 tests covering all hover scenarios)
+- **LSP Integration Tests**: New test suite (`lsp-hover.test.ts`) testing complete request/response flow (5 tests)
+- Method and function signatures in hover now show full parameter lists
+
+### Changed
+- Hover handler refactored to handle member access patterns for classes and structs
+- Go-to-Definition handler extended with member access resolution logic
+- Symbol resolution now checks object type and resolves members through type system
+
+### Fixed
+- Hover on struct fields via member access now works correctly
+- Hover on class methods via member access now shows full signatures
+- Parameter parsing for functions, methods, and constructors now returns actual parameters instead of empty arrays
+
+### Technical Details
+- `getSymbolAtPosition()` enhanced to return `memberAccess?: { objectName }` when detecting `obj.member` pattern
+- Hover handler checks `symbolInfo.memberAccess` and resolves through object type → class/struct → member/method/field
+- Go-to-Definition handler uses same member access resolution strategy
+- Test coverage: 61 passing tests (was 52)
+- Added LSP integration tests that simulate complete hover request/response cycle
+
 ## [0.2.3] - 2025-12-26
 
 ### Added

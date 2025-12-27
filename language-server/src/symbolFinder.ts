@@ -141,8 +141,14 @@ export function findGlobalVariables(filePath: string): SymbolLocation[] {
 /**
  * Find symbol at specific position
  * Returns the identifier token at the cursor position
+ * Also detects member access (e.g., manager.createDevice)
  */
-export function getSymbolAtPosition(content: string, offset: number): { name: string; line: number; column: number } | null {
+export function getSymbolAtPosition(content: string, offset: number): { 
+    name: string; 
+    line: number; 
+    column: number;
+    memberAccess?: { objectName: string };  // If this is a member access like obj.method
+} | null {
     // Simple approach: find word boundaries around offset
     let start = offset;
     let end = offset;
@@ -162,13 +168,48 @@ export function getSymbolAtPosition(content: string, offset: number): { name: st
         return null;
     }
     
+    // Check if this is a member access: obj.method
+    // Look backwards from word start to check for . and object name
+    let memberAccess: { objectName: string } | undefined = undefined;
+    
+    let checkPos = start - 1;
+    // Skip whitespace before potential dot
+    while (checkPos >= 0 && /\s/.test(content[checkPos])) {
+        checkPos--;
+    }
+    
+    // Check for dot
+    if (checkPos >= 0 && content[checkPos] === '.') {
+        checkPos--;  // Move before dot
+        
+        // Skip whitespace before object name
+        while (checkPos >= 0 && /\s/.test(content[checkPos])) {
+            checkPos--;
+        }
+        
+        // Find object name end
+        const objEnd = checkPos + 1;
+        
+        // Find object name start
+        while (checkPos >= 0 && /[a-zA-Z0-9_]/.test(content[checkPos])) {
+            checkPos--;
+        }
+        
+        const objStart = checkPos + 1;
+        const objectName = content.substring(objStart, objEnd);
+        
+        if (objectName) {
+            memberAccess = { objectName };
+        }
+    }
+    
     // Calculate line and column (for logging)
     const textBefore = content.substring(0, start);
     const line = (textBefore.match(/\n/g) || []).length + 1;
     const lastNewline = textBefore.lastIndexOf('\n');
     const column = start - lastNewline - 1;
     
-    return { name, line, column };
+    return { name, line, column, memberAccess };
 }
 
 /**

@@ -23,9 +23,9 @@ import {
     findFunctionDefinitions, 
     findGlobalVariables, 
     getSymbolAtPosition,
-    isFunctionCall 
+    isFunctionCall
 } from './symbolFinder';
-import { SymbolTable, SymbolKind, SymbolReference } from './symbolTable';
+import { SymbolTable, SymbolKind, SymbolReference, BaseSymbol } from './symbolTable';
 import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL, fileURLToPath } from 'url';
@@ -400,19 +400,54 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
     if (!doc) return null;
 
     const txt = doc.getText();
-    const pos = doc.offsetAt(params.position);
-    
-    let start = pos, end = pos;
-    while (start > 0 && /[a-zA-Z0-9_]/.test(txt[start - 1])) start--;
-    while (end < txt.length && /[a-zA-Z0-9_]/.test(txt[end])) end++;
-    
-    const word = txt.substring(start, end);
-    if (!word) return null;
+    const offset = doc.offsetAt(params.position);
     
     // Try user-defined symbols first (variables, classes, members) using Symbol Table
     try {
         const symbols = SymbolTable.parseFile(txt);
-        const resolved = SymbolTable.resolveSymbol(word, params.position, symbols);
+        const symbolInfo = getSymbolAtPosition(txt, offset);
+        
+        if (!symbolInfo) return null;
+        
+        let resolved: BaseSymbol | null = null;
+        
+        // Check if this is member access (e.g., manager.createDevice, myStruct.id)
+        if (symbolInfo.memberAccess) {
+            const objectName = symbolInfo.memberAccess.objectName;
+            
+            // Resolve the object to get its type
+            const objSymbol = SymbolTable.resolveSymbol(objectName, params.position, symbols);
+            
+            if (objSymbol && 'dataType' in objSymbol) {
+                const typeName = objSymbol.dataType;
+                
+                // Check if it's a class
+                const classSymbol = symbols.classes.find(c => c.name === typeName);
+                
+                if (classSymbol) {
+                    // Find the method or member in the class
+                    const method = classSymbol.methods.find(m => m.name === symbolInfo.name);
+                    const member = classSymbol.members.find(m => m.name === symbolInfo.name);
+                    
+                    resolved = method || member || null;
+                } else {
+                    // Check if it's a struct
+                    const structSymbol = symbols.structs.find(s => s.name === typeName);
+                    
+                    if (structSymbol) {
+                        // Find the field in the struct
+                        const field = structSymbol.fields.find(f => f.name === symbolInfo.name);
+                        
+                        if (field) {
+                            resolved = field;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Normal symbol resolution
+            resolved = SymbolTable.resolveSymbol(symbolInfo.name, params.position, symbols);
+        }
         
         if (resolved) {
             let hoverText = '';
@@ -428,11 +463,17 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
                 // Struct definition
                 hoverText = `\`\`\`ctrl\nstruct ${resolved.name}\n\`\`\``;
             } else if (resolved.kind === SymbolKind.Method && 'returnType' in resolved) {
-                // Method - show signature
-                hoverText = `\`\`\`ctrl\n${resolved.returnType} ${resolved.name}()\n\`\`\``;
+                // Method - show signature with parameters
+                const method = resolved as any;  // MethodSymbol
+                const params = method.parameters || [];
+                const paramList = params.map((p: any) => `${p.dataType} ${p.name}`).join(', ');
+                hoverText = `\`\`\`ctrl\n${method.returnType} ${method.name}(${paramList})\n\`\`\``;
             } else if (resolved.kind === SymbolKind.Function && 'returnType' in resolved) {
-                // Global function - show signature
-                hoverText = `\`\`\`ctrl\n${resolved.returnType} ${resolved.name}()\n\`\`\``;
+                // Global function - show signature with parameters
+                const func = resolved as any;  // FunctionSymbol
+                const params = func.parameters || [];
+                const paramList = params.map((p: any) => `${p.dataType} ${p.name}`).join(', ');
+                hoverText = `\`\`\`ctrl\n${func.returnType} ${func.name}(${paramList})\n\`\`\``;
             }
             
             if (hoverText) {
@@ -443,6 +484,15 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
         // Fall through to builtin functions if symbol table fails
         connection.console.error(`[Hover] Symbol Table error: ${error}`);
     }
+    
+    // Fallback: Check builtin functions using old word extraction
+    const pos = doc.offsetAt(params.position);
+    let start = pos, end = pos;
+    while (start > 0 && /[a-zA-Z0-9_]/.test(txt[start - 1])) start--;
+    while (end < txt.length && /[a-zA-Z0-9_]/.test(txt[end])) end++;
+    
+    const word = txt.substring(start, end);
+    if (!word) return null;
     
     // Fallback: Check builtin functions
     const fn = getBuiltinFunction(word);
@@ -503,6 +553,49 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
     }
     
     connection.console.log(`[Definition] Found symbol: "${symbolInfo.name}" at line ${symbolInfo.line}`);
+    
+    // Check if this is a member access (e.g., manager.createDevice)
+    if (symbolInfo.memberAccess) {
+        connection.console.log(`[Definition] Detected member access: ${symbolInfo.memberAccess.objectName}.${symbolInfo.name}`);
+        
+        // Try to find the method using Symbol Table
+        try {
+            const symbols = SymbolTable.parseFile(docText);
+            
+            // First, resolve the object to get its type
+            const objSymbol = SymbolTable.resolveSymbol(
+                symbolInfo.memberAccess.objectName,
+                { line: params.position.line, character: params.position.character },
+                symbols
+            );
+            
+            if (objSymbol && 'dataType' in objSymbol) {
+                const className = objSymbol.dataType;
+                connection.console.log(`[Definition] Object "${symbolInfo.memberAccess.objectName}" has type: ${className}`);
+                
+                // Find the class definition
+                const classSymbol = symbols.classes.find(c => c.name === className);
+                if (classSymbol) {
+                    // Find the method in this class
+                    const method = classSymbol.methods.find(m => m.name === symbolInfo.name);
+                    if (method) {
+                        connection.console.log(`[Definition] Found method "${symbolInfo.name}" in class "${className}" at line ${method.location.line}`);
+                        const currentFilePath = fileURLToPath(doc.uri);
+                        const uri = pathToFileURL(currentFilePath).href;
+                        
+                        return Location.create(uri, {
+                            start: { line: method.location.line, character: method.location.column },
+                            end: { line: method.location.line, character: method.location.column + method.name.length }
+                        });
+                    }
+                }
+            }
+            
+            connection.console.log('[Definition] Could not resolve member access through Symbol Table');
+        } catch (error) {
+            connection.console.log(`[Definition] Member access resolution error: ${error}`);
+        }
+    }
     
     // 3. Try NEW Symbol Table approach first (for classes, structs, members)
     try {
