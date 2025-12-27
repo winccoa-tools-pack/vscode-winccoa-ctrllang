@@ -66,6 +66,9 @@ export interface MethodSymbol extends BaseSymbol {
     returnType: string;
     parameters: ParameterSymbol[];
     accessModifier: AccessModifier;
+    localVariables?: VariableSymbol[];
+    bodyStartLine?: number;
+    bodyEndLine?: number;
 }
 
 export interface MemberSymbol extends BaseSymbol {
@@ -166,6 +169,13 @@ export class SymbolTable {
         // 2. Check if we're inside a class (class scope)
         const containingClass = this.findContainingClass(position, symbols.classes);
         if (containingClass) {
+            // Check if we're inside a method (for local variables in methods)
+            const containingMethod = this.findContainingMethod(position, containingClass.methods);
+            if (containingMethod && containingMethod.localVariables) {
+                const localVar = containingMethod.localVariables.find(v => v.name === name);
+                if (localVar) return localVar;
+            }
+            
             // Check class members
             const member = containingClass.members.find(m => m.name === name);
             if (member) return member;
@@ -173,8 +183,6 @@ export class SymbolTable {
             // Check class methods (but skip if it's a constructor with same name as class)
             const method = containingClass.methods.find(m => m.name === name && m.name !== containingClass.name);
             if (method) return method;
-            
-            // TODO: Check local variables in method scope (requires position-aware parsing)
         }
         
         // 2.5. Check if we're inside a function (for local variables)
@@ -339,6 +347,21 @@ export class SymbolTable {
             // This is simplified - real implementation needs brace tracking
             if (position.line >= cls.location.line && position.line <= cls.location.line + 100) {
                 return cls;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find the method containing the given position
+     */
+    private static findContainingMethod(position: Position, methods: MethodSymbol[]): MethodSymbol | null {
+        for (const method of methods) {
+            // Check if position is within method body
+            if (method.bodyStartLine !== undefined && method.bodyEndLine !== undefined) {
+                if (position.line >= method.bodyStartLine && position.line <= method.bodyEndLine) {
+                    return method;
+                }
             }
         }
         return null;
@@ -518,31 +541,48 @@ export class SymbolTable {
                 continue;
             }
             
-            // Pattern: type identifier (
-            if ((current.type === TokenType.KEYWORD || current.type === TokenType.IDENTIFIER) &&
-                next.type === TokenType.IDENTIFIER &&
-                afterNext.type === TokenType.LPAREN &&
-                next.value !== 'main') {  // main is special
+            // Pattern 1: type identifier ( - regular functions
+            // Pattern 2: main ( - special main function without return type (main can be KEYWORD or IDENTIFIER)
+            const isRegularFunction = (current.type === TokenType.KEYWORD || current.type === TokenType.IDENTIFIER) &&
+                                      next.type === TokenType.IDENTIFIER &&
+                                      afterNext.type === TokenType.LPAREN;
+            
+            const isMainFunction = (current.type === TokenType.IDENTIFIER || current.type === TokenType.KEYWORD) &&
+                                   current.value === 'main' &&
+                                   next.type === TokenType.LPAREN;
+            
+            if (isRegularFunction || isMainFunction) {
+                const functionName = isMainFunction ? current.value : next.value;
+                const returnType = isMainFunction ? 'void' : current.value;
+                const nameToken = isMainFunction ? current : next;
+                const startIndex = isMainFunction ? i : i;  // Both use i, but keep for clarity
                 
-                // Extract function parameters
-                const parameters = this.extractFunctionParameters(tokens, i);
+                // Extract function parameters as VariableSymbol[]
+                const paramVars = this.extractFunctionParameters(tokens, startIndex);
+                
+                // Convert to ParameterSymbol[]
+                const parameters = paramVars.map(v => ({
+                    name: v.name,
+                    dataType: v.dataType,
+                    byRef: false  // TODO: Detect & parameters
+                }));
                 
                 // Find function body for local variable extraction
-                const bodyInfo = this.extractFunctionBody(content, tokens, i);
+                const bodyInfo = this.extractFunctionBody(content, tokens, startIndex);
                 const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, bodyInfo.startLine) : [];
                 
                 // Combine parameters and local variables (parameters have priority)
-                const allLocalVars = [...parameters, ...bodyLocalVars];
+                const allLocalVars = [...paramVars, ...bodyLocalVars];
                 
                 functions.push({
                     kind: SymbolKind.Function,
-                    name: next.value,
-                    returnType: current.value,
+                    name: functionName,
+                    returnType: returnType,
                     location: {
-                        line: next.line,
-                        column: next.column
+                        line: nameToken.line,
+                        column: nameToken.column
                     },
-                    parameters: [],  // TODO: Parse parameters
+                    parameters: parameters,
                     localVariables: allLocalVars,
                     bodyStartLine: bodyInfo?.startLine,
                     bodyEndLine: bodyInfo?.endLine
@@ -921,6 +961,17 @@ export class SymbolTable {
                 
                 const accessModifier = inlineAccess !== null ? inlineAccess : currentAccess;
                 
+                // Extract parameters and body
+                const paramVars = this.extractFunctionParameters(tokens, i);
+                const parameters = paramVars.map(v => ({
+                    name: v.name,
+                    dataType: v.dataType,
+                    byRef: false
+                }));
+                const bodyInfo = this.extractFunctionBody(classBody, tokens, i);
+                const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, bodyInfo.startLine) : [];
+                const allLocalVars = [...paramVars, ...bodyLocalVars];
+                
                 methods.push({
                     kind: SymbolKind.Method,
                     name: current.value,
@@ -930,7 +981,10 @@ export class SymbolTable {
                         line: startLine + current.line - 1,
                         column: current.column
                     },
-                    parameters: []
+                    parameters: parameters,
+                    localVariables: allLocalVars,
+                    bodyStartLine: bodyInfo?.startLine,
+                    bodyEndLine: bodyInfo?.endLine
                 });
                 
                 continue;
@@ -948,6 +1002,17 @@ export class SymbolTable {
                 // Use inline access modifier if present, otherwise use section-based
                 const accessModifier = inlineAccess !== null ? inlineAccess : currentAccess;
                 
+                // Extract parameters and body
+                const paramVars = this.extractFunctionParameters(tokens, returnTypeIndex);
+                const parameters = paramVars.map(v => ({
+                    name: v.name,
+                    dataType: v.dataType,
+                    byRef: false
+                }));
+                const bodyInfo = this.extractFunctionBody(classBody, tokens, returnTypeIndex);
+                const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, bodyInfo.startLine) : [];
+                const allLocalVars = [...paramVars, ...bodyLocalVars];
+                
                 methods.push({
                     kind: SymbolKind.Method,
                     name: nameToken.value,
@@ -957,7 +1022,10 @@ export class SymbolTable {
                         line: startLine + nameToken.line - 1,
                         column: nameToken.column
                     },
-                    parameters: []  // TODO: Parse parameters
+                    parameters: parameters,
+                    localVariables: allLocalVars,
+                    bodyStartLine: bodyInfo?.startLine,
+                    bodyEndLine: bodyInfo?.endLine
                 });
                 
                 // Skip ahead to avoid processing the same tokens again

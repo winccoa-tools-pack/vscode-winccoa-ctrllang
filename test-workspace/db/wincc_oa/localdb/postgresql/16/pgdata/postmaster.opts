@@ -1,0 +1,1 @@
+/usr/lib/postgresql/16/bin/postgres "-D" "/home/testus/vscode_wincc_extenssion/vscode-winccoa-ctrllang/test-workspace/db/wincc_oa/localdb/postgresql/16/pgdata" "-k /home/testus/.winccoa"

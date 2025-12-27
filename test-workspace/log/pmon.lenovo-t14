@@ -1,0 +1,9 @@
+WCCILpmon    (1), 2025.12.27 21:56:11.840, SYS,  INFO,        1, Manager Start, START_MODE
+WCCILpmon    (1), 2025.12.27 21:56:11.859, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCILdataSQLite" -PROJ "test-workspace" -pmonIndex 1 
+WCCILpmon    (1), 2025.12.27 21:56:11.996, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCOAnextgenarch" -PROJ "test-workspace" -pmonIndex 2 
+WCCILpmon    (1), 2025.12.27 21:56:13.052, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCILevent" -PROJ "test-workspace" -pmonIndex 3 
+WCCILpmon    (1), 2025.12.27 21:56:13.230, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCILproxy" -PROJ "test-workspace" -pmonIndex 4 
+WCCILpmon    (1), 2025.12.27 21:56:13.532, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCOActrl" -PROJ "test-workspace" -pmonIndex 5 -num 1 -f pvss_scripts.lst
+WCCILpmon    (1), 2025.12.27 21:56:13.733, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCILsim" -PROJ "test-workspace" -pmonIndex 6 
+WCCILpmon    (1), 2025.12.27 21:56:14.010, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCOAui" -PROJ "test-workspace" -pmonIndex 7 -m gedi
+WCCILpmon    (1), 2025.12.27 21:56:16.118, SYS,  INFO,        9/pmon, The project is up and running. Entering monitor mode
