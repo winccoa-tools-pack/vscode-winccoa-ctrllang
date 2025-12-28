@@ -86,4 +86,49 @@ main()
         // The question: How do we know which Point definition is used?
         // Answer: Struct resolution should prioritize based on scope/imports
     });
+    
+    test('resolves complete member access chain (circle.center.x)', () => {
+        const code = `
+struct Point
+{
+  int x;
+  int y;
+};
+
+struct Circle
+{
+  Point center;
+  int radius;
+};
+
+main()
+{
+  Circle circle;
+  circle.center.x = 50;
+}
+`;
+        const symbols = SymbolTable.parseFile(code);
+        
+        // Simulate the chain resolution that server.ts does:
+        // Chain: ["circle", "center", "x"]
+        
+        // Step 1: Resolve "circle" to get its type
+        const circleVar = SymbolTable.resolveSymbol('circle', { line: 15, character: 3 }, symbols);
+        assert.ok(circleVar, 'Should resolve circle variable');
+        assert.strictEqual((circleVar as any).dataType, 'Circle', 'circle should be of type Circle');
+        
+        // Step 2: Resolve "center" in Circle type
+        const centerField = SymbolTable.resolveMemberByType('Circle', 'center', symbols);
+        assert.ok(centerField, 'Should resolve center field in Circle');
+        assert.strictEqual((centerField as any).dataType, 'Point', 'center should be of type Point');
+        
+        // Step 3: Resolve "x" in Point type
+        const xField = SymbolTable.resolveMemberByType('Point', 'x', symbols);
+        assert.ok(xField, 'Should resolve x field in Point');
+        assert.strictEqual(xField.name, 'x', 'Field should be named x');
+        assert.strictEqual((xField as any).dataType, 'int', 'x should be of type int');
+        assert.strictEqual(xField.location.line, 4, 'x should be defined at line 4');
+        
+        console.log('Complete chain resolution successful: circle.center.x -> Point.x at line', xField.location.line);
+    });
 });

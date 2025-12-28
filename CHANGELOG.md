@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Struct Field Resolution**: Extended `resolveMemberAccess()` to support struct fields in addition to class members/methods
 - **Nested Member Access Support**: New `resolveMemberByType()` method for resolving nested member access (`circle.center.x`) by type name
 - **Cross-File Member Access**: Extended hover and go-to-definition to resolve member access across #uses dependencies (e.g., `circle.center` where `Circle` is defined in DataStructures.ctl)
+- **Member Access Chain Parser**: Enhanced `getSymbolAtPosition()` to detect full member access chains (e.g., `circle.center.x` → `["circle", "center", "x"]`) for multi-level struct/class member resolution
 - Integration test: member-variable-resolution.test.ts (5 tests for member vs parameter shadowing, return statement resolution)
 - Integration test: global-vs-member-shadowing.test.ts (2 tests for global/member variable scope resolution)
 - Integration test: method-hover-signature.test.ts (1 test for member access method resolution)
