@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-12-28
+
+### Fixed
+- **Method Syntax Highlighting**: Class methods and method calls now use `support.function.ctrl` scope (like built-in functions) for distinct colorization from member variables. Adapted from C++ syntax patterns.
+  - Method declarations: `public int testMethod()` now properly highlighted
+  - Method calls: `obj.method()` and `this.method()` now properly highlighted
+  - Member variables retain `variable.other.ctrl` scope for differentiation
+
 ## [0.4.0] - 2025-12-28
 
 ### Added

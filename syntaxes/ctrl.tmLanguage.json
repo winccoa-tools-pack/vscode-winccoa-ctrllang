@@ -128,18 +128,44 @@
     ],
     "repository":{ 
       "access":{ 
-        "captures":{ 
-          "2":{ 
-            "name":"punctuation.separator.dot-access.ctrl"
+        "patterns":[
+          {
+            "comment": "Method call via . or ->",
+            "match":"((\\.)|(->))\\s*([a-zA-Z_][a-zA-Z_0-9]*)\\s*(?=\\()",
+            "captures":{ 
+              "1":{ 
+                "name":"punctuation.separator.access.ctrl"
+              },
+              "2":{ 
+                "name":"punctuation.separator.dot-access.ctrl"
+              },
+              "3":{ 
+                "name":"punctuation.separator.pointer-access.ctrl"
+              },
+              "4":{ 
+                "name":"support.function.ctrl"
+              }
+            }
           },
-          "3":{ 
-            "name":"punctuation.separator.pointer-access.ctrl"
-          },
-          "4":{ 
-            "name":"variable.other.member.ctrl"
+          {
+            "comment": "Member variable via . or ->",
+            "match":"((\\.)|(->))\\s*(([a-zA-Z_][a-zA-Z_0-9]*)\\b(?!\\s*\\())?",
+            "captures":{ 
+              "1":{ 
+                "name":"punctuation.separator.access.ctrl"
+              },
+              "2":{ 
+                "name":"punctuation.separator.dot-access.ctrl"
+              },
+              "3":{ 
+                "name":"punctuation.separator.pointer-access.ctrl"
+              },
+              "4":{ 
+                "name":"variable.other.member.ctrl"
+              }
+            }
           }
-        },
-        "match":"((\\.)|(->))\\s*(([a-zA-Z_][a-zA-Z_0-9]*)\\b(?!\\s*\\())?"
+        ]
       },
       "block":{ 
         "patterns":[ 
@@ -179,7 +205,7 @@
           { 
             "captures":{ 
               "1":{ 
-                "name":"variable.other.ctrl"
+                "name":"support.function.ctrl"
               },
               "2":{ 
                 "name":"punctuation.definition.parameters.ctrl"
@@ -263,7 +289,7 @@
             ]
           },
           "5":{ 
-            "name":"entity.name.function.member.ctrl"
+            "name":"support.function.ctrl"
           },
           "6":{ 
             "name":"punctuation.section.arguments.begin.bracket.round.function.member.ctrl"
