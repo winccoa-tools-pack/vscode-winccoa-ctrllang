@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-12-28
+
+### Added
+- **Template Insertion Commands**: New commands `winccoa.insertTestTemplate` and `winccoa.insertScriptTemplate` for inserting pre-formatted templates into .ctl files
+  - Test Template: OaTest class structure with setUp/tearDown methods and example test case
+  - Script Template: Basic script structure with main() function and placeholder comments
+  - Auto-replacement of placeholders: `{{className}}` (from filename), `{{fileName}}`, `{{date}}`
+  - Templates inserted at the beginning of the file (non-destructive)
+
 ## [0.3.2] - 2025-12-28
 
 ### Fixed

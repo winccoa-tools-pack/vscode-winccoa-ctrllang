@@ -234,6 +234,19 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
+	// Register template insertion commands
+	context.subscriptions.push(
+		vscode.commands.registerCommand('winccoa.insertTestTemplate', async () => {
+			await insertTemplate(context, 'test-template.ctl', 'Test');
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('winccoa.insertScriptTemplate', async () => {
+			await insertTemplate(context, 'script-template.ctl', 'Script');
+		})
+	);
+
 	// Register Open Documentation command
 	context.subscriptions.push(
 		vscode.commands.registerCommand('winccoa.openDocumentation', async () => {
@@ -436,6 +449,86 @@ async function performStartupDiagnostics(context: vscode.ExtensionContext) {
 	ExtensionOutputChannel.success('Diagnostics', '✓ Startup diagnostics complete');
 	ExtensionOutputChannel.info('Diagnostics', '═══════════════════════════════════════════════════════');
 	ExtensionOutputChannel.info('Diagnostics', '');
+}
+
+/**
+ * Insert a template at the beginning of the current file
+ * @param context Extension context
+ * @param templateFileName Template file name in resources/templates/
+ * @param templateType Type name for logging (e.g., 'Test', 'Script')
+ */
+async function insertTemplate(context: vscode.ExtensionContext, templateFileName: string, templateType: string) {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) {
+		vscode.window.showErrorMessage('No active editor');
+		return;
+	}
+
+	if (editor.document.languageId !== 'ctrl' && editor.document.languageId !== 'ctrlpp') {
+		vscode.window.showErrorMessage('Template insertion only works in .ctl files');
+		return;
+	}
+
+	try {
+		// Read template file
+		const templatePath = path.join(context.extensionPath, 'resources', 'templates', templateFileName);
+		const fs = require('fs');
+		const os = require('os');
+		let templateContent = fs.readFileSync(templatePath, 'utf-8');
+
+		// Get file information
+		const fileName = path.basename(editor.document.fileName);
+		const className = fileName.replace(/\.(ctl|ctrl|ctlpp|ctrlpp)$/, '');
+		const author = os.userInfo().username;
+
+		// Calculate relative path from workspace/project root
+		const workspaceFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+		let relPath = fileName;
+		if (workspaceFolder) {
+			relPath = path.relative(workspaceFolder.uri.fsPath, editor.document.uri.fsPath);
+			// Convert to forward slashes for consistency
+			relPath = relPath.replace(/\\/g, '/');
+		}
+
+		// For test templates: derive library path
+		let origLibRelPath = relPath;
+		let origLibRelPathWithoutExtension = relPath.replace(/\.(ctl|ctrl|ctlpp|ctrlpp)$/, '');
+		let origLibName = className;
+
+		if (templateType === 'Test') {
+			// Assume tests are in scripts/tests/ and libs are in scripts/libs/
+			// Convert scripts/tests/MyTest.ctl -> scripts/libs/MyLib.ctl
+			if (relPath.includes('scripts/tests/')) {
+				origLibRelPath = relPath.replace('scripts/tests/', 'scripts/libs/');
+				origLibRelPathWithoutExtension = origLibRelPath.replace(/\.(ctl|ctrl|ctlpp|ctrlpp)$/, '');
+			} else {
+				// Fallback: use class name without extension
+				origLibRelPathWithoutExtension = className;
+			}
+		}
+
+		// Replace placeholders
+		templateContent = templateContent
+			.replace(/\$relPath/g, relPath)
+			.replace(/\$copyright/g, '$copyright')
+			.replace(/\$author/g, author)
+			.replace(/\$className/g, className)
+			.replace(/\$origLibRelPath/g, origLibRelPath)
+			.replace(/\$origLibRelPathWithoutExtension/g, origLibRelPathWithoutExtension)
+			.replace(/\$origLibName/g, origLibName);
+
+		// Insert at the beginning of the document
+		await editor.edit((editBuilder) => {
+			const firstLine = editor.document.lineAt(0);
+			editBuilder.insert(firstLine.range.start, templateContent + '\n\n');
+		});
+
+		ExtensionOutputChannel.info('Template', `${templateType} template inserted: ${fileName}`);
+		vscode.window.showInformationMessage(`${templateType} template inserted successfully`);
+	} catch (error) {
+		ExtensionOutputChannel.error('Template', `Failed to insert template: ${error}`);
+		vscode.window.showErrorMessage(`Failed to insert template: ${error}`);
+	}
 }
 
 async function setupCoreExtensionIntegration(context: vscode.ExtensionContext) {
