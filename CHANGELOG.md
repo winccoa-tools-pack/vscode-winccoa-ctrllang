@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-12-28
+
+### Fixed
+- **Member Variable Resolution in Return Statements**: Fixed `findLocalVariables()` incorrectly parsing `return m_result` as variable declaration by whitelisting valid type keywords (excluded control flow keywords like `return`, `if`, `for`, etc.)
+- **Parameter Shadowing in Method Signatures**: Parameters now correctly resolved when cursor is on parameter declaration (signature line) instead of jumping to shadowed member variables
+- **Global vs Member Variable Shadowing**: Fixed class members being resolved outside of class scope - members now only accessible within their containing class, globals have priority in global scope
+- **LSP Position Handling**: Fixed 1-based vs 0-based line number mismatch in `findContainingMethod()`, `findContainingFunction()`, and `findContainingClass()` - all now correctly handle 0-based LSP positions
+- **Class Boundary Detection**: Replaced heuristic "+100 lines" approach with precise `startLine`/`endLine` tracking for classes
+
+### Changed
+- `findLocalVariables()`: Added whitelist of valid type keywords (int, float, string, bool, time, dyn_*, mapping, etc.)
+- `findContainingMethod()`: Now includes method signature line in containment check (previously only checked body)
+- `extractClassBody()`: Now returns `endLine` in addition to `startLine` and `content`
+- `ClassSymbol`: Added `startLine` and `endLine` fields for precise class boundary tracking
+
+### Added
+- Integration test: member-variable-resolution.test.ts (5 tests for member vs parameter shadowing, return statement resolution)
+- Integration test: global-vs-member-shadowing.test.ts (2 tests for global/member variable scope resolution)
+- Debug test: debug-locals.test.ts (validates local variable parsing doesn't incorrectly parse return statements)
+
 ## [0.3.1] - 2025-12-28
 
 ### Fixed

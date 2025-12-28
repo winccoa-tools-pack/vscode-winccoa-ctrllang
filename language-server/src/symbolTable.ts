@@ -45,6 +45,8 @@ export interface ClassSymbol extends BaseSymbol {
     members: MemberSymbol[];
     methods: MethodSymbol[];
     baseClass?: string;  // For inheritance
+    startLine?: number;  // Line where class starts (opening {)
+    endLine?: number;    // Line where class ends (closing })
 }
 
 export interface StructSymbol extends BaseSymbol {
@@ -151,7 +153,7 @@ export class SymbolTable {
         symbols: FileSymbols
     ): BaseSymbol | MemberSymbol | MethodSymbol | VariableSymbol | null {
         
-        // 1. Check type definitions first (highest priority)
+        // 1. Check type definitions first (for type references like class/struct names)
         // Class definitions
         const classSymbol = symbols.classes.find(c => c.name === name);
         if (classSymbol) return classSymbol;
@@ -160,24 +162,23 @@ export class SymbolTable {
         const structSymbol = symbols.structs.find(s => s.name === name);
         if (structSymbol) return structSymbol;
         
-        // Struct fields (check all structs for fields matching the name)
-        for (const struct of symbols.structs) {
-            const field = struct.fields.find(f => f.name === name);
-            if (field) return field;
-        }
+        // 2. HIGHEST PRIORITY: Check local scope (parameters and local variables)
+        // This must come BEFORE checking struct fields or class members!
         
-        // 2. Check if we're inside a class (class scope)
+        // 2a. Check if we're inside a class method
         const containingClass = this.findContainingClass(position, symbols.classes);
         if (containingClass) {
-            // Check if we're inside a method (for parameters and local variables in methods)
             const containingMethod = this.findContainingMethod(position, containingClass.methods);
             if (containingMethod) {
-                // HIGHEST PRIORITY: Check method parameters first (before local variables)
+                // Check method parameters FIRST (highest priority in method scope)
                 if (containingMethod.parameters) {
-                    const param = containingMethod.parameters.find(p => p.name === name);
-                    if (param) {
-                        // Convert parameter to VariableSymbol format for hover
-                        return {
+                    const paramIndex = containingMethod.parameters.findIndex(p => p.name === name);
+                    if (paramIndex >= 0) {
+                        const param = containingMethod.parameters[paramIndex];
+                        // Try to get parameter location from localVariables (paramVars were merged into localVariables)
+                        // Parameters are at the beginning of localVariables array
+                        const paramVar = containingMethod.localVariables?.find(v => v.name === param.name && v.dataType === param.dataType);
+                        return paramVar || {
                             kind: SymbolKind.LocalVariable,
                             name: param.name,
                             dataType: param.dataType,
@@ -193,7 +194,7 @@ export class SymbolTable {
                 }
             }
             
-            // Check class members
+            // Check class members (lower priority than parameters/locals, but still in class scope)
             const member = containingClass.members.find(m => m.name === name);
             if (member) return member;
             
@@ -202,15 +203,17 @@ export class SymbolTable {
             if (method) return method;
         }
         
-        // 2.5. Check if we're inside a function (for parameters and local variables)
+        // 2b. Check if we're inside a function (for parameters and local variables)
         const containingFunction = this.findContainingFunction(position, symbols.functions);
         if (containingFunction) {
-            // HIGHEST PRIORITY: Check function parameters first
+            // Check function parameters FIRST
             if (containingFunction.parameters) {
-                const param = containingFunction.parameters.find(p => p.name === name);
-                if (param) {
-                    // Convert parameter to VariableSymbol format for hover
-                    return {
+                const paramIndex = containingFunction.parameters.findIndex(p => p.name === name);
+                if (paramIndex >= 0) {
+                    const param = containingFunction.parameters[paramIndex];
+                    // Try to get parameter location from localVariables
+                    const paramVar = containingFunction.localVariables?.find(v => v.name === param.name && v.dataType === param.dataType);
+                    return paramVar || {
                         kind: SymbolKind.LocalVariable,
                         name: param.name,
                         dataType: param.dataType,
@@ -226,7 +229,13 @@ export class SymbolTable {
             }
         }
         
-        // 3. Check file scope
+        // 3. Check struct fields (only if not in local scope)
+        for (const struct of symbols.structs) {
+            const field = struct.fields.find(f => f.name === name);
+            if (field) return field;
+        }
+        
+        // 4. Check file scope (globals and functions)
         
         // Check global variables
         const globalVar = symbols.globals.find(g => g.name === name);
@@ -236,7 +245,7 @@ export class SymbolTable {
         const func = symbols.functions.find(f => f.name === name);
         if (func) return func;
         
-        // 4. Not found
+        // 5. Not found
         return null;
     }
 
@@ -373,14 +382,13 @@ export class SymbolTable {
      * Find the class containing a given position
      */
     private static findContainingClass(position: Position, classes: ClassSymbol[]): ClassSymbol | null {
-        // For now, use simple line-based containment
-        // TODO: Improve with brace-level tracking
         for (const cls of classes) {
-            // Assume class definition is at cls.location.line
-            // and extends for some lines (heuristic: check if position is close)
-            // This is simplified - real implementation needs brace tracking
-            if (position.line >= cls.location.line && position.line <= cls.location.line + 100) {
-                return cls;
+            // Check if position is within class body
+            // startLine and endLine are 1-based, position is 0-based (LSP)
+            if (cls.startLine && cls.endLine) {
+                if (position.line >= cls.startLine - 1 && position.line <= cls.endLine - 1) {
+                    return cls;
+                }
             }
         }
         return null;
@@ -391,11 +399,14 @@ export class SymbolTable {
      */
     private static findContainingMethod(position: Position, methods: MethodSymbol[]): MethodSymbol | null {
         for (const method of methods) {
-            // Check if position is within method body
-            if (method.bodyStartLine !== undefined && method.bodyEndLine !== undefined) {
-                if (position.line >= method.bodyStartLine && position.line <= method.bodyEndLine) {
-                    return method;
-                }
+            // Check if position is within method signature or body
+            // Signature line is method.location.line (1-based), body is bodyStartLine to bodyEndLine (1-based)
+            // Position is 0-based (LSP protocol), so we need to convert
+            const startLine = method.location.line - 1; // Include signature line, convert to 0-based
+            const endLine = (method.bodyEndLine || method.location.line) - 1; // Convert to 0-based
+            
+            if (position.line >= startLine && position.line <= endLine) {
+                return method;
             }
         }
         return null;
@@ -407,8 +418,9 @@ export class SymbolTable {
     private static findContainingFunction(position: Position, functions: FunctionSymbol[]): FunctionSymbol | null {
         for (const func of functions) {
             // Check if position is within function body
+            // bodyStartLine and bodyEndLine are 1-based, position is 0-based (LSP)
             if (func.bodyStartLine && func.bodyEndLine) {
-                if (position.line >= func.bodyStartLine && position.line <= func.bodyEndLine) {
+                if (position.line >= func.bodyStartLine - 1 && position.line <= func.bodyEndLine - 1) {
                     return func;
                 }
             }
@@ -467,7 +479,9 @@ export class SymbolTable {
                     location,
                     members,
                     methods,
-                    baseClass
+                    baseClass,
+                    startLine: classBody.startLine,
+                    endLine: classBody.endLine
                 });
             }
         }
@@ -752,7 +766,7 @@ export class SymbolTable {
     /**
      * Extract class/struct body content
      */
-    private static extractClassBody(content: string, tokens: Token[], startIndex: number): { content: string; startLine: number } {
+    private static extractClassBody(content: string, tokens: Token[], startIndex: number): { content: string; startLine: number; endLine: number } {
         // Find opening brace
         let braceIndex = startIndex;
         while (braceIndex < tokens.length && tokens[braceIndex].type !== TokenType.LBRACE) {
@@ -760,7 +774,7 @@ export class SymbolTable {
         }
         
         if (braceIndex >= tokens.length) {
-            return { content: '', startLine: 0 };
+            return { content: '', startLine: 0, endLine: 0 };
         }
         
         const openBrace = tokens[braceIndex];
@@ -783,15 +797,20 @@ export class SymbolTable {
         
         return {
             content: bodyLines.join('\n'),
-            startLine: startLine + 1
+            startLine: startLine + 1,
+            endLine: endLine
         };
     }
 
     /**
      * Extract function parameters (for local variable resolution)
      * Parses patterns like: void func(string deviceName, int count)
+     * 
+     * @param tokens Token array to parse
+     * @param startIndex Index to start looking for parameters
+     * @param lineOffset Offset to add to parameter line numbers (for methods in classes)
      */
-    private static extractFunctionParameters(tokens: Token[], startIndex: number): VariableSymbol[] {
+    private static extractFunctionParameters(tokens: Token[], startIndex: number, lineOffset: number = 0): VariableSymbol[] {
         const params: VariableSymbol[] = [];
         
         // Find opening parenthesis
@@ -828,7 +847,7 @@ export class SymbolTable {
                     name: next.value,
                     dataType: current.value,
                     location: {
-                        line: next.line,
+                        line: next.line + lineOffset,
                         column: next.column
                     }
                 });
@@ -896,14 +915,26 @@ export class SymbolTable {
         const tokenizer = new Tokenizer(functionBody);
         const tokens = tokenizer.tokenize();
         
+        // Valid type keywords (exclude control flow keywords like return, if, for, etc.)
+        const validTypeKeywords = new Set([
+            'int', 'float', 'string', 'bool', 'char', 'unsigned', 'long', 'double', 'void',
+            'bit32', 'uint', 'ulong', 'time', 'anytype', 'errClass', 'file', 
+            'dyn_int', 'dyn_float', 'dyn_string', 'dyn_bool', 'dyn_char', 'dyn_time',
+            'dyn_uint', 'dyn_ulong', 'dyn_bit32', 'dyn_errClass', 'dyn_anytype',
+            'mapping', 'dyn_mapping', 'shared_ptr', 'vector', 'const'
+        ]);
+        
         // Pattern: type identifier [= | ;]
         for (let i = 0; i < tokens.length - 2; i++) {
             const current = tokens[i];
             const next = tokens[i + 1];
             const afterNext = tokens[i + 2];
             
-            // Type can be keyword (int, string, etc.) or identifier (DeviceFactory, etc.)
-            if ((current.type === TokenType.KEYWORD || current.type === TokenType.IDENTIFIER) &&
+            // Type can be valid keyword or identifier (for custom types like DeviceFactory)
+            const isValidType = (current.type === TokenType.IDENTIFIER) || 
+                                (current.type === TokenType.KEYWORD && validTypeKeywords.has(current.value));
+            
+            if (isValidType &&
                 next.type === TokenType.IDENTIFIER &&
                 (afterNext.type === TokenType.SEMICOLON || 
                  afterNext.value === '=' ||
@@ -921,7 +952,7 @@ export class SymbolTable {
                     name: next.value,
                     dataType: current.value,
                     location: {
-                        line: startLine + next.line - 1,
+                        line: startLine + next.line,
                         column: next.column
                     }
                 });
@@ -1082,14 +1113,14 @@ export class SymbolTable {
                 const accessModifier = inlineAccess !== null ? inlineAccess : currentAccess;
                 
                 // Extract parameters and body
-                const paramVars = this.extractFunctionParameters(tokens, i);
+                const paramVars = this.extractFunctionParameters(tokens, i, startLine - 1);
                 const parameters = paramVars.map(v => ({
                     name: v.name,
                     dataType: v.dataType,
                     byRef: false
                 }));
                 const bodyInfo = this.extractFunctionBody(classBody, tokens, i);
-                const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, bodyInfo.startLine) : [];
+                const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, startLine + bodyInfo.startLine - 1) : [];
                 const allLocalVars = [...paramVars, ...bodyLocalVars];
                 
                 methods.push({
@@ -1103,8 +1134,8 @@ export class SymbolTable {
                     },
                     parameters: parameters,
                     localVariables: allLocalVars,
-                    bodyStartLine: bodyInfo?.startLine,
-                    bodyEndLine: bodyInfo?.endLine
+                    bodyStartLine: bodyInfo ? startLine + bodyInfo.startLine - 1 : undefined,
+                    bodyEndLine: bodyInfo ? startLine + bodyInfo.endLine - 1 : undefined
                 });
                 
                 continue;
@@ -1123,14 +1154,14 @@ export class SymbolTable {
                 const accessModifier = inlineAccess !== null ? inlineAccess : currentAccess;
                 
                 // Extract parameters and body
-                const paramVars = this.extractFunctionParameters(tokens, returnTypeIndex);
+                const paramVars = this.extractFunctionParameters(tokens, returnTypeIndex, startLine - 1);
                 const parameters = paramVars.map(v => ({
                     name: v.name,
                     dataType: v.dataType,
                     byRef: false
                 }));
                 const bodyInfo = this.extractFunctionBody(classBody, tokens, returnTypeIndex);
-                const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, bodyInfo.startLine) : [];
+                const bodyLocalVars = bodyInfo ? this.findLocalVariables(bodyInfo.content, startLine + bodyInfo.startLine - 1) : [];
                 const allLocalVars = [...paramVars, ...bodyLocalVars];
                 
                 methods.push({
@@ -1144,8 +1175,8 @@ export class SymbolTable {
                     },
                     parameters: parameters,
                     localVariables: allLocalVars,
-                    bodyStartLine: bodyInfo?.startLine,
-                    bodyEndLine: bodyInfo?.endLine
+                    bodyStartLine: bodyInfo ? startLine + bodyInfo.startLine - 1 : undefined,
+                    bodyEndLine: bodyInfo ? startLine + bodyInfo.endLine - 1 : undefined
                 });
                 
                 // Skip ahead to avoid processing the same tokens again
