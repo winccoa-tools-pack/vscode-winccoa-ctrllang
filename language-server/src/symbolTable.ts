@@ -169,11 +169,28 @@ export class SymbolTable {
         // 2. Check if we're inside a class (class scope)
         const containingClass = this.findContainingClass(position, symbols.classes);
         if (containingClass) {
-            // Check if we're inside a method (for local variables in methods)
+            // Check if we're inside a method (for parameters and local variables in methods)
             const containingMethod = this.findContainingMethod(position, containingClass.methods);
-            if (containingMethod && containingMethod.localVariables) {
-                const localVar = containingMethod.localVariables.find(v => v.name === name);
-                if (localVar) return localVar;
+            if (containingMethod) {
+                // HIGHEST PRIORITY: Check method parameters first (before local variables)
+                if (containingMethod.parameters) {
+                    const param = containingMethod.parameters.find(p => p.name === name);
+                    if (param) {
+                        // Convert parameter to VariableSymbol format for hover
+                        return {
+                            kind: SymbolKind.LocalVariable,
+                            name: param.name,
+                            dataType: param.dataType,
+                            location: containingMethod.location
+                        } as VariableSymbol;
+                    }
+                }
+                
+                // Then check local variables
+                if (containingMethod.localVariables) {
+                    const localVar = containingMethod.localVariables.find(v => v.name === name);
+                    if (localVar) return localVar;
+                }
             }
             
             // Check class members
@@ -185,11 +202,28 @@ export class SymbolTable {
             if (method) return method;
         }
         
-        // 2.5. Check if we're inside a function (for local variables)
+        // 2.5. Check if we're inside a function (for parameters and local variables)
         const containingFunction = this.findContainingFunction(position, symbols.functions);
-        if (containingFunction && containingFunction.localVariables) {
-            const localVar = containingFunction.localVariables.find(v => v.name === name);
-            if (localVar) return localVar;
+        if (containingFunction) {
+            // HIGHEST PRIORITY: Check function parameters first
+            if (containingFunction.parameters) {
+                const param = containingFunction.parameters.find(p => p.name === name);
+                if (param) {
+                    // Convert parameter to VariableSymbol format for hover
+                    return {
+                        kind: SymbolKind.LocalVariable,
+                        name: param.name,
+                        dataType: param.dataType,
+                        location: containingFunction.location
+                    } as VariableSymbol;
+                }
+            }
+            
+            // Then check local variables
+            if (containingFunction.localVariables) {
+                const localVar = containingFunction.localVariables.find(v => v.name === name);
+                if (localVar) return localVar;
+            }
         }
         
         // 3. Check file scope
@@ -595,11 +629,20 @@ export class SymbolTable {
 
     /**
      * Find all global variable declarations
+     * 
+     * In CTRL, variables can be global in two ways:
+     * 1. Explicit: global int myVar;
+     * 2. Implicit: int myVar; (at file level, outside functions/classes)
      */
     public static findGlobalVariables(content: string, tokens: Token[]): VariableSymbol[] {
         const globals: VariableSymbol[] = [];
+        const globalNames = new Set<string>();  // Track names to avoid duplicates
         
-        // Pattern: global type identifier
+        let braceDepth = 0;
+        let inClassOrStruct = false;
+        let inFunction = false;
+        
+        // Pattern 1: Explicit global keyword (highest priority)
         for (let i = 0; i < tokens.length - 2; i++) {
             const current = tokens[i];
             const next = tokens[i + 1];
@@ -619,6 +662,83 @@ export class SymbolTable {
                         column: afterNext.column
                     }
                 });
+                globalNames.add(afterNext.value);  // Mark as found
+            }
+        }
+        
+        // Pattern 2: Implicit global (file-level variables)
+        // Track brace depth to identify file-level scope
+        braceDepth = 0;
+        inClassOrStruct = false;
+        inFunction = false;
+        
+        for (let i = 0; i < tokens.length - 2; i++) {
+            const current = tokens[i];
+            const next = tokens[i + 1];
+            const afterNext = tokens[i + 2];
+            
+            // Track scope depth
+            if (current.type === TokenType.LBRACE) braceDepth++;
+            if (current.type === TokenType.RBRACE) braceDepth--;
+            
+            // Track if we're entering a class/struct/function
+            if (current.type === TokenType.KEYWORD && 
+                (current.value === 'class' || current.value === 'struct')) {
+                inClassOrStruct = true;
+            }
+            
+            // Reset when leaving class/struct/function
+            if (braceDepth === 0) {
+                inClassOrStruct = false;
+                inFunction = false;
+            }
+            
+            // Only parse at file level (braceDepth === 0)
+            if (braceDepth !== 0) continue;
+            if (inClassOrStruct || inFunction) continue;
+            
+            // Skip if already has 'global' keyword (handled above)
+            if (current.type === TokenType.KEYWORD && current.value === 'global') continue;
+            
+            // Pattern: type identifier [= | ;]
+            // Type can be keyword (int, string, etc.) or identifier (CustomType)
+            if ((current.type === TokenType.KEYWORD || current.type === TokenType.IDENTIFIER) &&
+                next.type === TokenType.IDENTIFIER &&
+                (afterNext.type === TokenType.SEMICOLON || 
+                 afterNext.value === '=' ||
+                 afterNext.type === TokenType.LBRACKET)) {  // arrays: int arr[10]
+                
+                // Make sure it's not a function declaration
+                if (afterNext.type === TokenType.LPAREN) continue;
+                
+                // Skip class/struct/function keywords
+                if (current.value === 'class' || current.value === 'struct' || 
+                    current.value === 'void' || current.value === 'public' || 
+                    current.value === 'private' || current.value === 'protected') {
+                    continue;
+                }
+                
+                // Check if next token after identifier is '(' (function)
+                const following = tokens[i + 2];
+                if (following?.type === TokenType.LPAREN) {
+                    inFunction = true;
+                    continue;
+                }
+                
+                // Skip if already found with 'global' keyword
+                if (globalNames.has(next.value)) continue;
+                
+                // It's a file-level variable!
+                globals.push({
+                    kind: SymbolKind.GlobalVariable,
+                    name: next.value,
+                    dataType: current.value,
+                    location: {
+                        line: next.line,
+                        column: next.column
+                    }
+                });
+                globalNames.add(next.value);  // Mark as found
             }
         }
         

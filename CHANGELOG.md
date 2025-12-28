@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-12-28
+
+### Fixed
+- **Implicit Global Variables**: Global variables declared without `global` keyword (e.g., `int intVariable = 42;` at file level) are now correctly recognized by hover and go-to-definition
+- **Go-to-Definition Line Offset**: Fixed off-by-one error where go-to-definition jumped one line below the actual definition (SymbolTable 1-based vs LSP 0-based line numbers)
+- **Parameter Hover Priority**: Function/method parameters now have priority over local variables in symbol resolution, fixing cases where shadowed variables showed wrong types (e.g., `value` parameter showing `float` from struct field instead of `int` from parameter)
+
+### Changed
+- `findGlobalVariables()` now detects two patterns:
+  - Pattern 1: `global type identifier` (explicit globals)
+  - Pattern 2: `type identifier` at file level (implicit globals, braceDepth === 0)
+- `resolveSymbol()` checks function parameters before local variables for correct type resolution
+- All Location.create() calls in server.ts adjusted with -1 line offset for LSP compatibility
+
+### Added
+- Integration tests for global variable usage hover and go-to-definition
+- Debug test for main() function parsing and symbol resolution
+- Build configuration for language server tests (tsconfig.build.json)
+
 ## [0.3.0] - 2025-12-27
 
 ### Added

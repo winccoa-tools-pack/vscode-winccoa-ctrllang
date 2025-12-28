@@ -402,10 +402,14 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
     const txt = doc.getText();
     const offset = doc.offsetAt(params.position);
     
+    connection.console.log(`[Hover] Request at position line ${params.position.line}, char ${params.position.character}, offset ${offset}`);
+    
     // Try user-defined symbols first (variables, classes, members) using Symbol Table
     try {
         const symbols = SymbolTable.parseFile(txt);
         const symbolInfo = getSymbolAtPosition(txt, offset);
+        
+        connection.console.log(`[Hover] Symbol at position: ${symbolInfo ? symbolInfo.name : 'null'}, memberAccess: ${symbolInfo?.memberAccess ? symbolInfo.memberAccess.objectName + '.' + symbolInfo.name : 'none'}`);
         
         if (!symbolInfo) return null;
         
@@ -447,9 +451,11 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
         } else {
             // Normal symbol resolution
             resolved = SymbolTable.resolveSymbol(symbolInfo.name, params.position, symbols);
+            connection.console.log(`[Hover] Normal resolution for '${symbolInfo.name}': ${resolved ? resolved.kind + ' ' + resolved.name : 'null'}`);
         }
         
         if (resolved) {
+            connection.console.log(`[Hover] Resolved symbol: ${resolved.kind} ${resolved.name}`);
             let hoverText = '';
             
             // Format based on symbol type
@@ -477,8 +483,13 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
             }
             
             if (hoverText) {
+                connection.console.log(`[Hover] Returning hover text: ${hoverText.substring(0, 50)}...`);
                 return { contents: { kind: MarkupKind.Markdown, value: hoverText } };
+            } else {
+                connection.console.log(`[Hover] No hover text generated for symbol ${resolved.kind} ${resolved.name}`);
             }
+        } else {
+            connection.console.log(`[Hover] Symbol not resolved, falling back to builtins`);
         }
     } catch (error) {
         // Fall through to builtin functions if symbol table fails
@@ -584,8 +595,8 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
                         const uri = pathToFileURL(currentFilePath).href;
                         
                         return Location.create(uri, {
-                            start: { line: method.location.line, character: method.location.column },
-                            end: { line: method.location.line, character: method.location.column + method.name.length }
+                            start: { line: method.location.line - 1, character: method.location.column },
+                            end: { line: method.location.line - 1, character: method.location.column + method.name.length }
                         });
                     }
                 }
@@ -612,8 +623,8 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
             const uri = pathToFileURL(currentFilePath).href;
             
             return Location.create(uri, {
-                start: { line: resolved.location.line, character: resolved.location.column },
-                end: { line: resolved.location.line, character: resolved.location.column + resolved.name.length }
+                start: { line: resolved.location.line - 1, character: resolved.location.column },
+                end: { line: resolved.location.line - 1, character: resolved.location.column + resolved.name.length }
             });
         }
         
@@ -639,6 +650,7 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
         if (funcDef) {
             connection.console.log(`[Definition] Found function definition at line ${funcDef.line}`);
             const uri = pathToFileURL(funcDef.filePath).href;
+            // Note: funcDef.line is 1-based from legacy finder, needs -1
             return Location.create(uri, {
                 start: { line: funcDef.line - 1, character: funcDef.column },
                 end: { line: funcDef.line - 1, character: funcDef.column + funcDef.name.length }

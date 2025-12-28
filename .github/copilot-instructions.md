@@ -58,6 +58,38 @@ Ein Bug im File-Watcher-Menü sorgt dafür, dass aktuell alle Einträge verschwi
 ### Known Issues
 **WinCC OA Limitation**: Beim Ausführen einzelner Testfälle generiert WinCC OA aktuell keinen vollständigen Test-Report. Die Infrastruktur in den Extensions ist vorbereitet, aber die volle Funktionalität hängt von zukünftigen WinCC OA Verbesserungen ab.
 
-## Versionsstände (Stand: 2025-12-25)
-- Script Actions: v0.3.1 - executeScriptWithArgs mit plain arguments
-- Test Explorer: v0.2.2 - Single test execution + Performance-Optimierungen
+## Test-Workspace Management (CRITICAL)
+
+### Directory Structure
+- **test-workspace MUSS auf ROOT-Level liegen**: Nicht in language-server/, sondern parallel dazu
+- **Grund**: Professionelle Projekt-Struktur, nicht verschachtelt
+- **Pfade in Tests**: Von dist/language-server/test/ aus: `../../../test-workspace/`
+
+### Git & VSIX
+- **.gitignore für Runtime-Dateien**: `test-workspace/db/**` sollte NICHT committed werden (Runtime-Artefakte)
+- **.vscodeignore**: `test-workspace/**` MUSS excluded sein, sonst Secrets im VSIX
+- **Große Commits**: Wenn User mit "ne das passt schon" zustimmt, sind auch 1400+ Dateien OK
+
+### Build & Test Paths
+- **copy-fixtures**: `cp -r ../test-workspace/scripts/* ../dist/test-workspace/scripts/`
+- **Unit Tests**: `path.join(__dirname, '../../../test-workspace/scripts/libs/')`
+- **Integration Tests**: `path.join(__dirname, '../../../test-workspace/scripts/fixtures/')`
+
+## Member Access Navigation (v0.3.0)
+
+### Implementation Details
+- **Go-to-Definition**: Funktioniert für `obj.method()` und `obj.field` Patterns
+- **Hover**: Zeigt volle Signaturen bei Member-Access
+- **Cross-File**: Nutzt #uses directive für Dependency-Resolution
+- **Symbol Finder**: Enhanced für Member Access Detection in symbolFinder.ts
+
+### Test Organization
+- **Unit Tests**: language-server/test/simple/ mit local fixtures/
+- **Integration Tests**: language-server/test/integration/ (E2E, LSP, Hover)
+- **Fixtures**: Self-contained CTL files in test-workspace/scripts/fixtures/
+- **Libraries**: Cross-file dependencies in test-workspace/scripts/libs/
+
+## Versionsstände (Stand: 2025-12-28)
+- **CTL Language**: v0.3.0 - Member access navigation + comprehensive tests
+- **Script Actions**: v0.3.1 - executeScriptWithArgs mit plain arguments
+- **Test Explorer**: v0.2.2 - Single test execution + Performance-Optimierungen

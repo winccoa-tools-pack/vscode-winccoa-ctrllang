@@ -4,7 +4,7 @@
   "description": "Language Server for WinCC OA CTRL",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc -p . && npm run copy-fixtures",
+    "build": "tsc -p . && tsc -p tsconfig.build.json && npm run copy-fixtures",
     "copy-fixtures": "mkdir -p ../dist/language-server/test/simple/fixtures && cp test/simple/fixtures/*.ctl ../dist/language-server/test/simple/fixtures/ && mkdir -p ../dist/test-workspace/scripts && cp -r ../test-workspace/scripts/* ../dist/test-workspace/scripts/",
     "test": "npm run build && mocha --ui tdd '../dist/language-server/test/**/*.test.js'",
     "test:watch": "mocha --ui tdd --watch '../dist/language-server/test/**/*.test.js'"
