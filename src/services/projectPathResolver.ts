@@ -16,6 +16,8 @@ export type PathSourceMode = 'workspace' | 'manual' | 'automatic';
 export class ProjectPathResolver {
     private static instance: ProjectPathResolver;
     private cachedPaths: ProjectPaths | null = null;
+    private coreActivationAttempted: boolean = false; // Track if we already tried to activate Core
+    private noProjectWarningShown: boolean = false; // Track if we already showed "no project selected" warning
 
     public static getInstance(): ProjectPathResolver {
         if (!ProjectPathResolver.instance) {
@@ -164,7 +166,13 @@ export class ProjectPathResolver {
         }
 
         if (!coreExtension.isActive) {
-            ExtensionOutputChannel.warn('PathResolver', 'Core extension is not active yet');
+            // Only show warning after first activation attempt to avoid startup noise
+            if (this.coreActivationAttempted) {
+                ExtensionOutputChannel.warn('PathResolver', 'Core extension is not active yet');
+            } else {
+                ExtensionOutputChannel.debug('PathResolver', 'Core extension not yet active (first call during startup)');
+                this.coreActivationAttempted = true;
+            }
             return null;
         }
 
@@ -172,10 +180,16 @@ export class ProjectPathResolver {
         const currentProject = coreApi.getCurrentProject();
 
         if (!currentProject) {
-            ExtensionOutputChannel.warn('PathResolver', 'No WinCC OA project selected in Core extension');
-            vscode.window.showWarningMessage(
-                'No WinCC OA project selected. Please select a project using the WinCC OA status bar.',
-            );
+            // Only show warning popup once per session to avoid startup noise
+            if (!this.noProjectWarningShown) {
+                ExtensionOutputChannel.debug('PathResolver', 'No project selected yet (first call during startup)');
+                this.noProjectWarningShown = true;
+            } else {
+                ExtensionOutputChannel.warn('PathResolver', 'No WinCC OA project selected in Core extension');
+                vscode.window.showWarningMessage(
+                    'No WinCC OA project selected. Please select a project using the WinCC OA status bar.',
+                );
+            }
             return null;
         }
 

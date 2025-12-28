@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2025-12-28
+
+### Fixed
+- **Core Extension Startup Messages**: Suppressed warning messages during initial startup to reduce noise:
+  - "Core extension is not active yet" now logs as debug on first call
+  - "No WinCC OA project selected" popup only shows after first startup attempt
+  - Subsequent calls still show warnings if issues persist
+
 ## [0.4.1] - 2025-12-28
 
 ### Fixed
