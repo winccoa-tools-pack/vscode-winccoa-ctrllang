@@ -250,6 +250,101 @@ export class SymbolTable {
     }
 
     /**
+     * Resolve member access: obj.member
+     * @param objectName - Name of the object (e.g., "manager", "circle")
+     * @param memberName - Name of the member (e.g., "validateConfig", "center")
+     * @param position - Position in the document
+     * @param symbols - File symbols
+     * @returns Resolved member/method/field or null
+     */
+    public static resolveMemberAccess(
+        objectName: string,
+        memberName: string,
+        position: Position,
+        symbols: FileSymbols
+    ): MemberSymbol | MethodSymbol | null {
+        // First, resolve the object to get its type
+        const objSymbol = this.resolveSymbol(objectName, position, symbols);
+        
+        if (!objSymbol || !('dataType' in objSymbol)) {
+            return null;
+        }
+        
+        const typeName = objSymbol.dataType;
+        
+        // Try to find as class definition
+        const classSymbol = symbols.classes.find(c => c.name === typeName);
+        if (classSymbol) {
+            // Search for the member in this class
+            // Check methods first (higher priority for method calls)
+            const method = classSymbol.methods.find(m => m.name === memberName);
+            if (method) {
+                return method;
+            }
+            
+            // Then check members
+            const member = classSymbol.members.find(m => m.name === memberName);
+            if (member) {
+                return member;
+            }
+        }
+        
+        // Try to find as struct definition
+        const structSymbol = symbols.structs.find(s => s.name === typeName);
+        if (structSymbol) {
+            // Search for the field in this struct
+            const field = structSymbol.fields.find(f => f.name === memberName);
+            if (field) {
+                return field;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Resolve member by type name directly (for nested member access)
+     * @param typeName - Name of the type (class or struct)
+     * @param memberName - Name of the member to find
+     * @param symbols - File symbols
+     * @returns Resolved member/method/field or null
+     */
+    public static resolveMemberByType(
+        typeName: string,
+        memberName: string,
+        symbols: FileSymbols
+    ): MemberSymbol | MethodSymbol | null {
+        // Try to find as class definition
+        const classSymbol = symbols.classes.find(c => c.name === typeName);
+        if (classSymbol) {
+            // Search for the member in this class
+            // Check methods first
+            const method = classSymbol.methods.find(m => m.name === memberName);
+            if (method) {
+                return method;
+            }
+            
+            // Then check members
+            const member = classSymbol.members.find(m => m.name === memberName);
+            if (member) {
+                return member;
+            }
+        }
+        
+        // Try to find as struct definition
+        const structSymbol = symbols.structs.find(s => s.name === typeName);
+        if (structSymbol) {
+            // Search for the field in this struct
+            const field = structSymbol.fields.find(f => f.name === memberName);
+            if (field) {
+                return field;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * Find all references to a symbol in the given content
      * 
      * @param name Symbol name to find references for

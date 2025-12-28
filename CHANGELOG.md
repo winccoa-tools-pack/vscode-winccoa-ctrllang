@@ -23,8 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ClassSymbol`: Added `startLine` and `endLine` fields for precise class boundary tracking
 
 ### Added
+- **Member Access Resolution**: New `resolveMemberAccess()` method for resolving member access patterns (`obj.method()`, `obj.member`)
+- **Struct Field Resolution**: Extended `resolveMemberAccess()` to support struct fields in addition to class members/methods
+- **Nested Member Access Support**: New `resolveMemberByType()` method for resolving nested member access (`circle.center.x`) by type name
+- **Cross-File Member Access**: Extended hover and go-to-definition to resolve member access across #uses dependencies (e.g., `circle.center` where `Circle` is defined in DataStructures.ctl)
 - Integration test: member-variable-resolution.test.ts (5 tests for member vs parameter shadowing, return statement resolution)
 - Integration test: global-vs-member-shadowing.test.ts (2 tests for global/member variable scope resolution)
+- Integration test: method-hover-signature.test.ts (1 test for member access method resolution)
+- Integration test: nested-member-access.test.ts (2 tests for struct field access and nested resolution)
 - Debug test: debug-locals.test.ts (validates local variable parsing doesn't incorrectly parse return statements)
 
 ## [0.3.1] - 2025-12-28

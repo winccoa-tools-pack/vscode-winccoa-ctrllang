@@ -395,7 +395,7 @@ connection.onCompletion((): CompletionItem[] => {
 
 connection.onCompletionResolve((item: CompletionItem) => item);
 
-connection.onHover((params: TextDocumentPositionParams): Hover | null => {
+connection.onHover(async (params: TextDocumentPositionParams): Promise<Hover | null> => {
     const doc = documents.get(params.textDocument.uri);
     if (!doc) return null;
 
@@ -424,26 +424,45 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
             
             if (objSymbol && 'dataType' in objSymbol) {
                 const typeName = objSymbol.dataType;
+                connection.console.log(`[Hover] Object "${objectName}" has type: ${typeName}`);
                 
-                // Check if it's a class
-                const classSymbol = symbols.classes.find(c => c.name === typeName);
+                // Try to resolve member by type in current file first
+                resolved = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, symbols);
                 
-                if (classSymbol) {
-                    // Find the method or member in the class
-                    const method = classSymbol.methods.find(m => m.name === symbolInfo.name);
-                    const member = classSymbol.members.find(m => m.name === symbolInfo.name);
-                    
-                    resolved = method || member || null;
-                } else {
-                    // Check if it's a struct
-                    const structSymbol = symbols.structs.find(s => s.name === typeName);
-                    
-                    if (structSymbol) {
-                        // Find the field in the struct
-                        const field = structSymbol.fields.find(f => f.name === symbolInfo.name);
+                // If not found in current file, search dependencies
+                if (!resolved) {
+                    connection.console.log(`[Hover] Type "${typeName}" not found in current file, searching dependencies...`);
+                    const info = await fetchProjectInfo();
+                    if (info) {
+                        const currentFilePath = fileURLToPath(doc.uri);
+                        const content = fs.readFileSync(currentFilePath, 'utf-8');
+                        const lines = content.split('\n');
+                        const usesPaths: string[] = [];
                         
-                        if (field) {
-                            resolved = field;
+                        for (const line of lines) {
+                            const match = line.match(/#uses\s+["']([^"']+)["']/);
+                            if (match) {
+                                usesPaths.push(match[1]);
+                            }
+                        }
+                        
+                        for (const usesPath of usesPaths) {
+                            const resolvedPath = resolveUsesPath(usesPath, info);
+                            if (!resolvedPath) continue;
+                            
+                            try {
+                                const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+                                const depSymbols = SymbolTable.parseFile(depContent);
+                                
+                                resolved = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, depSymbols);
+                                
+                                if (resolved) {
+                                    connection.console.log(`[Hover] Found member "${symbolInfo.name}" in ${resolvedPath}`);
+                                    break;
+                                }
+                            } catch (error) {
+                                connection.console.log(`[Hover] Error parsing ${resolvedPath}: ${error}`);
+                            }
                         }
                     }
                 }
@@ -573,7 +592,7 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
         try {
             const symbols = SymbolTable.parseFile(docText);
             
-            // First, resolve the object to get its type
+            // Step 1: Resolve the object to get its type
             const objSymbol = SymbolTable.resolveSymbol(
                 symbolInfo.memberAccess.objectName,
                 { line: params.position.line, character: params.position.character },
@@ -581,23 +600,64 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
             );
             
             if (objSymbol && 'dataType' in objSymbol) {
-                const className = objSymbol.dataType;
-                connection.console.log(`[Definition] Object "${symbolInfo.memberAccess.objectName}" has type: ${className}`);
+                const typeName = objSymbol.dataType;
+                connection.console.log(`[Definition] Object "${symbolInfo.memberAccess.objectName}" has type: ${typeName}`);
                 
-                // Find the class definition
-                const classSymbol = symbols.classes.find(c => c.name === className);
-                if (classSymbol) {
-                    // Find the method in this class
-                    const method = classSymbol.methods.find(m => m.name === symbolInfo.name);
-                    if (method) {
-                        connection.console.log(`[Definition] Found method "${symbolInfo.name}" in class "${className}" at line ${method.location.line}`);
-                        const currentFilePath = fileURLToPath(doc.uri);
-                        const uri = pathToFileURL(currentFilePath).href;
+                // Step 2: Try to find member in current file first
+                const memberSymbol = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, symbols);
+                
+                if (memberSymbol) {
+                    connection.console.log(`[Definition] Resolved member "${symbolInfo.name}" in current file at line ${memberSymbol.location.line}`);
+                    const currentFilePath = fileURLToPath(doc.uri);
+                    const uri = pathToFileURL(currentFilePath).href;
+                    
+                    return Location.create(uri, {
+                        start: { line: memberSymbol.location.line - 1, character: memberSymbol.location.column },
+                        end: { line: memberSymbol.location.line - 1, character: memberSymbol.location.column + memberSymbol.name.length }
+                    });
+                }
+                
+                // Step 3: If not found in current file, search in dependencies
+                connection.console.log(`[Definition] Type "${typeName}" not found in current file, searching dependencies...`);
+                const info = await fetchProjectInfo();
+                if (info) {
+                    const currentFilePath = fileURLToPath(doc.uri);
+                    const content = fs.readFileSync(currentFilePath, 'utf-8');
+                    const lines = content.split('\n');
+                    const usesPaths: string[] = [];
+                    
+                    for (const line of lines) {
+                        const match = line.match(/#uses\s+["']([^"']+)["']/);
+                        if (match) {
+                            usesPaths.push(match[1]);
+                        }
+                    }
+                    
+                    connection.console.log(`[Definition] Searching for type "${typeName}" in ${usesPaths.length} dependencies`);
+                    
+                    for (const usesPath of usesPaths) {
+                        const resolvedPath = resolveUsesPath(usesPath, info);
+                        if (!resolvedPath) continue;
                         
-                        return Location.create(uri, {
-                            start: { line: method.location.line - 1, character: method.location.column },
-                            end: { line: method.location.line - 1, character: method.location.column + method.name.length }
-                        });
+                        try {
+                            const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+                            const depSymbols = SymbolTable.parseFile(depContent);
+                            
+                            // Search for member in dependency's types
+                            const depMemberSymbol = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, depSymbols);
+                            
+                            if (depMemberSymbol) {
+                                connection.console.log(`[Definition] Found member "${symbolInfo.name}" in ${resolvedPath} at line ${depMemberSymbol.location.line}`);
+                                const uri = pathToFileURL(resolvedPath).href;
+                                
+                                return Location.create(uri, {
+                                    start: { line: depMemberSymbol.location.line - 1, character: depMemberSymbol.location.column },
+                                    end: { line: depMemberSymbol.location.line - 1, character: depMemberSymbol.location.column + depMemberSymbol.name.length }
+                                });
+                            }
+                        } catch (error) {
+                            connection.console.log(`[Definition] Error parsing ${resolvedPath}: ${error}`);
+                        }
                     }
                 }
             }
