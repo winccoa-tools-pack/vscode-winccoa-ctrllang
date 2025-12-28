@@ -25,7 +25,7 @@ import {
     getSymbolAtPosition,
     isFunctionCall
 } from './symbolFinder';
-import { SymbolTable, SymbolKind, SymbolReference, BaseSymbol } from './symbolTable';
+import { SymbolTable, SymbolKind, SymbolReference, BaseSymbol, FileSymbols, MemberSymbol, MethodSymbol } from './symbolTable';
 import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL, fileURLToPath } from 'url';
@@ -395,7 +395,7 @@ connection.onCompletion((): CompletionItem[] => {
 
 connection.onCompletionResolve((item: CompletionItem) => item);
 
-connection.onHover((params: TextDocumentPositionParams): Hover | null => {
+connection.onHover(async (params: TextDocumentPositionParams): Promise<Hover | null> => {
     const doc = documents.get(params.textDocument.uri);
     if (!doc) return null;
 
@@ -415,35 +415,141 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
         
         let resolved: BaseSymbol | null = null;
         
-        // Check if this is member access (e.g., manager.createDevice, myStruct.id)
+        // Check if this is member access (e.g., manager.createDevice, myStruct.id, circle.center.x)
         if (symbolInfo.memberAccess) {
-            const objectName = symbolInfo.memberAccess.objectName;
-            
-            // Resolve the object to get its type
-            const objSymbol = SymbolTable.resolveSymbol(objectName, params.position, symbols);
-            
-            if (objSymbol && 'dataType' in objSymbol) {
-                const typeName = objSymbol.dataType;
+            // Check if we have a chain (e.g., circle.center.x)
+            if (symbolInfo.memberAccessChain && symbolInfo.memberAccessChain.length > 2) {
+                connection.console.log(`[Hover] Detected member access chain: ${symbolInfo.memberAccessChain.join('.')}`);
                 
-                // Check if it's a class
-                const classSymbol = symbols.classes.find(c => c.name === typeName);
-                
-                if (classSymbol) {
-                    // Find the method or member in the class
-                    const method = classSymbol.methods.find(m => m.name === symbolInfo.name);
-                    const member = classSymbol.members.find(m => m.name === symbolInfo.name);
+                try {
+                    const info = await fetchProjectInfo();
                     
-                    resolved = method || member || null;
-                } else {
-                    // Check if it's a struct
-                    const structSymbol = symbols.structs.find(s => s.name === typeName);
+                    // Get dependencies
+                    const currentFilePath = fileURLToPath(doc.uri);
+                    const content = fs.readFileSync(currentFilePath, 'utf-8');
+                    const lines = content.split('\n');
+                    const usesPaths: string[] = [];
                     
-                    if (structSymbol) {
-                        // Find the field in the struct
-                        const field = structSymbol.fields.find(f => f.name === symbolInfo.name);
+                    for (const line of lines) {
+                        const match = line.match(/#uses\s+["']([^"']+)["']/);
+                        if (match) {
+                            usesPaths.push(match[1]);
+                        }
+                    }
+                    
+                    // Parse all dependency symbols
+                    const allSymbols: FileSymbols[] = [symbols];
+                    
+                    if (info) {
+                        for (const usesPath of usesPaths) {
+                            const resolvedPath = resolveUsesPath(usesPath, info);
+                            if (!resolvedPath) continue;
+                            
+                            try {
+                                const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+                                const depSymbols = SymbolTable.parseFile(depContent);
+                                allSymbols.push(depSymbols);
+                            } catch (error) {
+                                connection.console.log(`[Hover] Error parsing ${resolvedPath}: ${error}`);
+                            }
+                        }
+                    }
+                    
+                    // Resolve the chain
+                    const chain = symbolInfo.memberAccessChain;
+                    let currentType: string | null = null;
+                    
+                    // Resolve first symbol
+                    const firstSymbol = SymbolTable.resolveSymbol(chain[0], params.position, symbols);
+                    
+                    if (firstSymbol && 'dataType' in firstSymbol) {
+                        currentType = firstSymbol.dataType;
                         
-                        if (field) {
-                            resolved = field;
+                        // Walk through the chain
+                        for (let i = 1; i < chain.length; i++) {
+                            const memberName = chain[i];
+                            let foundMember: MemberSymbol | MethodSymbol | null = null;
+                            
+                            for (const symbolTable of allSymbols) {
+                                foundMember = SymbolTable.resolveMemberByType(currentType!, memberName, symbolTable);
+                                if (foundMember) {
+                                    break;
+                                }
+                            }
+                            
+                            if (!foundMember) {
+                                break;
+                            }
+                            
+                            // If this is the last element, use it
+                            if (i === chain.length - 1) {
+                                resolved = foundMember;
+                                connection.console.log(`[Hover] Resolved chain to: ${foundMember.kind} ${foundMember.name}`);
+                                break;
+                            }
+                            
+                            // Update currentType for next iteration
+                            if ('dataType' in foundMember) {
+                                currentType = foundMember.dataType;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    connection.console.log(`[Hover] Chain resolution error: ${error}`);
+                }
+            }
+            
+            // Fallback: simple member access
+            if (!resolved) {
+                const objectName = symbolInfo.memberAccess.objectName;
+                
+                // Resolve the object to get its type
+                const objSymbol = SymbolTable.resolveSymbol(objectName, params.position, symbols);
+                
+                if (objSymbol && 'dataType' in objSymbol) {
+                    const typeName = objSymbol.dataType;
+                    connection.console.log(`[Hover] Object "${objectName}" has type: ${typeName}`);
+                    
+                    // Try to resolve member by type in current file first
+                    resolved = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, symbols);
+                    
+                    // If not found in current file, search dependencies
+                    if (!resolved) {
+                        connection.console.log(`[Hover] Type "${typeName}" not found in current file, searching dependencies...`);
+                        const info = await fetchProjectInfo();
+                        if (info) {
+                            const currentFilePath = fileURLToPath(doc.uri);
+                            const content = fs.readFileSync(currentFilePath, 'utf-8');
+                            const lines = content.split('\n');
+                            const usesPaths: string[] = [];
+                            
+                            for (const line of lines) {
+                                const match = line.match(/#uses\s+["']([^"']+)["']/);
+                                if (match) {
+                                    usesPaths.push(match[1]);
+                                }
+                            }
+                            
+                            for (const usesPath of usesPaths) {
+                                const resolvedPath = resolveUsesPath(usesPath, info);
+                                if (!resolvedPath) continue;
+                                
+                                try {
+                                    const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+                                    const depSymbols = SymbolTable.parseFile(depContent);
+                                    
+                                    resolved = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, depSymbols);
+                                    
+                                    if (resolved) {
+                                        connection.console.log(`[Hover] Found member "${symbolInfo.name}" in ${resolvedPath}`);
+                                        break;
+                                    }
+                                } catch (error) {
+                                    connection.console.log(`[Hover] Error parsing ${resolvedPath}: ${error}`);
+                                }
+                            }
                         }
                     }
                 }
@@ -565,15 +671,135 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
     
     connection.console.log(`[Definition] Found symbol: "${symbolInfo.name}" at line ${symbolInfo.line}`);
     
-    // Check if this is a member access (e.g., manager.createDevice)
+    // Check if this is a member access (e.g., manager.createDevice, circle.center.x)
     if (symbolInfo.memberAccess) {
         connection.console.log(`[Definition] Detected member access: ${symbolInfo.memberAccess.objectName}.${symbolInfo.name}`);
         
-        // Try to find the method using Symbol Table
+        // Check if we have a chain (e.g., circle.center.x)
+        if (symbolInfo.memberAccessChain && symbolInfo.memberAccessChain.length > 2) {
+            connection.console.log(`[Definition] Detected member access chain: ${symbolInfo.memberAccessChain.join('.')}`);
+            
+            try {
+                const symbols = SymbolTable.parseFile(docText);
+                const info = await fetchProjectInfo();
+                
+                // Get dependencies
+                const currentFilePath = fileURLToPath(doc.uri);
+                const content = fs.readFileSync(currentFilePath, 'utf-8');
+                const lines = content.split('\n');
+                const usesPaths: string[] = [];
+                
+                for (const line of lines) {
+                    const match = line.match(/#uses\s+["']([^"']+)["']/);
+                    if (match) {
+                        usesPaths.push(match[1]);
+                    }
+                }
+                
+                // Parse all dependency symbols
+                const allSymbols: FileSymbols[] = [symbols];  // Start with current file
+                
+                if (info) {
+                    for (const usesPath of usesPaths) {
+                        const resolvedPath = resolveUsesPath(usesPath, info);
+                        if (!resolvedPath) continue;
+                        
+                        try {
+                            const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+                            const depSymbols = SymbolTable.parseFile(depContent);
+                            allSymbols.push(depSymbols);
+                        } catch (error) {
+                            connection.console.log(`[Definition] Error parsing ${resolvedPath}: ${error}`);
+                        }
+                    }
+                }
+                
+                // Resolve the chain step by step
+                const chain = symbolInfo.memberAccessChain;
+                let currentType: string | null = null;
+                
+                // Step 1: Resolve first symbol (e.g., "circle")
+                const firstSymbol = SymbolTable.resolveSymbol(chain[0], params.position, symbols);
+                
+                if (!firstSymbol || !('dataType' in firstSymbol)) {
+                    connection.console.log(`[Definition] Cannot resolve first symbol in chain: ${chain[0]}`);
+                } else {
+                    currentType = firstSymbol.dataType;
+                    connection.console.log(`[Definition] Resolved ${chain[0]} -> type ${currentType}`);
+                    
+                    // Step 2: Walk through the chain (e.g., "center", then "x")
+                    for (let i = 1; i < chain.length; i++) {
+                        const memberName = chain[i];
+                        let foundMember: MemberSymbol | MethodSymbol | null = null;
+                        
+                        // Search in all symbol tables (current file + dependencies)
+                        for (const symbolTable of allSymbols) {
+                            foundMember = SymbolTable.resolveMemberByType(currentType!, memberName, symbolTable);
+                            if (foundMember) {
+                                break;
+                            }
+                        }
+                        
+                        if (!foundMember) {
+                            connection.console.log(`[Definition] Cannot find ${memberName} in type ${currentType}`);
+                            break;
+                        }
+                        
+                        connection.console.log(`[Definition] Resolved ${memberName} in ${currentType}`);
+                        
+                        // If this is the last element in the chain, return its location
+                        if (i === chain.length - 1) {
+                            connection.console.log(`[Definition] Found final member "${memberName}" at line ${foundMember.location.line}`);
+                            
+                            // Find which file this symbol is in
+                            let targetUri = pathToFileURL(currentFilePath).href;
+                            
+                            if (info) {
+                                for (const usesPath of usesPaths) {
+                                    const resolvedPath = resolveUsesPath(usesPath, info);
+                                    if (!resolvedPath) continue;
+                                    
+                                    try {
+                                        const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+                                        const depSymbols = SymbolTable.parseFile(depContent);
+                                        const checkMember = SymbolTable.resolveMemberByType(currentType!, memberName, depSymbols);
+                                        
+                                        if (checkMember && checkMember.location.line === foundMember.location.line) {
+                                            targetUri = pathToFileURL(resolvedPath).href;
+                                            connection.console.log(`[Definition] Symbol found in dependency: ${resolvedPath}`);
+                                            break;
+                                        }
+                                    } catch (error) {
+                                        // Ignore
+                                    }
+                                }
+                            }
+                            
+                            return Location.create(targetUri, {
+                                start: { line: foundMember.location.line - 1, character: foundMember.location.column },
+                                end: { line: foundMember.location.line - 1, character: foundMember.location.column + foundMember.name.length }
+                            });
+                        }
+                        
+                        // Update currentType for next iteration
+                        if ('dataType' in foundMember) {
+                            currentType = foundMember.dataType;
+                        } else {
+                            connection.console.log(`[Definition] Member ${memberName} has no dataType, cannot continue chain`);
+                            break;
+                        }
+                    }
+                }
+            } catch (error) {
+                connection.console.log(`[Definition] Chain resolution error: ${error}`);
+            }
+        }
+        
+        // Fallback: Try simple member access (backward compatibility)
         try {
             const symbols = SymbolTable.parseFile(docText);
             
-            // First, resolve the object to get its type
+            // Step 1: Resolve the object to get its type
             const objSymbol = SymbolTable.resolveSymbol(
                 symbolInfo.memberAccess.objectName,
                 { line: params.position.line, character: params.position.character },
@@ -581,23 +807,64 @@ connection.onDefinition(async (params: TextDocumentPositionParams): Promise<Defi
             );
             
             if (objSymbol && 'dataType' in objSymbol) {
-                const className = objSymbol.dataType;
-                connection.console.log(`[Definition] Object "${symbolInfo.memberAccess.objectName}" has type: ${className}`);
+                const typeName = objSymbol.dataType;
+                connection.console.log(`[Definition] Object "${symbolInfo.memberAccess.objectName}" has type: ${typeName}`);
                 
-                // Find the class definition
-                const classSymbol = symbols.classes.find(c => c.name === className);
-                if (classSymbol) {
-                    // Find the method in this class
-                    const method = classSymbol.methods.find(m => m.name === symbolInfo.name);
-                    if (method) {
-                        connection.console.log(`[Definition] Found method "${symbolInfo.name}" in class "${className}" at line ${method.location.line}`);
-                        const currentFilePath = fileURLToPath(doc.uri);
-                        const uri = pathToFileURL(currentFilePath).href;
+                // Step 2: Try to find member in current file first
+                const memberSymbol = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, symbols);
+                
+                if (memberSymbol) {
+                    connection.console.log(`[Definition] Resolved member "${symbolInfo.name}" in current file at line ${memberSymbol.location.line}`);
+                    const currentFilePath = fileURLToPath(doc.uri);
+                    const uri = pathToFileURL(currentFilePath).href;
+                    
+                    return Location.create(uri, {
+                        start: { line: memberSymbol.location.line - 1, character: memberSymbol.location.column },
+                        end: { line: memberSymbol.location.line - 1, character: memberSymbol.location.column + memberSymbol.name.length }
+                    });
+                }
+                
+                // Step 3: If not found in current file, search in dependencies
+                connection.console.log(`[Definition] Type "${typeName}" not found in current file, searching dependencies...`);
+                const info = await fetchProjectInfo();
+                if (info) {
+                    const currentFilePath = fileURLToPath(doc.uri);
+                    const content = fs.readFileSync(currentFilePath, 'utf-8');
+                    const lines = content.split('\n');
+                    const usesPaths: string[] = [];
+                    
+                    for (const line of lines) {
+                        const match = line.match(/#uses\s+["']([^"']+)["']/);
+                        if (match) {
+                            usesPaths.push(match[1]);
+                        }
+                    }
+                    
+                    connection.console.log(`[Definition] Searching for type "${typeName}" in ${usesPaths.length} dependencies`);
+                    
+                    for (const usesPath of usesPaths) {
+                        const resolvedPath = resolveUsesPath(usesPath, info);
+                        if (!resolvedPath) continue;
                         
-                        return Location.create(uri, {
-                            start: { line: method.location.line - 1, character: method.location.column },
-                            end: { line: method.location.line - 1, character: method.location.column + method.name.length }
-                        });
+                        try {
+                            const depContent = fs.readFileSync(resolvedPath, 'utf-8');
+                            const depSymbols = SymbolTable.parseFile(depContent);
+                            
+                            // Search for member in dependency's types
+                            const depMemberSymbol = SymbolTable.resolveMemberByType(typeName, symbolInfo.name, depSymbols);
+                            
+                            if (depMemberSymbol) {
+                                connection.console.log(`[Definition] Found member "${symbolInfo.name}" in ${resolvedPath} at line ${depMemberSymbol.location.line}`);
+                                const uri = pathToFileURL(resolvedPath).href;
+                                
+                                return Location.create(uri, {
+                                    start: { line: depMemberSymbol.location.line - 1, character: depMemberSymbol.location.column },
+                                    end: { line: depMemberSymbol.location.line - 1, character: depMemberSymbol.location.column + depMemberSymbol.name.length }
+                                });
+                            }
+                        } catch (error) {
+                            connection.console.log(`[Definition] Error parsing ${resolvedPath}: ${error}`);
+                        }
                     }
                 }
             }

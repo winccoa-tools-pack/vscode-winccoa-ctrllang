@@ -30,6 +30,8 @@ dyn_int dynIntVariable;
 // TEST: Hover auf 'dynStringVariable' -> sollte Typ 'dyn_string' anzeigen
 dyn_string dynStringVariable;
 
+int m_result;
+
 // Struct für Type-Tests
 struct TestStruct
 {
@@ -95,13 +97,17 @@ void main()
   // Hover über Variable sollte "int intVariable" zeigen
   int localInt = intVariable;
 
+  m_result = localInt; //TODO Hier springe ich leider in die klasse und nicht auf die globale variable. ISt unwahrscheinlich aber müssen wir handeln können.
+
   // Hover über Struct-Instanz
   TestStruct myStruct;
-  myStruct.id = 1; //TODO COPILOT: Ich kann nicht über id hovern sehe keinen typ
+  myStruct.id = 1;
+  myStruct.value = 2.5;
   // Hover über Function Call //
   int sum = add(5, 10);
 
   // Hover über Class-Instanz
-  Calculator calc = new Calculator();
+  Calculator calc = new Calculator(); //TODO COPILOT: Ich kann über new Calculator hovern sehe aber als typ class Calculator hier müssen wir auf den Konstruktor springen und diesen als signartur anzeigen
+  int result = calc.getResult();
   int result = calc.getResult();
 }

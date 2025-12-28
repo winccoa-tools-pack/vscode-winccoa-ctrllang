@@ -148,6 +148,7 @@ export function getSymbolAtPosition(content: string, offset: number): {
     line: number; 
     column: number;
     memberAccess?: { objectName: string };  // If this is a member access like obj.method
+    memberAccessChain?: string[];  // Full chain for nested access: ["circle", "center", "x"]
 } | null {
     // Simple approach: find word boundaries around offset
     let start = offset;
@@ -168,18 +169,24 @@ export function getSymbolAtPosition(content: string, offset: number): {
         return null;
     }
     
-    // Check if this is a member access: obj.method
-    // Look backwards from word start to check for . and object name
+    // Build the complete member access chain
+    const chain: string[] = [name];
     let memberAccess: { objectName: string } | undefined = undefined;
     
     let checkPos = start - 1;
-    // Skip whitespace before potential dot
-    while (checkPos >= 0 && /\s/.test(content[checkPos])) {
-        checkPos--;
-    }
     
-    // Check for dot
-    if (checkPos >= 0 && content[checkPos] === '.') {
+    // Loop to collect all parts of the chain (e.g., circle.center.x)
+    while (true) {
+        // Skip whitespace before potential dot
+        while (checkPos >= 0 && /\s/.test(content[checkPos])) {
+            checkPos--;
+        }
+        
+        // Check for dot
+        if (checkPos < 0 || content[checkPos] !== '.') {
+            break;  // No more dots, end of chain
+        }
+        
         checkPos--;  // Move before dot
         
         // Skip whitespace before object name
@@ -196,11 +203,19 @@ export function getSymbolAtPosition(content: string, offset: number): {
         }
         
         const objStart = checkPos + 1;
-        const objectName = content.substring(objStart, objEnd);
+        const partName = content.substring(objStart, objEnd);
         
-        if (objectName) {
-            memberAccess = { objectName };
+        if (!partName) {
+            break;  // Invalid chain, stop
         }
+        
+        // Add to front of chain (we're going backwards)
+        chain.unshift(partName);
+    }
+    
+    // For backward compatibility: set memberAccess to immediate parent
+    if (chain.length > 1) {
+        memberAccess = { objectName: chain[chain.length - 2] };
     }
     
     // Calculate line and column (for logging)
@@ -209,7 +224,15 @@ export function getSymbolAtPosition(content: string, offset: number): {
     const lastNewline = textBefore.lastIndexOf('\n');
     const column = start - lastNewline - 1;
     
-    return { name, line, column, memberAccess };
+    const result: any = { name, line, column };
+    if (memberAccess) {
+        result.memberAccess = memberAccess;
+    }
+    if (chain.length > 1) {
+        result.memberAccessChain = chain;
+    }
+    
+    return result;
 }
 
 /**
