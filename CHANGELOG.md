@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2025-12-28
+
+### Added
+- **Custom Astyle Paths**: New settings to specify custom astyle binary and config file paths
+  - `winccoa.astyleFormatter.binaryPath`: Custom path to astyle binary
+  - `winccoa.astyleFormatter.configPath`: Custom path to astyle config file
+  - Falls back to WinCC OA installation paths if custom paths are not set
+  - Allows users to use their own astyle installation
+
 ## [0.4.2] - 2025-12-28
 
 ### Fixed

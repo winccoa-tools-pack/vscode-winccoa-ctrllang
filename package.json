@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support [LOCAL-30]",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "author": "winccoa-tools-pack",
   "license": "GNU General Public License v3.0",
   "icon": "resources/code_128.png",
@@ -159,6 +159,16 @@
           "type": "boolean",
           "default": false,
           "description": "Enable Astyle code formatting for .ctl/.ctrlpp files"
+        },
+        "winccoa.astyleFormatter.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to astyle binary. If empty, uses WinCC OA installation path (bin/astyle or bin/astyle.exe)"
+        },
+        "winccoa.astyleFormatter.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to astyle config file. If empty, uses WinCC OA installation path (config/astyle.config)"
         },
         "winccoa.astyleFormatter.runOnSave": {
           "type": "boolean",

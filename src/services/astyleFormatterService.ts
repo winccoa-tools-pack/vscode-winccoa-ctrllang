@@ -49,6 +49,36 @@ export class AstyleFormatterService {
     }
 
     private async resolveAstylePaths(): Promise<{ astylePath: string | null; configPath: string | null }> {
+        const config = vscode.workspace.getConfiguration('winccoa.astyleFormatter');
+        const customBinaryPath = config.get<string>('binaryPath', '').trim();
+        const customConfigPath = config.get<string>('configPath', '').trim();
+
+        // Use custom paths if provided
+        if (customBinaryPath && customConfigPath) {
+            ExtensionOutputChannel.info('Formatter', 'Using custom astyle paths from settings');
+            
+            // Verify custom paths exist
+            if (!fs.existsSync(customBinaryPath)) {
+                ExtensionOutputChannel.error('Formatter', `Custom binary not found: ${customBinaryPath}`);
+                vscode.window.showErrorMessage(`Astyle binary not found at: ${customBinaryPath}`);
+                return { astylePath: null, configPath: null };
+            }
+
+            if (!fs.existsSync(customConfigPath)) {
+                ExtensionOutputChannel.error('Formatter', `Custom config not found: ${customConfigPath}`);
+                vscode.window.showErrorMessage(`Astyle config not found at: ${customConfigPath}`);
+                return { astylePath: null, configPath: null };
+            }
+
+            ExtensionOutputChannel.debug('Formatter', `  Binary: ${customBinaryPath}`);
+            ExtensionOutputChannel.debug('Formatter', `  Config: ${customConfigPath}`);
+            
+            return { astylePath: customBinaryPath, configPath: customConfigPath };
+        }
+
+        // Fall back to WinCC OA installation paths
+        ExtensionOutputChannel.debug('Formatter', 'Using WinCC OA installation paths (default)');
+        
         const resolver = ProjectPathResolver.getInstance();
         const projectPaths = await resolver.getProjectPaths();
 
