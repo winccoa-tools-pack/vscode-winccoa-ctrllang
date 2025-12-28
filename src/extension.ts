@@ -73,6 +73,45 @@ export function activate(context: vscode.ExtensionContext) {
 	ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server...');
 	startLanguageServer(context);
 
+	// Watch for newly created .ctl files
+	context.subscriptions.push(
+		vscode.workspace.onDidCreateFiles(async (event) => {
+			// Check if auto-suggest is enabled
+			const config = vscode.workspace.getConfiguration('winccoa.templates');
+			const autoSuggest = config.get<boolean>('autoSuggest', true);
+			
+			if (!autoSuggest) {
+				return;
+			}
+			
+			for (const file of event.files) {
+				if (file.fsPath.match(/\.(ctl|ctrl|ctlpp|ctrlpp)$/)) {
+					// Check if file is empty or very small (likely new)
+					const document = await vscode.workspace.openTextDocument(file);
+					if (document.getText().trim().length < 100) {
+						// Ask user if they want to insert a template
+						const isTest = file.fsPath.includes('/tests/') || file.fsPath.includes('Test');
+						const templateType = isTest ? 'Test' : 'Script';
+						const templateFile = isTest ? 'test-template.ctl' : 'script-template.ctl';
+						
+						const choice = await vscode.window.showInformationMessage(
+							`Insert ${templateType} template?`,
+							'Yes',
+							'No'
+						);
+						
+						if (choice === 'Yes') {
+							// Open the file in editor
+							const editor = await vscode.window.showTextDocument(document);
+							// Insert template
+							await insertTemplate(context, templateFile, templateType);
+						}
+					}
+				}
+			}
+		})
+	);
+
 	// Setup on save handlers
 	context.subscriptions.push(
 		vscode.workspace.onDidSaveTextDocument(async (document) => {
