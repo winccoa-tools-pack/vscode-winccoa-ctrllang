@@ -21,6 +21,8 @@ export enum SymbolKind {
     GlobalVariable = 'global',
     MemberVariable = 'member',
     LocalVariable = 'local',
+    Enum = 'enum',
+    EnumMember = 'enumMember',
 }
 
 export enum AccessModifier {
@@ -79,6 +81,18 @@ export interface MemberSymbol extends BaseSymbol {
     accessModifier: AccessModifier;
 }
 
+export interface EnumMemberSymbol {
+    name: string;
+    value?: number;
+    location: SymbolLocation;
+}
+
+export interface EnumSymbol extends BaseSymbol {
+    kind: SymbolKind.Enum;
+    members: EnumMemberSymbol[];
+    isGlobal?: boolean;
+}
+
 export interface VariableSymbol extends BaseSymbol {
     kind: SymbolKind.Variable | SymbolKind.GlobalVariable | SymbolKind.LocalVariable;
     dataType: string;
@@ -95,6 +109,7 @@ export interface FileSymbols {
     structs: StructSymbol[];
     functions: FunctionSymbol[];
     globals: VariableSymbol[];
+    enums: EnumSymbol[];
 }
 
 // ============================================================================
@@ -134,6 +149,7 @@ export class SymbolTable {
             structs: this.findStructDefinitions(content, tokens),
             functions: this.findFunctionDefinitions(content, tokens),
             globals: this.findGlobalVariables(content, tokens),
+            enums: this.findEnumDefinitions(content, tokens),
         };
     }
 
@@ -151,7 +167,7 @@ export class SymbolTable {
         name: string, 
         position: Position, 
         symbols: FileSymbols
-    ): BaseSymbol | MemberSymbol | MethodSymbol | VariableSymbol | null {
+    ): BaseSymbol | MemberSymbol | MethodSymbol | VariableSymbol | EnumSymbol | null {
         
         // 1. Check type definitions first (for type references like class/struct names)
         // Class definitions
@@ -161,6 +177,10 @@ export class SymbolTable {
         // Struct definitions
         const structSymbol = symbols.structs.find(s => s.name === name);
         if (structSymbol) return structSymbol;
+        
+        // Enum definitions
+        const enumSymbol = symbols.enums?.find(e => e.name === name);
+        if (enumSymbol) return enumSymbol;
         
         // 2. HIGHEST PRIORITY: Check local scope (parameters and local variables)
         // This must come BEFORE checking struct fields or class members!
@@ -619,6 +639,87 @@ export class SymbolTable {
         }
         
         return structs;
+    }
+
+    /**
+     * Find all enum definitions in the token stream
+     * Pattern: [global] enum EnumName { MEMBER [= value], ... };
+     */
+    public static findEnumDefinitions(content: string, tokens: Token[]): EnumSymbol[] {
+        const enums: EnumSymbol[] = [];
+        
+        for (let i = 0; i < tokens.length - 2; i++) {
+            const current = tokens[i];
+            const prev = i > 0 ? tokens[i - 1] : null;
+            
+            if (current.type === TokenType.KEYWORD && current.value === 'enum') {
+                const next = tokens[i + 1];
+                if (next.type !== TokenType.IDENTIFIER) continue;
+                
+                const enumName = next.value;
+                const isGlobal = prev?.type === TokenType.KEYWORD && prev.value === 'global';
+                
+                const location: SymbolLocation = {
+                    line: next.line,
+                    column: next.column
+                };
+                
+                // Find opening brace
+                let braceIndex = i + 2;
+                while (braceIndex < tokens.length && tokens[braceIndex].type !== TokenType.LBRACE) {
+                    braceIndex++;
+                }
+                
+                if (braceIndex >= tokens.length) continue;
+                
+                // Parse enum members until closing brace
+                const members: EnumMemberSymbol[] = [];
+                let j = braceIndex + 1;
+                let currentValue = 0;
+                
+                while (j < tokens.length && tokens[j].type !== TokenType.RBRACE) {
+                    const memberToken = tokens[j];
+                    
+                    if (memberToken.type === TokenType.IDENTIFIER) {
+                        const memberName = memberToken.value;
+                        const memberLocation: SymbolLocation = {
+                            line: memberToken.line,
+                            column: memberToken.column
+                        };
+                        
+                        // Check for explicit value assignment: MEMBER = value
+                        let explicitValue: number | undefined;
+                        if (j + 2 < tokens.length && 
+                            tokens[j + 1].type === TokenType.ASSIGN &&
+                            tokens[j + 2].type === TokenType.NUMBER) {
+                            explicitValue = parseInt(tokens[j + 2].value, 10);
+                            currentValue = explicitValue;
+                            j += 2; // Skip = and value
+                        }
+                        
+                        members.push({
+                            name: memberName,
+                            value: currentValue,
+                            location: memberLocation
+                        });
+                        
+                        currentValue++; // Next implicit value
+                    }
+                    
+                    j++;
+                }
+                
+                enums.push({
+                    kind: SymbolKind.Enum,
+                    name: enumName,
+                    location,
+                    members,
+                    isGlobal
+                });
+            }
+        }
+        
+        return enums;
     }
 
     /**

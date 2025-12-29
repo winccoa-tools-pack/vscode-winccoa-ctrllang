@@ -149,6 +149,7 @@ export function getSymbolAtPosition(content: string, offset: number): {
     column: number;
     memberAccess?: { objectName: string };  // If this is a member access like obj.method
     memberAccessChain?: string[];  // Full chain for nested access: ["circle", "center", "x"]
+    enumAccess?: { enumName: string };  // If this is enum member access like Color::RED
 } | null {
     // Simple approach: find word boundaries around offset
     let start = offset;
@@ -172,50 +173,85 @@ export function getSymbolAtPosition(content: string, offset: number): {
     // Build the complete member access chain
     const chain: string[] = [name];
     let memberAccess: { objectName: string } | undefined = undefined;
+    let enumAccess: { enumName: string } | undefined = undefined;
     
     let checkPos = start - 1;
     
-    // Loop to collect all parts of the chain (e.g., circle.center.x)
-    while (true) {
-        // Skip whitespace before potential dot
+    // Check for :: (enum member access)
+    while (checkPos >= 0 && /\s/.test(content[checkPos])) {
+        checkPos--;
+    }
+    
+    if (checkPos >= 1 && content.substring(checkPos - 1, checkPos + 1) === '::') {
+        // This is enum member access (e.g., Color::RED)
+        checkPos -= 2;  // Move before ::
+        
+        // Skip whitespace before enum name
         while (checkPos >= 0 && /\s/.test(content[checkPos])) {
             checkPos--;
         }
         
-        // Check for dot
-        if (checkPos < 0 || content[checkPos] !== '.') {
-            break;  // No more dots, end of chain
-        }
+        // Find enum name end
+        const enumEnd = checkPos + 1;
         
-        checkPos--;  // Move before dot
-        
-        // Skip whitespace before object name
-        while (checkPos >= 0 && /\s/.test(content[checkPos])) {
-            checkPos--;
-        }
-        
-        // Find object name end
-        const objEnd = checkPos + 1;
-        
-        // Find object name start
+        // Find enum name start
         while (checkPos >= 0 && /[a-zA-Z0-9_]/.test(content[checkPos])) {
             checkPos--;
         }
         
-        const objStart = checkPos + 1;
-        const partName = content.substring(objStart, objEnd);
+        const enumStart = checkPos + 1;
+        const enumName = content.substring(enumStart, enumEnd);
         
-        if (!partName) {
-            break;  // Invalid chain, stop
+        if (enumName) {
+            enumAccess = { enumName };
+            chain.unshift(enumName);
+        }
+    } else {
+        // Check for . (struct/class member access)
+        checkPos = start - 1;
+        
+        // Loop to collect all parts of the chain (e.g., circle.center.x)
+        while (true) {
+            // Skip whitespace before potential dot
+            while (checkPos >= 0 && /\s/.test(content[checkPos])) {
+                checkPos--;
+            }
+            
+            // Check for dot
+            if (checkPos < 0 || content[checkPos] !== '.') {
+                break;  // No more dots, end of chain
+            }
+            
+            checkPos--;  // Move before dot
+            
+            // Skip whitespace before object name
+            while (checkPos >= 0 && /\s/.test(content[checkPos])) {
+                checkPos--;
+            }
+            
+            // Find object name end
+            const objEnd = checkPos + 1;
+            
+            // Find object name start
+            while (checkPos >= 0 && /[a-zA-Z0-9_]/.test(content[checkPos])) {
+                checkPos--;
+            }
+            
+            const objStart = checkPos + 1;
+            const partName = content.substring(objStart, objEnd);
+            
+            if (!partName) {
+                break;  // Invalid chain, stop
+            }
+            
+            // Add to front of chain (we're going backwards)
+            chain.unshift(partName);
         }
         
-        // Add to front of chain (we're going backwards)
-        chain.unshift(partName);
-    }
-    
-    // For backward compatibility: set memberAccess to immediate parent
-    if (chain.length > 1) {
-        memberAccess = { objectName: chain[chain.length - 2] };
+        // For backward compatibility: set memberAccess to immediate parent
+        if (chain.length > 1) {
+            memberAccess = { objectName: chain[chain.length - 2] };
+        }
     }
     
     // Calculate line and column (for logging)
@@ -227,6 +263,9 @@ export function getSymbolAtPosition(content: string, offset: number): {
     const result: any = { name, line, column };
     if (memberAccess) {
         result.memberAccess = memberAccess;
+    }
+    if (enumAccess) {
+        result.enumAccess = enumAccess;
     }
     if (chain.length > 1) {
         result.memberAccessChain = chain;
