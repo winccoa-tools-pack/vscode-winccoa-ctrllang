@@ -11,6 +11,7 @@ import { Hover, MarkupKind, Position } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { SymbolTable, FileSymbols, SymbolKind, BaseSymbol, MethodSymbol, MemberSymbol } from '../symbolTable';
 import { getSymbolAtPosition } from '../symbolFinder';
+import { fileURLToPath } from 'url';
 
 // Symbol info returned by getSymbolAtPosition
 interface SymbolInfo {
@@ -43,7 +44,9 @@ export class HoverService {
             return this.handleBuiltinHover(content, offset);
         }
         
-        const allSymbols = this.cache.getSymbolsWithDependencies(doc.uri, content);
+        // Convert URI to file path for cache
+        const filePath = doc.uri.startsWith('file://') ? fileURLToPath(doc.uri) : doc.uri;
+        const allSymbols = this.cache.getSymbolsWithDependencies(filePath, content);
         if (allSymbols.length === 0) {
             return this.handleBuiltinHover(content, offset);
         }
