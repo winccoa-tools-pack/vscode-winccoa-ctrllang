@@ -89,7 +89,9 @@ Ein Bug im File-Watcher-Menü sorgt dafür, dass aktuell alle Einträge verschwi
 - **Fixtures**: Self-contained CTL files in test-workspace/scripts/fixtures/
 - **Libraries**: Cross-file dependencies in test-workspace/scripts/libs/
 
-## Versionsstände (Stand: 2025-12-28)
+## Versionsstände (Stand: 2025-12-29)
 - **CTL Language**: v0.3.0 - Member access navigation + comprehensive tests
-- **Script Actions**: v0.3.1 - executeScriptWithArgs mit plain arguments
-- **Test Explorer**: v0.2.2 - Single test execution + Performance-Optimierungen
+- **LogViewer**: v0.2.5 - Load History + Settings Persistence + 24h Time Picker
+- **Script Actions**: v0.4.0 - Default commands with -n flag
+- **Test Explorer**: v0.2.4 - Cancel/Stop support
+- **Core Extension**: v0.2.3 - PMON start/stop sequence fix

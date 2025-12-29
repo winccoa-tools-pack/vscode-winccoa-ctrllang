@@ -7,3 +7,17 @@ WCCILpmon    (1), 2025.12.27 21:56:13.532, SYS,  INFO,        1, Manager Start, 
 WCCILpmon    (1), 2025.12.27 21:56:13.733, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCILsim" -PROJ "test-workspace" -pmonIndex 6 
 WCCILpmon    (1), 2025.12.27 21:56:14.010, SYS,  INFO,        1, Manager Start, "/opt/WinCC_OA/3.20/bin/WCCOAui" -PROJ "test-workspace" -pmonIndex 7 -m gedi
 WCCILpmon    (1), 2025.12.27 21:56:16.118, SYS,  INFO,        9/pmon, The project is up and running. Entering monitor mode
+WCCILpmon    (1), 2025.12.28 20:49:13.275, SYS,  INFO,       21/pmon, Got STOP_ALL command from ::1, stopping the project
+WCCILpmon    (1), 2025.12.28 20:49:13.276, SYS,  INFO,       17/pmon, Stopping Manager WCCOAui(1) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:13.276, SYS,  INFO,       17/pmon, Stopping Manager WCCILsim(1) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:13.276, SYS,  INFO,       17/pmon, Stopping Manager WCCOActrl(1) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:13.276, SYS,  INFO,       17/pmon, Stopping Manager WCCOAnextgenarch(1) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:14.399, SYS,  INFO,       17/pmon, Stopping Manager WCCILevent(0) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:14.630, SYS,  INFO,       17/pmon, Stopping Manager WCCILdataSQLite(0) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:15.303, SYS,  INFO,        3/pmon, Got shutdown command - stopping the project and terminating
+WCCILpmon    (1), 2025.12.28 20:49:15.303, SYS,  INFO,       17/pmon, Stopping Manager WCCILdataSQLite(0) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:15.354, SYS,  INFO,       17/pmon, Stopping Manager WCCILproxy(1) with signal SIGTERM
+WCCILpmon    (1), 2025.12.28 20:49:16.387, SYS,  INFO,       15/pmon, Completely stopped the project - terminating
+WCCILpmon    (1), 2025.12.28 20:49:16.388, SYS,  INFO,        2, Manager Stop
+WCCILpmon    (1), 2025.12.29 11:36:43.344, SYS,  INFO,        1, Manager Start, WAIT_MODE
+WCCILpmon    (1), 2025.12.29 11:36:43.344, SYS,  SEVERE,     38/pmon, The Port 4999 could not be opened., Address already in use (98)
