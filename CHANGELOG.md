@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2025-12-29
+
+### Added
+- **Enum and Mapping Support**: Complete parsing and language features for WinCC OA enums
+  - Enum parsing with implicit and explicit values (including negative values)
+  - Hover support for enum types showing all members
+  - Hover support for enum members with `::` operator (e.g., `Color::RED = 0`)
+  - Go-to-definition for enum types and members
+  - Symbol finder enhanced to detect `::` operator for enum member access
+  - Support for global enums
+  - Mapping variable parsing and hover support
+  - 14 new TDD tests (108 total tests passing)
+  - Integration tests for enum hover and goto-definition features
+
+### Changed
+- `symbolTable.ts`: Added `findEnumDefinitions()` and `findMappingVariables()` methods
+- `symbolFinder.ts`: Enhanced with enum member access detection (`::` operator)
+- `hoverService.ts`: Added enum-specific hover formatting
+- `definitionService.ts`: Added enum member resolution
+- FileSymbols interface extended with `enums` and `mappingVariables` arrays
+
 ## [0.5.0] - 2025-12-29
 
 ### Added

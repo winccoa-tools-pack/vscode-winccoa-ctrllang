@@ -9,7 +9,7 @@
 
 import { Hover, MarkupKind, Position } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { SymbolTable, FileSymbols, SymbolKind, BaseSymbol, MethodSymbol, MemberSymbol } from '../symbolTable';
+import { SymbolTable, FileSymbols, SymbolKind, BaseSymbol, MethodSymbol, MemberSymbol, EnumSymbol } from '../symbolTable';
 import { getSymbolAtPosition } from '../symbolFinder';
 import { fileURLToPath } from 'url';
 
@@ -20,6 +20,7 @@ interface SymbolInfo {
     column: number;
     memberAccess?: { objectName: string };
     memberAccessChain?: string[];
+    enumAccess?: { enumName: string };
 }
 import { getBuiltinFunction } from '../builtins';
 import { SymbolCache } from '../core/symbolCache';
@@ -55,8 +56,12 @@ export class HoverService {
         
         let resolved: BaseSymbol | null = null;
         
+        // Handle enum member access (e.g., Color::RED)
+        if (symbolInfo.enumAccess) {
+            resolved = this.resolveEnumMember(symbolInfo, position, symbols);
+        }
         // Handle member access chains (e.g., circle.center.x)
-        if (symbolInfo.memberAccessChain && symbolInfo.memberAccessChain.length > 1) {
+        else if (symbolInfo.memberAccessChain && symbolInfo.memberAccessChain.length > 1) {
             resolved = this.resolveMemberAccessChain(symbolInfo, position, allSymbols);
         } else if (symbolInfo.memberAccess) {
             // Simple member access (e.g., obj.member)
@@ -75,6 +80,37 @@ export class HoverService {
         
         // Fallback to builtin functions
         return this.handleBuiltinHover(content, offset);
+    }
+    
+    /**
+     * Resolve enum member access like Color::RED
+     */
+    private resolveEnumMember(
+        symbolInfo: SymbolInfo,
+        position: Position,
+        symbols: FileSymbols
+    ): BaseSymbol | null {
+        if (!symbolInfo.enumAccess) return null;
+        
+        const enumName = symbolInfo.enumAccess.enumName;
+        const memberName = symbolInfo.name;
+        
+        // Find the enum definition
+        const enumSymbol = symbols.enums?.find(e => e.name === enumName);
+        if (!enumSymbol) return null;
+        
+        // Find the member in the enum
+        const member = enumSymbol.members.find(m => m.name === memberName);
+        if (!member) return null;
+        
+        // Create a pseudo-symbol for hover display
+        return {
+            kind: SymbolKind.EnumMember,
+            name: `${enumName}::${memberName}`,
+            location: member.location,
+            dataType: enumName,  // Store enum name as type
+            value: member.value  // Store value for display
+        } as any;
     }
     
     /**
@@ -153,6 +189,13 @@ export class HoverService {
      * Format hover text based on symbol type
      */
     private formatHoverText(symbol: BaseSymbol): string | null {
+        // Enum member (Color::RED = 0)
+        if (symbol.kind === SymbolKind.EnumMember) {
+            const enumMemberSymbol = symbol as any;
+            const value = enumMemberSymbol.value !== undefined ? ` = ${enumMemberSymbol.value}` : '';
+            return `\`\`\`ctrl\n${symbol.name}${value}\n\`\`\``;
+        }
+        
         if ('dataType' in symbol) {
             // Variables (local, global, member, struct fields)
             const typedSymbol = symbol as any;
@@ -165,6 +208,12 @@ export class HoverService {
         
         if (symbol.kind === SymbolKind.Struct) {
             return `\`\`\`ctrl\nstruct ${symbol.name}\n\`\`\``;
+        }
+        
+        if (symbol.kind === SymbolKind.Enum) {
+            const enumSymbol = symbol as EnumSymbol;
+            const memberNames = enumSymbol.members.map(m => m.name).join(', ');
+            return `\`\`\`ctrl\nenum ${symbol.name} { ${memberNames} }\n\`\`\``;
         }
         
         if (symbol.kind === SymbolKind.Method && 'returnType' in symbol) {

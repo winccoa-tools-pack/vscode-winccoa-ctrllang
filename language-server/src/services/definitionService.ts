@@ -22,6 +22,7 @@ interface SymbolInfo {
     column: number;
     memberAccess?: { objectName: string };
     memberAccessChain?: string[];
+    enumAccess?: { enumName: string };
 }
 import { resolveUsesPath, getUsesAtPosition, ProjectInfo } from '../usesResolver';
 import { SymbolCache } from '../core/symbolCache';
@@ -63,7 +64,13 @@ export class DefinitionService {
         
         const symbols = allSymbols[0];  // Main file symbols
         
-        // 3. Handle member access chains
+        // 3. Handle enum member access (Color::RED)
+        if (symbolInfo.enumAccess) {
+            const result = this.resolveEnumMember(symbolInfo, symbols, doc.uri);
+            if (result) return result;
+        }
+        
+        // 4. Handle member access chains
         if (symbolInfo.memberAccessChain && symbolInfo.memberAccessChain.length > 1) {
             const result = await this.resolveMemberAccessChain(symbolInfo, position, allSymbols, filePath);
             if (result) return result;
@@ -72,18 +79,34 @@ export class DefinitionService {
             if (result) return result;
         }
         
-        // 4. Try Symbol Table resolution
+        // 5. Try Symbol Table resolution
         const resolved = SymbolTable.resolveSymbol(symbolInfo.name, position, symbols);
         if (resolved) {
             return this.createLocation(doc.uri, resolved);
         }
         
-        // 5. Search in dependencies
+        // 6. Search in dependencies
         const depResult = await this.searchInDependencies(symbolInfo.name, position);
         if (depResult) return depResult;
         
-        // 6. Legacy fallback: file-based search
+        // 7. Legacy fallback: file-based search
         return this.legacySearch(symbolInfo.name, filePath);
+    }
+    
+    /**
+     * Resolve enum member access (e.g., Color::RED → go to enum Color definition)
+     */
+    private resolveEnumMember(symbolInfo: SymbolInfo, symbols: FileSymbols, docUri: string): Definition | null {
+        if (!symbolInfo.enumAccess) return null;
+        
+        const enumName = symbolInfo.enumAccess.enumName;
+        
+        // Find the enum definition
+        const enumSymbol = symbols.enums?.find(e => e.name === enumName);
+        if (!enumSymbol) return null;
+        
+        // Go to enum definition (not the specific member, as they don't have separate locations)
+        return this.createLocation(docUri, enumSymbol);
     }
     
     /**
