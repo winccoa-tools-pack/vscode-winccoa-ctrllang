@@ -50,12 +50,9 @@ void testUserFunctionHover()
 // EXPECT: "class Calculator" with members/methods info
 class Calculator
 {
-private:
-  int m_result;
-
-public:
-  void setResult(int value) { m_result = value; }
-  int getResult() { return m_result; }
+  private int m_result;
+  public void setResult(int value) { m_result = value;}
+  public int getResult() { return m_result; }
 };
 
 void testClassHover()
@@ -84,7 +81,7 @@ void testStructHover()
 // EXPECT: "int x" (field type)
 void testMemberAccessHover()
 {
-  TestPoint pt;
+  TestPoint pt; //TODO COPILOT: Wenn wir hier ein go to auf
   int val = pt.x;
   //           ^ HOVER HERE
 }
