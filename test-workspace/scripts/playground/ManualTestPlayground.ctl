@@ -272,6 +272,131 @@ void testBaseClassFromLib()
 // EXPECT: Navigates to correct file
 
 // ============================================================================
+// SECTION 7: ENUM AND MAPPING TYPES
+// ============================================================================
+
+// --- Enum Definitions for Testing ---
+enum Color { RED, GREEN, BLUE };
+enum Status { STOPPED = 0, RUNNING = 1, ERROR = 2 };
+enum Priority { LOW, MEDIUM = 5, HIGH, CRITICAL = 10 };
+
+// Global enum variable
+global enum LogLevel { DEBUG, INFO, WARNING, FATAL };
+global LogLevel g_logLevel = LogLevel::INFO;
+
+// --- TEST 7.1: Hover on Enum Type ---
+// ACTION: Hover over "Color"
+// EXPECT: "enum Color { RED, GREEN, BLUE }"
+void testEnumTypeHover()
+{
+  Color c;
+  //^^^^ HOVER HERE
+}
+
+// --- TEST 7.2: Hover on Enum Member ---
+// ACTION: Hover over "RED" in "Color::RED"
+// EXPECT: "Color::RED = 0" or similar member info
+void testEnumMemberHover()
+{
+  Color c = Color::RED;
+  //              ^^^^ HOVER HERE
+}
+
+// --- TEST 7.3: Hover on Enum with Explicit Values ---
+// ACTION: Hover over "RUNNING"
+// EXPECT: "Status::RUNNING = 1"
+void testEnumExplicitValue()
+{
+  Status s = Status::RUNNING;
+  //                 ^^^^^^^ HOVER HERE
+}
+
+// --- TEST 7.4: Go-to-Definition Enum ---
+// ACTION: Ctrl+Click on "Priority"
+// EXPECT: Jumps to enum definition above
+void testEnumGoToDefinition()
+{
+  Priority p = Priority::HIGH;
+  //^^^^^^^ CTRL+CLICK HERE
+}
+
+// --- TEST 7.5: Go-to-Definition Enum Member ---
+// ACTION: Ctrl+Click on "CRITICAL"
+// EXPECT: Jumps to enum definition, ideally to member
+void testEnumMemberGoTo()
+{
+  Priority p = Priority::CRITICAL;
+  //                     ^^^^^^^^ CTRL+CLICK HERE
+}
+
+// --- TEST 7.6: Hover on Mapping Variable ---
+// ACTION: Hover over "config"
+// EXPECT: "mapping config"
+void testMappingHover()
+{
+  mapping config;
+  //      ^^^^^^ HOVER HERE
+  config["key"] = "value";
+}
+
+// --- TEST 7.7: Hover on dyn_mapping ---
+// ACTION: Hover over "items"
+// EXPECT: "dyn_mapping items"
+void testDynMappingHover()
+{
+  dyn_mapping items;
+  //          ^^^^^ HOVER HERE
+}
+
+// --- TEST 7.8: Global Enum Variable ---
+// ACTION: Hover over "g_logLevel"
+// EXPECT: "global LogLevel g_logLevel"
+void testGlobalEnumVar()
+{
+  g_logLevel = LogLevel::WARNING;
+  //^^^^^^^^^^ HOVER HERE
+}
+
+// --- TEST 7.9: Enum in Switch Statement ---
+// ACTION: Hover over each case label
+// EXPECT: Shows enum member info
+void testEnumSwitch()
+{
+  Color c = Color::GREEN;
+
+  switch (c)
+  {
+    case Color::RED:
+      //          ^^^ HOVER HERE
+      DebugN("Red");
+      break;
+
+    case Color::GREEN:
+      //          ^^^^^ HOVER HERE
+      DebugN("Green");
+      break;
+  }
+}
+
+// --- TEST 7.10: Enum as Function Parameter ---
+// ACTION: Hover over parameter type "Color"
+// EXPECT: "enum Color { RED, GREEN, BLUE }"
+void processColor(Color input)
+//                ^^^^^ HOVER HERE
+{
+  DebugN("Processing color:", input);
+}
+
+// --- TEST 7.11: Enum as Return Type ---
+// ACTION: Hover over return type "Status"
+// EXPECT: "enum Status { STOPPED = 0, RUNNING = 1, ERROR = 2 }"
+Status getSystemStatus()
+//^^^^ HOVER HERE
+{
+  return Status::RUNNING;
+}
+
+// ============================================================================
 // MAIN - Can be executed in WinCC OA for syntax validation
 // ============================================================================
 main()
@@ -279,4 +404,11 @@ main()
   DebugN("=== Manual Test Playground ===");
   DebugN("Open this file and follow the test instructions above.");
   DebugN("Each TEST section has ACTION and EXPECT comments.");
+
+  // Quick enum/mapping validation
+  Color c = Color::RED;
+  mapping m;
+  m["test"] = 123;
+  DebugN("Enum value:", c);
+  DebugN("Mapping:", m);
 }
