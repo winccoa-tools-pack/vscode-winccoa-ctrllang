@@ -30,8 +30,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL, fileURLToPath } from 'url';
 
+// New Services (v0.4.0 architecture)
+import { SymbolCache } from './core/symbolCache';
+import { CompletionService } from './services/completionService';
+
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+
+// v0.4.0: Centralized services
+const symbolCache = new SymbolCache();
+const completionService = new CompletionService();
 
 // Cache for project info
 let projectInfo: ProjectInfo | null = null;
@@ -372,28 +380,14 @@ connection.onDidChangeConfiguration(async () => {
 
 documents.onDidClose(e => docSettings.delete(e.document.uri));
 
+// v0.4.0: Use CompletionService
 connection.onCompletion((): CompletionItem[] => {
-    return getAllBuiltinFunctions().map((fn, idx) => {
-        const paramList = fn.parameters.map(p => {
-            let s = p.byRef ? '&' : '';
-            s += `${p.type} ${p.name}`;
-            if (p.optional) s = `[${s}]`;
-            if (p.variadic) s = `...${s}`;
-            return s;
-        }).join(', ');
-
-        return {
-            label: fn.name,
-            kind: CompletionItemKind.Function,
-            detail: `${fn.returnType} ${fn.name}(${paramList})`,
-            documentation: fn.description || '',
-            insertText: fn.name,
-            data: idx
-        };
-    });
+    return completionService.getCompletions();
 });
 
-connection.onCompletionResolve((item: CompletionItem) => item);
+connection.onCompletionResolve((item: CompletionItem) => {
+    return completionService.resolveCompletionItem(item);
+});
 
 connection.onHover(async (params: TextDocumentPositionParams): Promise<Hover | null> => {
     const doc = documents.get(params.textDocument.uri);
