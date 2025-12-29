@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-12-29
+
+### Added
+- **Architecture Refactoring**: Language Server restructured for better maintainability
+  - New `core/symbolCache.ts`: Centralized symbol caching with mtime-based invalidation
+  - New `services/completionService.ts`: Completion logic extracted
+  - New `services/hoverService.ts`: Hover logic extracted (220 lines)
+  - New `services/definitionService.ts`: Go-to-definition logic extracted (315 lines)
+  - New `services/configService.ts`: Project configuration handling
+
+### Changed
+- **server.ts reduced from 1160 to 496 lines** (57% reduction)
+- All handlers now use centralized services with dependency injection
+- Symbol caching with mtime-based invalidation for better performance
+- Project info synchronization between server and symbol cache
+
 ## [0.4.3] - 2025-12-28
 
 ### Added

@@ -78,19 +78,51 @@ Ein Bug im File-Watcher-Menü sorgt dafür, dass aktuell alle Einträge verschwi
 ## Member Access Navigation (v0.3.0)
 
 ### Implementation Details
-- **Go-to-Definition**: Funktioniert für `obj.method()` und `obj.field` Patterns
-- **Hover**: Zeigt volle Signaturen bei Member-Access
-- **Cross-File**: Nutzt #uses directive für Dependency-Resolution
-- **Symbol Finder**: Enhanced für Member Access Detection in symbolFinder.ts
+- **Go-to-Definition**: Works for `obj.method()` and `obj.field` patterns
+- **Hover**: Shows full signatures on member access
+- **Cross-File**: Uses #uses directive for dependency resolution
+- **Symbol Finder**: Enhanced for member access detection in symbolFinder.ts
 
 ### Test Organization
-- **Unit Tests**: language-server/test/simple/ mit local fixtures/
+- **Unit Tests**: language-server/test/simple/ with local fixtures/
 - **Integration Tests**: language-server/test/integration/ (E2E, LSP, Hover)
 - **Fixtures**: Self-contained CTL files in test-workspace/scripts/fixtures/
 - **Libraries**: Cross-file dependencies in test-workspace/scripts/libs/
 
-## Versionsstände (Stand: 2025-12-29)
-- **CTL Language**: v0.3.0 - Member access navigation + comprehensive tests
+## Language Server Architecture (v0.5.0)
+
+### Service-Based Architecture
+The Language Server was refactored from a monolithic "God Object" (1160 LOC) to a service-based architecture (496 LOC = 57% reduction).
+
+**See full documentation**: [language-server/docs/ARCHITECTURE.md](../language-server/docs/ARCHITECTURE.md)
+
+### Key Components
+```
+language-server/src/
+├── server.ts                 # LSP glue only (~500 LOC)
+├── core/
+│   └── symbolCache.ts        # Centralized caching with mtime invalidation
+├── services/
+│   ├── completionService.ts  # Completion logic
+│   ├── hoverService.ts       # Hover logic (~220 LOC)
+│   ├── definitionService.ts  # Go-to-Definition logic (~315 LOC)
+│   └── configService.ts      # Project config (prepared)
+```
+
+### Design Principles
+- **Dependency Injection**: Services receive SymbolCache via constructor
+- **Single Responsibility**: Each service handles one LSP feature
+- **Centralized Caching**: SymbolCache manages all symbol parsing with automatic invalidation
+- **Callback Injection**: For async dependencies like `fetchProjectInfo()`
+
+### Adding New Services
+1. Create service class in `services/` with SymbolCache dependency
+2. Export in `services/index.ts`
+3. Instantiate in `server.ts` after dependencies are available
+4. Delegate LSP handler to service method
+
+## Version History (as of 2025-12-29)
+- **CTL Language**: v0.5.0 - Service architecture refactoring (57% code reduction)
 - **LogViewer**: v0.2.5 - Load History + Settings Persistence + 24h Time Picker
 - **Script Actions**: v0.4.0 - Default commands with -n flag
 - **Test Explorer**: v0.2.4 - Cancel/Stop support
