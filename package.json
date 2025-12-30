@@ -3,8 +3,8 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "1.0.1",
-  "author": "winccoa-tools-pack",
+  "version": "1.0.2",
+  "author": "RichardJanisch",
   "license": "GNU General Public License v3.0",
   "icon": "resources/wincc_oa_ctrl_lang_512.png",
   "repository": {
@@ -21,7 +21,7 @@
     "Snippets"
   ],
   "extensionDependencies": [
-    "RichardJanisch.winccoa-core"
+    "RichardJanisch.winccoa-control"
   ],
   "activationEvents": [
     "onStartupFinished",
