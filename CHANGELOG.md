@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-12-30
+
+### 🎉 First Stable Release
+
+This is the first stable release of WinCC OA CTRL Language Support, providing comprehensive IntelliSense and code navigation for WinCC OA CTRL/CTRL++ development.
+
+### ✨ Features Included
+
+#### Language Server
+- **Syntax Highlighting**: Full support for `.ctl` and `.ctrlpp` files
+- **IntelliSense**: Auto-completion for 983 WinCC OA built-in functions
+- **Hover Information**: Function signatures, variable types, enum values
+- **Go-to-Definition**: Functions, classes, structs, variables, enums, `#uses` imports
+- **Member Access Navigation**: Chain navigation `obj.member.field`
+- **Enum Support**: Full parsing, hover, and navigation for `enum Color { RED, GREEN }`
+- **Class Inheritance**: Single-level inheritance support
+- **Cross-File Dependencies**: Automatic `#uses` resolution
+- **108 Unit Tests**: Comprehensive test coverage
+
+#### Code Quality Tools
+- **Syntax Checking**: Native WinCC OA validation via `WCCOActrl`
+- **Code Formatting**: Astyle-based formatting with customizable configs
+- **Documentation Access**: Quick links to official WinCC OA docs
+
+### 📦 Build
+- Production build in `bin/winccoa-ctrllang-1.0.0.vsix`
+- Ready for distribution and installation
+
+### ⚠️ Known Limitations
+- Inheritance limited to 1 level
+- No interface support yet
+- Static members not yet detected
+- Goto-definition precision improvements needed
+
+---
+
 ## [0.5.2] - 2025-12-29
 
 ### Added

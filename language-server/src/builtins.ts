@@ -1,6 +1,6 @@
 // Auto-generated from resources/winccoa-functions-cleaned.json
 // DO NOT EDIT MANUALLY - run 'npm run build:functions' instead
-// Generated: 2025-12-29T20:57:22.021Z
+// Generated: 2025-12-30T15:24:16.494Z
 // Total Functions: 983
 
 // WinCC OA Built-in Functions

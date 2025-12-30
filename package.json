@@ -1,12 +1,12 @@
 {
   "name": "winccoa-ctrllang",
-  "displayName": "WinCC OA CTRL Language Support [LOCAL-30]",
+  "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "author": "winccoa-tools-pack",
   "license": "GNU General Public License v3.0",
-  "icon": "resources/code_128.png",
+  "icon": "resources/wincc_oa_ctrl_lang_512.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang"
@@ -15,7 +15,10 @@
     "vscode": "^1.105.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Formatters",
+    "Linters",
+    "Snippets"
   ],
   "extensionDependencies": [
     "winccoa-tools-pack.winccoa-core"

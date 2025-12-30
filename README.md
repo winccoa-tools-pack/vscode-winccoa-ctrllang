@@ -2,144 +2,155 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.3.0.local.30-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
 
-**Comprehensive language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
+**Language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
 
-⚠️ *Pre-Release Version - Not all features have been fully tested yet*
+[Features](#-features) • [Installation](#-installation) • [Known Issues](#-known-issues)
 
 </div>
+
+---
+
+> **Disclaimer:**
+> This is the first stable release (v1.0.0) of the WinCC OA CTRL Language extension. Not all features are fully implemented and some functions may not work perfectly yet. Please report any issues you encounter.
 
 ---
 
 ## ✨ Features
 
 ### 🎨 Syntax Highlighting
-Full syntax highlighting for `.ctl` and `.ctlpp`, files with support for WinCC OA built-in functions.
+- Full support for `.ctl` and `.ctlpp` files
+- WinCC OA built-in functions highlighted
+- Classes, structs, enums, and mappings
 
-### 🧠 IntelliSense
-- **Auto-completion** for WinCC OA built-in functions
-- **Function signatures** with parameter information
-- **Hover documentation** with descriptions and links to official docs
+### 🧠 IntelliSense & Code Intelligence
+- **Hover Information**: See function signatures, variable types, and documentation
+- **Auto-Completion**: WinCC OA built-in functions with parameter hints
+- **Go-to-Definition** (`F12` or `Ctrl+Click`):
+  - Functions and methods
+  - Classes and structs
+  - Variables (global, local, member)
+  - Enums and enum members (`Color::RED`)
+  - `#uses` imports (cross-file navigation)
+- **Member Access Navigation**: Chain navigation `obj.member.field`
 
-### 🔍 Code Navigation
-- **Goto Definition** (`F12` or `Ctrl+Click`) for functions and `#uses` imports
-- **Find References** to see where functions are used
-- Automatic detection of project structure from `config/config` file
+### 🔍 Advanced Language Features
+- **Enum Support**: Hover and navigation for `enum Color { RED, GREEN }`
+- **Class Inheritance**: Navigate to base classes (single-level)
+- **Scope-Aware Resolution**: Distinguishes local vs. member variables
+- **Cross-File Dependencies**: Automatic `#uses` resolution
 
 ### 📚 Documentation Access
-Quick access to official WinCC OA documentation:
-1. Place cursor on a function name
-2. Press `Ctrl+Shift+P` → `WinCC OA: Open Documentation for CTRL Function`
-3. Opens documentation in your browser
+- Quick access to official WinCC OA documentation
+- `Ctrl+Shift+P` → `WinCC OA: Open Documentation for CTRL Function`
 
 ### 🔧 Code Formatting (Optional)
-Astyle-based code formatting for `.ctl` and `.ctrlpp` files
-- Enable in settings: `winccoa.astyleFormatter.enabled`
-- Format on save: `winccoa.astyleFormatter.runOnSave`
+- Astyle-based formatting for `.ctl` and `.ctlpp` files
+- Format on save support
 
 ### ✅ Syntax Checking (Optional)
-Native WinCC OA syntax validation
-- Enable in settings: `winccoa.syntaxCheck.enabled`
-- Check on save: `winccoa.syntaxCheck.executeOnSave`
+- Native WinCC OA syntax validation via `WCCOActrl`
+- Inline error highlighting
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Installation
 
-### Installation
-1. Open VS Code
-2. Go to Extensions (`Ctrl+Shift+X`)
-3. Search for "WinCC OA CTRL Language Support"
-4. Click Install
+1. **Install from VSIX** (Recommended):
+   ```bash
+   code --install-extension winccoa-ctrllang-1.0.0.vsix
+   ```
 
-### Configuration
+2. **Or via VS Code Extensions**:
+   - Open Extensions (`Ctrl+Shift+X`)
+   - Search for "WinCC OA CTRL Language Support"
+   - Click Install
 
-The extension auto-detects your WinCC OA project structure when you open a workspace containing a `config/config` file.
+3. **Open your WinCC OA project**:
+   - The extension auto-detects projects with a `config/config` file
+   - Start coding with full IntelliSense support!
 
 ---
 
-## ⚙️ Settings
+## ⚙️ Configuration
+
+### Essential Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `winccoa.ctrlLang.pathSource` | `workspace` | How to resolve project paths: `workspace` or `manual` |
-| `winccoa.ctrlLang.logLevel` | `INFO` | Logging verbosity: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` |
+| `winccoa.ctrlLang.pathSource` | `workspace` | Project path detection: `workspace` (auto-detect) or `manual` |
+| `winccoa.syntaxCheck.enabled` | `false` | Enable WinCC OA syntax validation |
+| `winccoa.syntaxCheck.executeOnSave` | `false` | Run syntax check automatically on save |
 | `winccoa.astyleFormatter.enabled` | `false` | Enable Astyle code formatting |
-| `winccoa.astyleFormatter.runOnSave` | `false` | Automatically format on save |
-| `winccoa.syntaxCheck.enabled` | `false` | Enable WinCC OA syntax checking |
-| `winccoa.syntaxCheck.executeOnSave` | `false` | Run syntax check on save |
+| `winccoa.astyleFormatter.runOnSave` | `false` | Format code on save |
 
-### Log Levels
+### Logging (for debugging)
 
-- **ERROR**: Only critical errors (extension failures, crashes)
-- **WARN**: Errors and warnings (missing config, deprecated features)
-- **INFO**: Recommended default (important events, service initialization)
-- **DEBUG**: Detailed information (file operations, configuration changes)
-- **TRACE**: Very verbose (all internal operations, data structures) - for troubleshooting
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `winccoa.ctrlLang.logLevel` | `INFO` | Log verbosity: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` |
 
-💡 Set log level to `DEBUG` or `TRACE` when reporting bugs to get detailed diagnostic information.
+💡 **Tip**: Set log level to `DEBUG` when reporting bugs for detailed diagnostics.
 
 ---
 
-## 📋 Commands
+## 🐛 Known Issues
+
+### Current Limitations
+
+1. **Inheritance Chains**:
+   - Only 1 level of inheritance supported
+   - `class C : B : A` → `obj.memberInA` not resolved
+
+2. **Interfaces**:
+   - Interface parsing not yet implemented
+   - `interface IDrawable` syntax not recognized
+
+3. **Static Members**:
+   - `class Utils { public static int counter; }`
+   - Static member detection not yet supported
+   - `Utils::method()` may be confused with enums
+
+4. **Goto-Definition Precision**:
+   - Occasional jumps to wrong line numbers
+   - Especially in complex member access chains
+
+### Reporting Bugs
+
+Found an issue? Please report it with:
+- WinCC OA version
+- Extension version (`1.0.0`)
+- Code example that reproduces the issue
+- Enable `DEBUG` logging and attach log output
+
+[Report Issue on GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues)
+
+---
+
+##  Commands
+
+Access via `Ctrl+Shift+P`:
 
 | Command | Description |
 |---------|-------------|
-| `WinCC OA: Open Documentation for CTRL Function` | Opens official documentation for the function under cursor |
-| `WinCC OA: Format Document with Astyle` | Formats the current document |
-| `WinCC OA: Run WinCC OA Syntax Check` | Runs syntax validation on current file |
+| `WinCC OA: Open Documentation for CTRL Function` | Opens official docs for function under cursor |
+| `WinCC OA: Format Document with Astyle` | Formats current document |
+| `WinCC OA: Run WinCC OA Syntax Check` | Validates syntax with WCCOActrl |
 
 ---
 
 ## 🛠️ Requirements
 
-- Visual Studio Code 1.105.0 or higher
-- For syntax checking: WinCC OA installation with `WCCOActrl` executable
+- **VS Code:** 1.105.0 or higher
+- **WinCC OA:** 3.19+ (optional, required for syntax checking via `WCCOActrl`)
+- **WinCC OA Core Extension:** (optional, recommended) Enables automatic project detection and management. With the Core extension installed, you can select your active project from a list—the Language extension will automatically detect all local projects with a `config/config` file.
+- **Project Structure:** Your workspace must contain a `config/config` file (standard WinCC OA project layout) for auto-detection to work.
 
----
-
-## 🧪 Development & Local Testing
-
-### Quick Local Test Setup
-
-For rapid development and testing without F5 debugging:
-
-```bash
-make test-local
-```
-
-This will:
-1. Build the extension
-2. Package with a local build counter stamp (e.g., `winccoa-ctrllang-0.1.0-local-42.vsix`)
-3. Uninstall existing extension
-4. Install the new local build
-5. Restart VS Code with the test workspace
-
-### Configuration
-
-Customize the test setup with variables:
-
-```bash
-# Use custom test workspace
-make test-local TEST_WORKSPACE=/path/to/your/workspace
-
-# Use VS Code Insiders
-make test-local CODE_BIN=code-insiders
-
-# Combine both
-make test-local TEST_WORKSPACE=../my-project CODE_BIN=code-insiders
-```
-
-**Build Counter**: Stored in `bin/.local_build_counter` - automatically increments with each `make test-local`
-
----
-
-## 📜 Disclaimer
-
-WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliated with, endorsed by, or sponsored by Siemens AG. This is a community-driven open source project created to enhance the development experience for WinCC OA developers.
+**Automatic Mode:**
+If the WinCC OA Core Extension is installed, project detection is fully automatic. The Core extension scans your workspace for `config/config` files and lets you select the active project. The Language extension then provides IntelliSense and features based on your active project.
 
 ---
 
@@ -149,95 +160,30 @@ This project is licensed under the **GNU General Public License v3.0**.
 
 ---
 
-## �️ Development
+## 🙏 Third-Party Code
 
-### Local Testing with Makefile
+This extension includes code from:
 
-For local development and testing without F5/Debug mode:
-
-```bash
-make test-local
-```
-
-This will:
-1. Build the extension
-2. Create a VSIX package with local build counter (e.g., `winccoa-ctrllang-0.1.0-local-8.vsix`)
-3. Install the extension in VS Code
-4. Open the test workspace
-
-**Configuration variables:**
-- `TEST_WORKSPACE` - Path to test workspace (default: `./test-scripts`)
-- `CODE_BIN` - VS Code binary (default: `code`, use `code-insiders` for Insiders)
-- `FORCE_CLOSE_VSCODE` - Close all VS Code instances before opening (default: `no`)
-- `SKIP_UNINSTALL` - Skip uninstalling existing extension (default: `yes`)
-
-**Examples:**
-```bash
-# Use different workspace
-make test-local TEST_WORKSPACE=/path/to/my/test/project
-
-# Use VS Code Insiders
-make test-local CODE_BIN=code-insiders
-
-# Force close all VS Code windows (WARNING: closes ALL instances!)
-make test-local FORCE_CLOSE_VSCODE=yes
-```
-
-**Finding the local build number:**
-- VSIX filename in `bin/` folder: `winccoa-ctrllang-0.1.0-local-X.vsix`
-- Counter file: `bin/.local_build_counter`
-- Extension displayName shows `[LOCAL-X]` suffix (requires VS Code restart to see)
-
-**Note:** To see the `[LOCAL-X]` suffix in VS Code Extensions list, you need to **completely restart VS Code** (close all windows and reopen). Alternatively, the build number is always visible in the VSIX filename.
-
-### Other Makefile Targets
-
-```bash
-make build       # Build TypeScript sources
-make package     # Create production .vsix in bin/
-make clean       # Remove build artifacts
-make help        # Show all available targets
-```
-
----
-
-## �🙏 Third-Party Code
-
-This project includes and is derived from files originating from:
-
-**vscode-ctrlpptools**  
-https://github.com/LukasSchopp/vscode-ctrlpptools  
+**vscode-ctrlpptools** by [LukasSchopp](https://github.com/LukasSchopp/vscode-ctrlpptools)  
 License: GNU GPL v3.0
 
-Included and modified files:
+Modified files:
 - `language-configuration.json`
 - `syntaxes/ctrl.tmLanguage.json`
 - `syntaxes/ctrlpp.tmLanguage.json`
 
 ---
 
-## 🤝 Contributing
+## 📜 Disclaimer
 
-Contributions are welcome! Whether you want to:
-- Report bugs or issues
-- Suggest new features
-- Improve documentation
-- Submit code improvements
-
-Please open an issue or submit a pull request on [GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang).
-
----
-
-## 🔗 Links
-
-- [GitHub Repository](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang)
-- [Issue Tracker](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues)
-- [WinCC OA Documentation](https://www.winccoa.com)
+WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliated with, endorsed by, or sponsored by Siemens AG. This is a community-driven open source project.
 
 ---
 
 <div align="center">
 
 Made with ❤️ for the WinCC OA community
+
+[GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang) • [Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues) • [WinCC OA Docs](https://www.winccoa.com)
 
 </div>
