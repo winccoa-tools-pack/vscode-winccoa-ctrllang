@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
 
@@ -15,7 +15,7 @@
 ---
 
 > **Disclaimer:**
-> This is the first stable release (v1.0.0) of the WinCC OA CTRL Language extension. Not all features are fully implemented and some functions may not work perfectly yet. Please report any issues you encounter.
+> This is the first stable release (v1.0.1) of the WinCC OA CTRL Language extension. Not all features are fully implemented and some functions may not work perfectly yet. Please report any issues you encounter.
 
 ---
 
@@ -61,7 +61,7 @@
 
 1. **Install from VSIX** (Recommended):
    ```bash
-   code --install-extension winccoa-ctrllang-1.0.0.vsix
+   code --install-extension winccoa-ctrllang-1.0.1.vsix
    ```
 
 2. **Or via VS Code Extensions**:
@@ -122,7 +122,7 @@
 
 Found an issue? Please report it with:
 - WinCC OA version
-- Extension version (`1.0.0`)
+- Extension version (`1.0.1`)
 - Code example that reproduces the issue
 - Enable `DEBUG` logging and attach log output
 
