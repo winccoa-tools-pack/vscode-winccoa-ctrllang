@@ -4,8 +4,9 @@ node_modules/
 # Build output
 dist/
 out/
-bin/
+bin/*
 !bin/*.vsix
+!bin/.local_build_counter
 
 # TypeScript compilation
 *.js.map
