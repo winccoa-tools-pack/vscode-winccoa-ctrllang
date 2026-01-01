@@ -21,7 +21,7 @@
 
 ## 🎬 See It In Action
 
-![WinCC OA CTRL Language Support Demo](resources/Animation.gif)
+![WinCC OA CTRL Language Support Demo](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/blob/develop/images/Animation.gif?raw=true)
 
 ---
 

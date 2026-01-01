@@ -13,3 +13,5 @@ tools/**
 bin/**
 test-workspace/**
 language-server/test/**
+!images/**/*.gif
+!resources/**/*.gif
