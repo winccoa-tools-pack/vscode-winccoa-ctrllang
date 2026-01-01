@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
 
@@ -15,7 +15,13 @@
 ---
 
 > **Disclaimer:**
-> This is the first stable release (v1.0.1) of the WinCC OA CTRL Language extension. Not all features are fully implemented and some functions may not work perfectly yet. Please report any issues you encounter.
+> This is the first stable release (v1.0.4) of the WinCC OA CTRL Language extension. Not all features are fully implemented and some functions may not work perfectly yet. Please report any issues you encounter.
+
+---
+
+## 🎬 See It In Action
+
+![WinCC OA CTRL Language Support Demo](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/blob/develop/images/Animation.gif?raw=true)
 
 ---
 
@@ -57,31 +63,13 @@
 
 ---
 
-## 🚀 Installation
-
-1. **Install from VSIX** (Recommended):
-   ```bash
-   code --install-extension winccoa-ctrllang-1.0.1.vsix
-   ```
-
-2. **Or via VS Code Extensions**:
-   - Open Extensions (`Ctrl+Shift+X`)
-   - Search for "WinCC OA CTRL Language Support"
-   - Click Install
-
-3. **Open your WinCC OA project**:
-   - The extension auto-detects projects with a `config/config` file
-   - Start coding with full IntelliSense support!
-
----
-
 ## ⚙️ Configuration
 
 ### Essential Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `winccoa.ctrlLang.pathSource` | `workspace` | Project path detection: `workspace` (auto-detect) or `manual` |
+| `winccoa.ctrlLang.pathSource` | `automatic` | Project path detection: `workspace` (auto-detect) or `manual` |
 | `winccoa.syntaxCheck.enabled` | `false` | Enable WinCC OA syntax validation |
 | `winccoa.syntaxCheck.executeOnSave` | `false` | Run syntax check automatically on save |
 | `winccoa.astyleFormatter.enabled` | `false` | Enable Astyle code formatting |
@@ -122,7 +110,7 @@
 
 Found an issue? Please report it with:
 - WinCC OA version
-- Extension version (`1.0.1`)
+- Extension version (`1.0.4`)
 - Code example that reproduces the issue
 - Enable `DEBUG` logging and attach log output
 
@@ -150,7 +138,7 @@ Access via `Ctrl+Shift+P`:
 - **Project Structure:** Your workspace must contain a `config/config` file (standard WinCC OA project layout) for auto-detection to work.
 
 **Automatic Mode:**
-If the WinCC OA Core Extension is installed, project detection is fully automatic. The Core extension scans your workspace for `config/config` files and lets you select the active project. The Language extension then provides IntelliSense and features based on your active project.
+If the WinCC OA Project Admin Extension is installed, project detection is fully automatic. 
 
 ---
 

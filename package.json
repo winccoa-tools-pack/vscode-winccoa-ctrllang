@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "RichardJanisch",
   "license": "GNU General Public License v3.0",
   "icon": "resources/wincc_oa_ctrl_lang_512.png",
@@ -12,7 +12,7 @@
     "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang"
   },
   "engines": {
-    "vscode": "^1.105.0"
+    "vscode": "^1.107.1"
   },
   "categories": [
     "Programming Languages",
@@ -21,7 +21,7 @@
     "Snippets"
   ],
   "extensionDependencies": [
-    "RichardJanisch.winccoa-control"
+    "RichardJanisch.winccoa-project-admin"
   ],
   "activationEvents": [
     "onStartupFinished",
@@ -105,7 +105,7 @@
             "manual",
             "automatic"
           ],
-          "default": "workspace",
+          "default": "automatic",
           "description": "How to resolve WinCC OA project paths",
           "enumDescriptions": [
             "Auto-detect from workspace (searches for config/config file in all workspace folders)",
