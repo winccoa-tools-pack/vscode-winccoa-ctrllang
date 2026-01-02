@@ -39,10 +39,10 @@ import { DefinitionService } from './services/definitionService';
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-// v0.4.0: Centralized services (definitionService initialized after fetchProjectInfo is defined)
+// v0.4.0: Centralized services (initialized after fetchProjectInfo is defined)
 const symbolCache = new SymbolCache();
-const completionService = new CompletionService();
 const hoverService = new HoverService(symbolCache);
+let completionService: CompletionService;  // v1.1.0: Needs getProjectInfo callback
 let definitionService: DefinitionService;
 
 // Cache for project info
@@ -144,7 +144,8 @@ async function fetchProjectInfo(): Promise<ProjectInfo | null> {
     return result;
 }
 
-// v0.4.0: Initialize DefinitionService with fetchProjectInfo callback
+// v0.4.0: Initialize services with fetchProjectInfo callback
+completionService = new CompletionService(symbolCache, fetchProjectInfo);  // v1.1.0
 definitionService = new DefinitionService(symbolCache, fetchProjectInfo);
 
 async function fetchFromApi(): Promise<ProjectInfo | null> {
@@ -399,9 +400,12 @@ connection.onDidChangeConfiguration(async () => {
 
 documents.onDidClose(e => docSettings.delete(e.document.uri));
 
-// v0.4.0: Use CompletionService
-connection.onCompletion((): CompletionItem[] => {
-    return completionService.getCompletions();
+// v1.1.0: Use CompletionService with document context for user symbols
+connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return [];
+    
+    return completionService.getCompletions(doc, params.position);
 });
 
 connection.onCompletionResolve((item: CompletionItem) => {
