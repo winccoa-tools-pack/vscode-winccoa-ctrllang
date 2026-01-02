@@ -394,18 +394,7 @@ async function performStartupDiagnostics(context: vscode.ExtensionContext) {
 	ExtensionOutputChannel.info('Diagnostics', '📊 Extension Startup Diagnostics');
 	ExtensionOutputChannel.info('Diagnostics', '─────────────────────────────────────────────────────');
 
-	// 1. Check Workspace
-	const workspaceFolders = vscode.workspace.workspaceFolders;
-	if (!workspaceFolders || workspaceFolders.length === 0) {
-		ExtensionOutputChannel.warn('Diagnostics', '⚠️  No workspace folder opened');
-		ExtensionOutputChannel.info('Diagnostics', '   → Open a folder containing WinCC OA project');
-		vscode.window.showWarningMessage('WinCC OA: No workspace folder opened. Please open a folder containing a WinCC OA project.');
-	} else {
-		ExtensionOutputChannel.info('Diagnostics', `✓ Workspace folders: ${workspaceFolders.length}`);
-		workspaceFolders.forEach((folder, idx) => {
-			ExtensionOutputChannel.debug('Diagnostics', `  [${idx + 1}] ${folder.uri.fsPath}`);
-		});
-	}
+	// 1. Workspace folder check removed - not needed in automatic mode (project path comes from Core extension)
 
 	// 2. Check Project Detection
 	ExtensionOutputChannel.info('Diagnostics', '');

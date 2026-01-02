@@ -60,7 +60,11 @@ build:
 # Package extension into .vsix file (production release)
 package:
 	@echo "Packaging production release..."
+ifeq ($(DETECTED_OS),Windows)
+	@if not exist $(BIN_DIR) mkdir $(BIN_DIR)
+else
 	@mkdir -p $(BIN_DIR)
+endif
 	@$(VSCE) package --out $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix
 	@echo "Extension packaged to $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix"
 
