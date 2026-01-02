@@ -41,7 +41,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // v0.4.0: Centralized services (definitionService initialized after fetchProjectInfo is defined)
 const symbolCache = new SymbolCache();
-const completionService = new CompletionService();
+const completionService = new CompletionService(symbolCache);  // v1.1.0: Pass cache for user symbols
 const hoverService = new HoverService(symbolCache);
 let definitionService: DefinitionService;
 
@@ -399,9 +399,12 @@ connection.onDidChangeConfiguration(async () => {
 
 documents.onDidClose(e => docSettings.delete(e.document.uri));
 
-// v0.4.0: Use CompletionService
-connection.onCompletion((): CompletionItem[] => {
-    return completionService.getCompletions();
+// v1.1.0: Use CompletionService with document context for user symbols
+connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return [];
+    
+    return completionService.getCompletions(doc, params.position);
 });
 
 connection.onCompletionResolve((item: CompletionItem) => {
