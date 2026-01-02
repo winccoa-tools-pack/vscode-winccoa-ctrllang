@@ -39,10 +39,10 @@ import { DefinitionService } from './services/definitionService';
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-// v0.4.0: Centralized services (definitionService initialized after fetchProjectInfo is defined)
+// v0.4.0: Centralized services (initialized after fetchProjectInfo is defined)
 const symbolCache = new SymbolCache();
-const completionService = new CompletionService(symbolCache);  // v1.1.0: Pass cache for user symbols
 const hoverService = new HoverService(symbolCache);
+let completionService: CompletionService;  // v1.1.0: Needs getProjectInfo callback
 let definitionService: DefinitionService;
 
 // Cache for project info
@@ -144,7 +144,8 @@ async function fetchProjectInfo(): Promise<ProjectInfo | null> {
     return result;
 }
 
-// v0.4.0: Initialize DefinitionService with fetchProjectInfo callback
+// v0.4.0: Initialize services with fetchProjectInfo callback
+completionService = new CompletionService(symbolCache, fetchProjectInfo);  // v1.1.0
 definitionService = new DefinitionService(symbolCache, fetchProjectInfo);
 
 async function fetchFromApi(): Promise<ProjectInfo | null> {

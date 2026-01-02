@@ -16,6 +16,8 @@ import { CompletionItem, CompletionItemKind, TextDocumentPositionParams, Positio
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { getAllBuiltinFunctions, FunctionSignature } from '../builtins';
 import { SymbolCache } from '../core/symbolCache';
+import { ProjectInfo } from '../usesResolver';
+import { fileURLToPath } from 'url';
 import { 
     ClassSymbol, 
     FunctionSymbol, 
@@ -28,7 +30,10 @@ import {
 } from '../symbolTable';
 
 export class CompletionService {
-    constructor(private cache: SymbolCache) {}
+    constructor(
+        private cache: SymbolCache,
+        private getProjectInfo: () => Promise<ProjectInfo | null>
+    ) {}
 
     /**
      * Get all completion items for a position in a document
@@ -61,25 +66,46 @@ export class CompletionService {
             this.createBuiltinFunctionItem(fn, idx)
         ));
         
-        // 2. Parse current document first (for unsaved changes)
-        const currentSymbols = this.cache.getSymbolsFromContent(document.getText(), document.uri);
-        
-        // Add current file's symbols
-        items.push(...currentSymbols.functions.map(f => this.createFunctionItem(f)));
-        items.push(...currentSymbols.classes.map(c => this.createClassItem(c)));
-        items.push(...currentSymbols.globals
-            .filter((v: VariableSymbol) => v.kind === SymbolKind.GlobalVariable)
-            .map((v: VariableSymbol) => this.createVariableItem(v))
-        );
-        items.push(...currentSymbols.enums.map(e => this.createEnumItem(e)));
-        for (const enumSym of currentSymbols.enums) {
-            items.push(...enumSym.members.map(m => 
-                this.createEnumMemberItem(enumSym.name, m.name)
-            ));
+        // 2. Try to resolve #uses dependencies
+        try {
+            // Convert URI to file path
+            const filePath = fileURLToPath(document.uri);
+            
+            // Get all symbols (current file + #uses dependencies)
+            const allSymbols = this.cache.getSymbolsWithDependencies(filePath, document.getText());
+            
+            // Add symbols from all files (main + dependencies)
+            for (const fileSymbols of allSymbols) {
+                items.push(...fileSymbols.functions.map(f => this.createFunctionItem(f)));
+                items.push(...fileSymbols.classes.map(c => this.createClassItem(c)));
+                items.push(...fileSymbols.globals
+                    .filter((v: VariableSymbol) => v.kind === SymbolKind.GlobalVariable)
+                    .map((v: VariableSymbol) => this.createVariableItem(v))
+                );
+                items.push(...fileSymbols.enums.map(e => this.createEnumItem(e)));
+                for (const enumSym of fileSymbols.enums) {
+                    items.push(...enumSym.members.map(m => 
+                        this.createEnumMemberItem(enumSym.name, m.name)
+                    ));
+                }
+            }
+        } catch (e) {
+            // Fallback: URI conversion failed or no project info
+            // Parse only current document
+            const currentSymbols = this.cache.getSymbolsFromContent(document.getText(), document.uri);
+            items.push(...currentSymbols.functions.map(f => this.createFunctionItem(f)));
+            items.push(...currentSymbols.classes.map(c => this.createClassItem(c)));
+            items.push(...currentSymbols.globals
+                .filter((v: VariableSymbol) => v.kind === SymbolKind.GlobalVariable)
+                .map((v: VariableSymbol) => this.createVariableItem(v))
+            );
+            items.push(...currentSymbols.enums.map(e => this.createEnumItem(e)));
+            for (const enumSym of currentSymbols.enums) {
+                items.push(...enumSym.members.map(m => 
+                    this.createEnumMemberItem(enumSym.name, m.name)
+                ));
+            }
         }
-        
-        // 3. TODO: Add symbols from #uses dependencies (requires URI → path conversion)
-        // For now, only current file symbols are shown
         
         return items;
     }
