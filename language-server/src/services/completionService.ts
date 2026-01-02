@@ -43,17 +43,17 @@ export class CompletionService {
         
         if (memberContext) {
             // Member completion (obj.method, obj.field)
-            return this.getMemberCompletions(document.uri, memberContext);
+            return this.getMemberCompletions(document, memberContext);
         }
         
         // Default: All symbols
-        return this.getAllSymbolCompletions(document.uri);
+        return this.getAllSymbolCompletions(document);
     }
     
     /**
      * Get all available symbols for completion
      */
-    private getAllSymbolCompletions(fileUri: string): CompletionItem[] {
+    private getAllSymbolCompletions(document: TextDocument): CompletionItem[] {
         const items: CompletionItem[] = [];
         
         // 1. Built-in functions
@@ -61,32 +61,25 @@ export class CompletionService {
             this.createBuiltinFunctionItem(fn, idx)
         ));
         
-        // 2. User-defined symbols (with dependencies from #uses)
-        const allSymbols = this.cache.getSymbolsWithDependencies(fileUri);
+        // 2. Parse current document first (for unsaved changes)
+        const currentSymbols = this.cache.getSymbolsFromContent(document.getText(), document.uri);
         
-        for (const symbols of allSymbols) {
-            // Functions
-            items.push(...symbols.functions.map(f => this.createFunctionItem(f)));
-            
-            // Classes
-            items.push(...symbols.classes.map(c => this.createClassItem(c)));
-            
-            // Global variables
-            items.push(...symbols.globals
-                .filter((v: VariableSymbol) => v.kind === SymbolKind.GlobalVariable)
-                .map((v: VariableSymbol) => this.createVariableItem(v))
-            );
-            
-            // Enums
-            items.push(...symbols.enums.map(e => this.createEnumItem(e)));
-            
-            // Enum members (for direct access like Color::RED)
-            for (const enumSym of symbols.enums) {
-                items.push(...enumSym.members.map(m => 
-                    this.createEnumMemberItem(enumSym.name, m.name)
-                ));
-            }
+        // Add current file's symbols
+        items.push(...currentSymbols.functions.map(f => this.createFunctionItem(f)));
+        items.push(...currentSymbols.classes.map(c => this.createClassItem(c)));
+        items.push(...currentSymbols.globals
+            .filter((v: VariableSymbol) => v.kind === SymbolKind.GlobalVariable)
+            .map((v: VariableSymbol) => this.createVariableItem(v))
+        );
+        items.push(...currentSymbols.enums.map(e => this.createEnumItem(e)));
+        for (const enumSym of currentSymbols.enums) {
+            items.push(...enumSym.members.map(m => 
+                this.createEnumMemberItem(enumSym.name, m.name)
+            ));
         }
+        
+        // 3. TODO: Add symbols from #uses dependencies (requires URI → path conversion)
+        // For now, only current file symbols are shown
         
         return items;
     }
@@ -94,38 +87,35 @@ export class CompletionService {
     /**
      * Get member completions for obj.member access
      */
-    private getMemberCompletions(fileUri: string, typeName: string): CompletionItem[] {
+    private getMemberCompletions(document: TextDocument, typeName: string): CompletionItem[] {
         const items: CompletionItem[] = [];
-        const allSymbols = this.cache.getSymbolsWithDependencies(fileUri);
+        
+        // Parse current document
+        const currentSymbols = this.cache.getSymbolsFromContent(document.getText(), document.uri);
         
         // Find the class/struct definition
-        for (const symbols of allSymbols) {
-            const classSym = symbols.classes.find(c => c.name === typeName);
+        const classSym = currentSymbols.classes.find(c => c.name === typeName);
+        
+        if (classSym) {
+            // Add methods
+            items.push(...classSym.methods.map(m => this.createMethodItem(m)));
             
-            if (classSym) {
-                // Add methods
-                items.push(...classSym.methods.map(m => this.createMethodItem(m)));
-                
-                // Add public members
-                items.push(...classSym.members
-                    .filter(m => m.accessModifier === AccessModifier.Public)
-                    .map(m => this.createMemberItem(m))
-                );
-                
-                // Check for base class members
-                if (classSym.baseClass) {
-                    items.push(...this.getMemberCompletions(fileUri, classSym.baseClass));
-                }
-                
-                break;
-            }
+            // Add public members
+            items.push(...classSym.members
+                .filter(m => m.accessModifier === AccessModifier.Public)
+                .map(m => this.createMemberItem(m))
+            );
             
-            const structSym = symbols.structs.find(s => s.name === typeName);
-            if (structSym) {
-                // Struct fields (all public)
-                items.push(...structSym.fields.map(f => this.createMemberItem(f)));
-                break;
+            // Check for base class members
+            if (classSym.baseClass) {
+                items.push(...this.getMemberCompletions(document, classSym.baseClass));
             }
+        }
+        
+        const structSym = currentSymbols.structs.find(s => s.name === typeName);
+        if (structSym) {
+            // Struct fields (all public)
+            items.push(...structSym.fields.map(f => this.createMemberItem(f)));
         }
         
         return items;
