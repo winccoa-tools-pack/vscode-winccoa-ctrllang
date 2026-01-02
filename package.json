@@ -41,7 +41,11 @@
           ".ctl",
           ".ctrl"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./resources/icons/ctl-file.svg",
+          "dark": "./resources/icons/ctl-file.svg"
+        }
       },
       {
         "id": "ctrlpp",
@@ -53,7 +57,11 @@
           ".ctlpp",
           ".ctrlpp"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./resources/icons/ctl-file.svg",
+          "dark": "./resources/icons/ctl-file.svg"
+        }
       }
     ],
     "grammars": [

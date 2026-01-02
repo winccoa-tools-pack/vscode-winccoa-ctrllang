@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-01-02
 
 ### Added
-- **🎉 User-Defined Symbol Completion**: IntelliSense now suggests your own code!
+- **User-Defined Symbol Completion**: IntelliSense now suggests your own code!
   - Auto-completion for user-defined functions (from current file + #uses dependencies)
   - Class completion with member/method suggestions
   - Global variable completion
@@ -16,11 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Member access completion (obj.method, obj.field)
   - Context-aware filtering (shows only relevant symbols)
   - Sorted by relevance (built-ins first, then user symbols)
+  - **#uses Dependency Resolution**: Symbols from imported files are included in completion
+- **File Icons**: Custom icons for .ctl and .ctlpp files
+  - Blue {**} icon automatically displayed in file explorer
+  - Works with any active icon theme (Seti, Material Icons, etc.)
 
 ### Technical
 - Enhanced CompletionService with SymbolCache integration
 - Position-aware completion (detects member access context)
-- Dependency-aware symbol resolution (includes #uses files)
+- Dependency-aware symbol resolution via fileURLToPath and getSymbolsWithDependencies()
+- Language-level icon integration for seamless theme compatibility
 
 ## [1.0.5] - 2026-01-02
 
