@@ -6,7 +6,7 @@
     font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
     font-size="10"
     font-weight="650"
-    letter-spacing="-0.6"
+    letter-spacing="-0.4"
     fill="#7FA1C3">
     ctl
   </text>

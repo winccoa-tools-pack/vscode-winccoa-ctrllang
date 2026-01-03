@@ -13,7 +13,11 @@ import {
     Hover,
     MarkupKind,
     Definition,
-    Location
+    Location,
+    PrepareRenameParams,
+    RenameParams,
+    WorkspaceEdit,
+    Range
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -35,6 +39,7 @@ import { SymbolCache } from './core/symbolCache';
 import { CompletionService } from './services/completionService';
 import { HoverService } from './services/hoverService';
 import { DefinitionService } from './services/definitionService';
+import { RenameService } from './services/renameService';
 
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -42,6 +47,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 // v0.4.0: Centralized services (initialized after fetchProjectInfo is defined)
 const symbolCache = new SymbolCache();
 const hoverService = new HoverService(symbolCache);
+const renameService = new RenameService(symbolCache);  // v1.2.0
 let completionService: CompletionService;  // v1.1.0: Needs getProjectInfo callback
 let definitionService: DefinitionService;
 
@@ -334,6 +340,7 @@ connection.onInitialize((params: InitializeParams) => {
             hoverProvider: true,
             definitionProvider: true,
             referencesProvider: true,
+            renameProvider: { prepareProvider: true },  // v1.2.0
             executeCommandProvider: {
                 commands: ['getDocUrl']
             }
@@ -410,6 +417,21 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
 
 connection.onCompletionResolve((item: CompletionItem) => {
     return completionService.resolveCompletionItem(item);
+});
+
+// v1.2.0: Symbol rename support (single file)
+connection.onPrepareRename((params: PrepareRenameParams): Range | null => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return null;
+    
+    return renameService.prepareRename(doc, params);
+});
+
+connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return null;
+    
+    return renameService.rename(doc, params);
 });
 
 // v0.4.0: Use HoverService for all hover requests
