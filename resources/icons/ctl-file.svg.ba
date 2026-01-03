@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <text
+    x="8"
+    y="12"
+    text-anchor="middle"
+    font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+    font-size="10"
+    font-weight="650"
+    letter-spacing="-0.4"
+    fill="#7FA1C3">
+    ctl
+  </text>
+</svg>

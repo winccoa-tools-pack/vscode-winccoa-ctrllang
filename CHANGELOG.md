@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-03
+
+### Added
+- **✏️ Symbol Rename Refactoring**: Rename variables, functions, and methods within a file
+  - Right-click on a symbol → "Rename Symbol" (or F2)
+  - Renames all occurrences in the current file
+  - Works for functions, methods, global variables, local variables, and class members
+  - Preview before applying changes
+
+### Changed
+- **🎨 Updated File Icon**: Improved visual design for .ctl and .ctlpp files
+
+### Technical
+- New RenameService with prepareProvider support
+- Scope-aware symbol resolution for accurate renaming
+- Regex-based whole-word matching to avoid partial renames
+
 ## [1.1.0] - 2026-01-02
 
 ### Added
