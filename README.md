@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
 ![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
 
@@ -14,8 +14,8 @@
 
 ---
 
-> **Disclaimer:**
-> This is release v1.1.0 of the WinCC OA CTRL Language extension. Not all features are fully implemented and some functions may not work perfectly yet. Please report any issues you encounter.
+> **Disclaimer:** This is one of the first releases of the WinCC OA CTRL Language extension. Some edge cases may not be fully covered yet. Please check the [Known Issues](#-known-issues) section for workarounds if you encounter problems.  
+> **Tip:** If the extension doesn't work as expected, try `Ctrl+Shift+P` → `Reload Window` to refresh.
 
 ---
 
@@ -139,6 +139,32 @@ Access via `Ctrl+Shift+P`:
 
 **Automatic Mode:**
 If the WinCC OA Project Admin Extension is installed, project detection is fully automatic. 
+
+---
+
+## 🐛 Known Issues
+
+### Performance
+
+**Windows Performance:**  
+The extension may run slower on Windows with longer loading times. Linux performs significantly better.
+
+**Large Projects:**  
+Very large projects (1000+ files) may experience performance issues with IntelliSense and navigation.
+
+### General
+
+**Extension Not Responding:**  
+If the extension doesn't work as expected (IntelliSense not working, goto-definition fails), reload VS Code:  
+1. Press `Ctrl+Shift+P`
+2. Type and select `Reload Window`
+3. This refreshes the language server
+
+### Current Limitations
+
+- **Goto Precision**: Sometimes jumps to incorrect lines (minor offset issues)
+- **Inheritance**: Only single-level inheritance supported (no deep chains)
+- **Interfaces**: Not yet implemented
 
 ---
 

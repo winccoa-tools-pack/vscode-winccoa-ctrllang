@@ -24,12 +24,15 @@ interface SymbolInfo {
 }
 import { getBuiltinFunction } from '../builtins';
 import { SymbolCache } from '../core/symbolCache';
+import { resolveUsesPath, ProjectInfo } from '../usesResolver';
 
 export class HoverService {
     private cache: SymbolCache;
+    private getProjectInfo: () => Promise<ProjectInfo | null>;
     
-    constructor(cache: SymbolCache) {
+    constructor(cache: SymbolCache, getProjectInfo: () => Promise<ProjectInfo | null>) {
         this.cache = cache;
+        this.getProjectInfo = getProjectInfo;
     }
     
     /**
@@ -38,6 +41,12 @@ export class HoverService {
     async handle(doc: TextDocument, position: Position): Promise<Hover | null> {
         const content = doc.getText();
         const offset = doc.offsetAt(position);
+        
+        // Check if hovering over #uses directive
+        const usesHover = await this.handleUsesHover(content, position);
+        if (usesHover) {
+            return usesHover;
+        }
         
         // Try user-defined symbols first
         const symbolInfo = getSymbolAtPosition(content, offset);
@@ -260,11 +269,60 @@ export class HoverService {
         
         const sig = `${fn.returnType} ${fn.name}(${paramList})`;
         let md = `**${fn.name}**\n\n\`\`\`ctrl\n${sig}\n\`\`\`\n\n`;
-        
-        if (fn.description) md += fn.description;
-        if (fn.deprecated) md += '\n\n---\n\n⚠️ **Deprecated**';
-        if (fn.docUrl) md += `\n\n---\n\n[📖 Documentation](${fn.docUrl})`;
+        if (fn.description) md += `${fn.description}\n\n`;
         
         return { contents: { kind: MarkupKind.Markdown, value: md } };
+    }
+    
+    /**
+     * Handle hover over #uses directive
+     */
+    private async handleUsesHover(content: string, position: Position): Promise<Hover | null> {
+        const lines = content.split('\n');
+        const line = lines[position.line];
+        
+        // Check if line contains #uses
+        const usesMatch = line.match(/#uses\s+"([^"]+)"/);
+        if (!usesMatch) {
+            return null;
+        }
+        
+        const usesPath = usesMatch[1];
+        const projectInfo = await this.getProjectInfo();
+        
+        if (!projectInfo) {
+            return {
+                contents: {
+                    kind: MarkupKind.Markdown,
+                    value: `\`#uses "${usesPath}"\`\n\n⚠️ No project info available`
+                }
+            };
+        }
+        
+        const resolvedPath = resolveUsesPath(usesPath, projectInfo);
+        
+        if (resolvedPath) {
+            return {
+                contents: {
+                    kind: MarkupKind.Markdown,
+                    value: `\`#uses "${usesPath}"\`\n\n✓ Resolved to: \`${resolvedPath}\``
+                }
+            };
+        } else {
+            // Not found - show search locations
+            const searchPaths = [
+                `${projectInfo.projectPath}/scripts/libs/${usesPath}.ctl`,
+                `${projectInfo.projectPath}/scripts/${usesPath}.ctl`
+            ];
+            
+            const searchList = searchPaths.map(p => `• \`${p}\``).join('\n');
+            
+            return {
+                contents: {
+                    kind: MarkupKind.Markdown,
+                    value: `\`#uses "${usesPath}"\`\n\n❌ File not found\n\nSearched in:\n${searchList}`
+                }
+            };
+        }
     }
 }

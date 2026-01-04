@@ -378,9 +378,59 @@ User: "Wir springen manchmal noch in falsche zeilen"
 - ❌ **Goto-Bugs**: User-Report - Tests fehlen
 - 🎯 **Next Steps**: Tests schreiben → Bugs fixen → Vererbung rekursiv → Interfaces
 
-## Version History (as of 2025-12-29)
-- **CTL Language**: v0.5.2 - Enum/Mapping support with hover/goto
-- **LogViewer**: v0.2.5 - Load History + Settings Persistence + 24h Time Picker
-- **Script Actions**: v0.4.0 - Default commands with -n flag
-- **Test Explorer**: v0.2.4 - Cancel/Stop support
+## Makefile Automation
+
+### Version Badge Auto-Update (v1.0.0+)
+Alle Extensions haben automatische Version Badge Updates im `make package` Target:
+
+```makefile
+# Package extension
+package: build
+	@echo "Packaging production release..."
+	@-$(MKDIR) $(BIN_DIR) 2>nul || echo "" >nul
+	@echo "Updating version badge in README.md..."
+	@node -e "const fs=require('fs'); let c=fs.readFileSync('README.md','utf8'); c=c.replace(/!\\[Version\\]\\(https:\\/\\/img\\.shields\\.io\\/badge\\/version-[^)]*\\)/,'![Version](https://img.shields.io/badge/version-$(VERSION)-blue.svg)'); fs.writeFileSync('README.md',c);"
+	@$(VSCE) package -o $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix
+	@echo "Extension packaged to $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix"
+```
+
+**Funktionsweise:**
+- **Cross-Platform**: Node.js-basierter Regex-Replace funktioniert auf Windows und Linux
+- **Automatic**: Version wird aus package.json gelesen via `$(VERSION)`
+- **No Backups**: Direkte Replacement, kein .bak-File nötig
+- **Error-Tolerant**: `-$(MKDIR)` ignoriert Fehler wenn Directory existiert
+
+**WICHTIG**: Version Badge wird automatisch bei `make package` aktualisiert - NICHT manuell in README.md ändern!
+
+## Marketplace Discovery
+
+### Keywords für bessere Auffindbarkeit
+Alle Extensions haben `keywords` in package.json für bessere Marketplace Discovery:
+
+```json
+"keywords": [
+  "WinCC OA",
+  "CTRL",
+  "CTRL++",
+  "ctl",
+  "ctlpp",
+  "SCADA",
+  "Siemens",
+  "language support",
+  "syntax highlighting",
+  "intellisense"
+]
+```
+
+**Effekt:**
+- VS Code schlägt Extension automatisch vor bei `.ctl`/`.ctlpp` Dateien
+- Bessere Suchergebnisse im Marketplace
+- Höhere Discovery Rate
+
+## Version History (as of 2026-01-04)
+- **CTL Language**: v1.2.0 - Scope-aware symbol rename + keywords
+- **LogViewer**: v1.0.3 - Backend file watching + version badge automation
+- **Script Actions**: v0.4.0 - Default commands with -n flag + version badge automation
+- **Test Explorer**: v0.2.4 - Cancel/Stop support + version badge automation
+- **Project Admin**: Latest - Version badge automation
 - **Core Extension**: v0.2.3 - PMON start/stop sequence fix
