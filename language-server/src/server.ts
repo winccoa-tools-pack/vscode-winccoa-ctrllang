@@ -46,8 +46,8 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 // v0.4.0: Centralized services (initialized after fetchProjectInfo is defined)
 const symbolCache = new SymbolCache();
-const hoverService = new HoverService(symbolCache);
 const renameService = new RenameService(symbolCache);  // v1.2.0
+let hoverService: HoverService;  // v1.3.0: Needs getProjectInfo callback
 let completionService: CompletionService;  // v1.1.0: Needs getProjectInfo callback
 let definitionService: DefinitionService;
 
@@ -373,6 +373,12 @@ connection.onInitialized(async () => {
             connection.console.log('[Init] Error loading settings: ' + err);
         }
     }
+    
+    // Initialize services that need fetchProjectInfo callback
+    hoverService = new HoverService(symbolCache, fetchProjectInfo);
+    completionService = new CompletionService(symbolCache, fetchProjectInfo);
+    definitionService = new DefinitionService(symbolCache, fetchProjectInfo);
+    
     connection.console.log('WinCC OA Language Server initialized!');
 });
 
