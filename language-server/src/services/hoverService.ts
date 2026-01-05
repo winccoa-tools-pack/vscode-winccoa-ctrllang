@@ -270,6 +270,7 @@ export class HoverService {
         const sig = `${fn.returnType} ${fn.name}(${paramList})`;
         let md = `**${fn.name}**\n\n\`\`\`ctrl\n${sig}\n\`\`\`\n\n`;
         if (fn.description) md += `${fn.description}\n\n`;
+        if (fn.docUrl) md += `📖 [Open Documentation](${fn.docUrl})\n`;
         
         return { contents: { kind: MarkupKind.Markdown, value: md } };
     }
