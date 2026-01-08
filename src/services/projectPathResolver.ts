@@ -180,16 +180,9 @@ export class ProjectPathResolver {
         const currentProject = coreApi.getCurrentProject();
 
         if (!currentProject) {
-            // Only show warning popup once per session to avoid startup noise
-            if (!this.noProjectWarningShown) {
-                ExtensionOutputChannel.debug('PathResolver', 'No project selected yet (first call during startup)');
-                this.noProjectWarningShown = true;
-            } else {
-                ExtensionOutputChannel.warn('PathResolver', 'No WinCC OA project selected in Core extension');
-                vscode.window.showWarningMessage(
-                    'No WinCC OA project selected. Please select a project using the WinCC OA status bar.',
-                );
-            }
+            // No project selected - return null without warning
+            // Language Server will fall back to workspace detection
+            ExtensionOutputChannel.debug('PathResolver', 'No project selected in Core extension, returning null for workspace fallback');
             return null;
         }
 
