@@ -9,3 +9,4 @@ export { HoverService } from './hoverService';
 export { DefinitionService } from './definitionService';
 export { CompletionService } from './completionService';
 export { RenameService } from './renameService';
+export { DocumentSymbolService } from './documentSymbolService';

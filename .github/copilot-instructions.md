@@ -427,8 +427,123 @@ Alle Extensions haben `keywords` in package.json für bessere Marketplace Discov
 - Bessere Suchergebnisse im Marketplace
 - Höhere Discovery Rate
 
-## Version History (as of 2026-01-04)
-- **CTL Language**: v1.2.0 - Scope-aware symbol rename + keywords
+## LSP DocumentSymbol Range Validation (CRITICAL!)
+
+### Problem: "selectionRange must be contained in fullRange"
+
+**Kontext:**
+DocumentSymbol hat zwei Ranges:
+- **`range`** (fullRange): Gesamter Symbol-Bereich (z.B. ganze Funktion von Start bis Ende)
+- **`selectionRange`**: Bereich des Symbol-Namens (für Click-to-Jump und Highlighting)
+
+**LSP Requirement (CRITICAL):**
+`selectionRange` MUSS **vollständig innerhalb** `range` liegen! VS Code validiert das streng.
+
+**Häufiger Fehler:**
+```typescript
+// ❌ FALSCH - Hardcoded column 1000
+const range = Range.create(
+    Position.create(startLine, 0),
+    Position.create(endLine, 1000)  // ← Kann über echte Zeilenlänge hinaus sein!
+);
+
+const selectionRange = Range.create(
+    Position.create(line, column),
+    Position.create(line, column + nameLength)  // ← Kann außerhalb range sein!
+);
+```
+
+**Richtige Lösung:**
+```typescript
+// ✅ KORREKT - Nutze echte Dokumentzeilen-Längen
+private createRangeForLine(document: TextDocument, startLine: number, endLine: number): Range {
+    const lineCount = document.lineCount;
+    const safeStartLine = Math.max(0, Math.min(startLine, lineCount - 1));
+    const safeEndLine = Math.max(safeStartLine, Math.min(endLine, lineCount - 1));
+    
+    // Echte Zeilenlänge ermitteln!
+    const endLineText = document.getText({
+        start: { line: safeEndLine, character: 0 },
+        end: { line: safeEndLine + 1, character: 0 }
+    }).trimEnd();
+    const endChar = endLineText.length;
+    
+    return Range.create(
+        Position.create(safeStartLine, 0),
+        Position.create(safeEndLine, endChar)
+    );
+}
+
+// ✅ KORREKT - Garantiere Containment
+private createSelectionRange(
+    document: TextDocument,
+    line: number,
+    column: number,
+    nameLength: number,
+    fullRange: Range  // ← WICHTIG: fullRange als Constraint!
+): Range {
+    // 1. Line innerhalb fullRange clampen
+    const safeLine = Math.max(fullRange.start.line, Math.min(line, fullRange.end.line));
+    
+    // 2. Echte Line-Länge holen
+    const lineText = document.getText({
+        start: { line: safeLine, character: 0 },
+        end: { line: safeLine + 1, character: 0 }
+    }).trimEnd();
+    
+    // 3. Columns innerhalb Line-Länge clampen
+    const startCol = Math.max(0, Math.min(column, lineText.length));
+    const endCol = Math.min(startCol + nameLength, lineText.length);
+    
+    // 4. KRITISCH: Innerhalb fullRange.start/end clampen
+    let finalStartCol = startCol;
+    let finalEndCol = endCol;
+    
+    if (safeLine === fullRange.start.line) {
+        finalStartCol = Math.max(finalStartCol, fullRange.start.character);
+        finalEndCol = Math.max(finalEndCol, fullRange.start.character);
+    }
+    
+    if (safeLine === fullRange.end.line) {
+        finalStartCol = Math.min(finalStartCol, fullRange.end.character);
+        finalEndCol = Math.min(finalEndCol, fullRange.end.character);
+    }
+    
+    return Range.create(
+        Position.create(safeLine, finalStartCol),
+        Position.create(safeLine, finalEndCol)
+    );
+}
+```
+
+**Nutzung:**
+```typescript
+const range = this.createRangeForLine(document, startLine, endLine);
+const selectionRange = this.createSelectionRange(
+    document,
+    symbol.location.line,
+    symbol.location.column,
+    symbol.name.length,
+    range  // ← Pass fullRange to ensure containment!
+);
+
+return DocumentSymbol.create(name, detail, kind, range, selectionRange);
+```
+
+**Warum das wichtig ist:**
+- VS Code wirft Error: `"selectionRange must be contained in fullRange"`
+- DocumentSymbol Provider funktioniert nicht → Outline View bleibt leer
+- Breadcrumbs, Sticky Scroll, Quick Open (Ctrl+Shift+O) brechen
+- Extension wird als broken markiert im Marketplace
+
+**Testing:**
+- Teste mit Dateien die unterschiedliche Zeilenlängen haben (kurz + lang)
+- Teste mit Symbolen am Zeilenende
+- Teste mit Symbolen in mehrzeiligen Ranges (Classes, Methods)
+- Validiere dass Outline View ohne Errors funktioniert
+
+## Version History (as of 2026-01-09)
+- **CTL Language**: v1.4.0 - Outline View Support (DocumentSymbolProvider)
 - **LogViewer**: v1.0.3 - Backend file watching + version badge automation
 - **Script Actions**: v0.4.0 - Default commands with -n flag + version badge automation
 - **Test Explorer**: v0.2.4 - Cancel/Stop support + version badge automation

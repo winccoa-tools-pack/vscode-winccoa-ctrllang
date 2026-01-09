@@ -17,7 +17,8 @@ import {
     PrepareRenameParams,
     RenameParams,
     WorkspaceEdit,
-    Range
+    Range,
+    DocumentSymbol
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -40,6 +41,7 @@ import { CompletionService } from './services/completionService';
 import { HoverService } from './services/hoverService';
 import { DefinitionService } from './services/definitionService';
 import { RenameService } from './services/renameService';
+import { DocumentSymbolService } from './services/documentSymbolService';
 
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -47,6 +49,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 // v0.4.0: Centralized services (initialized after fetchProjectInfo is defined)
 const symbolCache = new SymbolCache();
 const renameService = new RenameService(symbolCache);  // v1.2.0
+const documentSymbolService = new DocumentSymbolService(symbolCache);  // v1.4.0
 let hoverService: HoverService;  // v1.3.0: Needs getProjectInfo callback
 let completionService: CompletionService;  // v1.1.0: Needs getProjectInfo callback
 let definitionService: DefinitionService;
@@ -388,6 +391,7 @@ connection.onInitialize((params: InitializeParams) => {
             definitionProvider: true,
             referencesProvider: true,
             renameProvider: { prepareProvider: true },  // v1.2.0
+            documentSymbolProvider: true,  // v1.4.0 - Outline View
             executeCommandProvider: {
                 commands: ['getDocUrl']
             }
@@ -485,6 +489,14 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
     if (!doc) return null;
     
     return renameService.rename(doc, params);
+});
+
+// v1.4.0: Document Symbol Provider for Outline View
+connection.onDocumentSymbol(async (params): Promise<DocumentSymbol[]> => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return [];
+    
+    return documentSymbolService.handle(doc);
 });
 
 // v0.4.0: Use HoverService for all hover requests
