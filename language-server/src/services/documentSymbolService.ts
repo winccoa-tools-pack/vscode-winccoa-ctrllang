@@ -39,57 +39,58 @@ export class DocumentSymbolService {
         
         // Add Classes (with methods and members as children)
         for (const classSymbol of fileSymbols.classes) {
-            symbols.push(this.createClassSymbol(classSymbol));
+            symbols.push(this.createClassSymbol(classSymbol, document));
         }
         
         // Add Structs (with fields as children)
         for (const structSymbol of fileSymbols.structs) {
-            symbols.push(this.createStructSymbol(structSymbol));
+            symbols.push(this.createStructSymbol(structSymbol, document));
         }
         
         // Add Functions
         for (const funcSymbol of fileSymbols.functions) {
-            symbols.push(this.createFunctionSymbol(funcSymbol));
+            symbols.push(this.createFunctionSymbol(funcSymbol, document));
         }
         
         // Add Global Variables
         for (const varSymbol of fileSymbols.globals) {
-            symbols.push(this.createGlobalVariableSymbol(varSymbol));
+            symbols.push(this.createGlobalVariableSymbol(varSymbol, document));
         }
         
         // Add Enums (with enum members as children)
         for (const enumSymbol of fileSymbols.enums) {
-            symbols.push(this.createEnumSymbol(enumSymbol));
+            symbols.push(this.createEnumSymbol(enumSymbol, document));
         }
         
         return symbols;
     }
 
-    private createClassSymbol(classSymbol: ClassSymbol): DocumentSymbol {
-        const range = this.createRange(
-            classSymbol.startLine || classSymbol.location.line,
-            0,
-            classSymbol.endLine || classSymbol.location.line,
-            1000
-        );
+    private createClassSymbol(classSymbol: ClassSymbol, document: TextDocument): DocumentSymbol {
+        // Full range: from class start to end (or approximate)
+        const startLine = classSymbol.startLine || classSymbol.location.line;
+        const endLine = classSymbol.endLine || classSymbol.location.line + 20;
         
-        const selectionRange = this.createRange(
+        const range = this.createRangeForLine(document, startLine, endLine);
+        
+        // Selection range: just the class name (MUST be inside range!)
+        const selectionRange = this.createSelectionRange(
+            document,
             classSymbol.location.line,
             classSymbol.location.column,
-            classSymbol.location.line,
-            classSymbol.location.column + classSymbol.name.length
+            classSymbol.name.length,
+            range
         );
         
         const children: DocumentSymbol[] = [];
         
         // Add members
         for (const member of classSymbol.members) {
-            children.push(this.createMemberSymbol(member));
+            children.push(this.createMemberSymbol(member, document));
         }
         
         // Add methods
         for (const method of classSymbol.methods) {
-            children.push(this.createMethodSymbol(method));
+            children.push(this.createMethodSymbol(method, document));
         }
         
         return DocumentSymbol.create(
@@ -102,26 +103,27 @@ export class DocumentSymbolService {
         );
     }
 
-    private createStructSymbol(structSymbol: StructSymbol): DocumentSymbol {
-        const range = this.createRange(
-            structSymbol.location.line,
-            0,
-            structSymbol.location.line + 10,  // Approximate - could be improved with endLine
-            1000
-        );
+    private createStructSymbol(structSymbol: StructSymbol, document: TextDocument): DocumentSymbol {
+        // Full range: from struct start line to approximate end
+        const startLine = structSymbol.location.line;
+        const endLine = structSymbol.location.line + Math.max(10, structSymbol.fields.length + 2);
         
-        const selectionRange = this.createRange(
+        const range = this.createRangeForLine(document, startLine, endLine);
+        
+        // Selection range: just the struct name (MUST be inside range!)
+        const selectionRange = this.createSelectionRange(
+            document,
             structSymbol.location.line,
             structSymbol.location.column,
-            structSymbol.location.line,
-            structSymbol.location.column + structSymbol.name.length
+            structSymbol.name.length,
+            range
         );
         
         const children: DocumentSymbol[] = [];
         
         // Add fields
         for (const field of structSymbol.fields) {
-            children.push(this.createMemberSymbol(field));
+            children.push(this.createMemberSymbol(field, document));
         }
         
         return DocumentSymbol.create(
@@ -134,19 +136,20 @@ export class DocumentSymbolService {
         );
     }
 
-    private createFunctionSymbol(funcSymbol: FunctionSymbol): DocumentSymbol {
-        const range = this.createRange(
-            funcSymbol.bodyStartLine || funcSymbol.location.line,
-            0,
-            funcSymbol.bodyEndLine || funcSymbol.location.line + 10,
-            1000
-        );
+    private createFunctionSymbol(funcSymbol: FunctionSymbol, document: TextDocument): DocumentSymbol {
+        // Full range: from function start to body end
+        const startLine = funcSymbol.location.line;
+        const endLine = funcSymbol.bodyEndLine || funcSymbol.location.line + 10;
         
-        const selectionRange = this.createRange(
+        const range = this.createRangeForLine(document, startLine, endLine);
+        
+        // Selection range: just the function name (MUST be inside range!)
+        const selectionRange = this.createSelectionRange(
+            document,
             funcSymbol.location.line,
             funcSymbol.location.column,
-            funcSymbol.location.line,
-            funcSymbol.location.column + funcSymbol.name.length
+            funcSymbol.name.length,
+            range
         );
         
         // Detail: return type + parameters
@@ -164,19 +167,20 @@ export class DocumentSymbolService {
         );
     }
 
-    private createMethodSymbol(methodSymbol: MethodSymbol): DocumentSymbol {
-        const range = this.createRange(
-            methodSymbol.bodyStartLine || methodSymbol.location.line,
-            0,
-            methodSymbol.bodyEndLine || methodSymbol.location.line + 10,
-            1000
-        );
+    private createMethodSymbol(methodSymbol: MethodSymbol, document: TextDocument): DocumentSymbol {
+        // Full range: from method start to body end
+        const startLine = methodSymbol.location.line;
+        const endLine = methodSymbol.bodyEndLine || methodSymbol.location.line + 10;
         
-        const selectionRange = this.createRange(
+        const range = this.createRangeForLine(document, startLine, endLine);
+        
+        // Selection range: just the method name (MUST be inside range!)
+        const selectionRange = this.createSelectionRange(
+            document,
             methodSymbol.location.line,
             methodSymbol.location.column,
-            methodSymbol.location.line,
-            methodSymbol.location.column + methodSymbol.name.length
+            methodSymbol.name.length,
+            range
         );
         
         // Detail: access modifier + return type + parameters
@@ -194,19 +198,17 @@ export class DocumentSymbolService {
         );
     }
 
-    private createMemberSymbol(memberSymbol: MemberSymbol): DocumentSymbol {
-        const range = this.createRange(
-            memberSymbol.location.line,
-            0,
-            memberSymbol.location.line,
-            1000
-        );
+    private createMemberSymbol(memberSymbol: MemberSymbol, document: TextDocument): DocumentSymbol {
+        // Full range: entire line
+        const range = this.createRangeForLine(document, memberSymbol.location.line, memberSymbol.location.line);
         
-        const selectionRange = this.createRange(
+        // Selection range: just the member name (MUST be inside range!)
+        const selectionRange = this.createSelectionRange(
+            document,
             memberSymbol.location.line,
             memberSymbol.location.column,
-            memberSymbol.location.line,
-            memberSymbol.location.column + memberSymbol.name.length
+            memberSymbol.name.length,
+            range
         );
         
         // Detail: data type
@@ -221,19 +223,17 @@ export class DocumentSymbolService {
         );
     }
 
-    private createGlobalVariableSymbol(varSymbol: VariableSymbol): DocumentSymbol {
-        const range = this.createRange(
-            varSymbol.location.line,
-            0,
-            varSymbol.location.line,
-            1000
-        );
+    private createGlobalVariableSymbol(varSymbol: VariableSymbol, document: TextDocument): DocumentSymbol {
+        // Full range: entire line
+        const range = this.createRangeForLine(document, varSymbol.location.line, varSymbol.location.line);
         
-        const selectionRange = this.createRange(
+        // Selection range: just the variable name (MUST be inside range!)
+        const selectionRange = this.createSelectionRange(
+            document,
             varSymbol.location.line,
             varSymbol.location.column,
-            varSymbol.location.line,
-            varSymbol.location.column + varSymbol.name.length
+            varSymbol.name.length,
+            range
         );
         
         // Detail: data type
@@ -248,31 +248,33 @@ export class DocumentSymbolService {
         );
     }
 
-    private createEnumSymbol(enumSymbol: EnumSymbol): DocumentSymbol {
-        const range = this.createRange(
-            enumSymbol.location.line,
-            0,
-            enumSymbol.location.line + 10,  // Approximate - could be improved with endLine
-            1000
-        );
+    private createEnumSymbol(enumSymbol: EnumSymbol, document: TextDocument): DocumentSymbol {
+        // Full range: from enum start to approximate end
+        const startLine = enumSymbol.location.line;
+        const endLine = enumSymbol.location.line + Math.max(5, enumSymbol.members.length + 2);
         
-        const selectionRange = this.createRange(
+        const range = this.createRangeForLine(document, startLine, endLine);
+        
+        // Selection range: just the enum name (MUST be inside range!)
+        const selectionRange = this.createSelectionRange(
+            document,
             enumSymbol.location.line,
             enumSymbol.location.column,
-            enumSymbol.location.line,
-            enumSymbol.location.column + enumSymbol.name.length
+            enumSymbol.name.length,
+            range
         );
         
         const children: DocumentSymbol[] = [];
         
         // Add enum members
         for (const member of enumSymbol.members) {
-            const memberRange = this.createRange(member.location.line, 0, member.location.line, 1000);
-            const memberSelectionRange = this.createRange(
+            const memberRange = this.createRangeForLine(document, member.location.line, member.location.line);
+            const memberSelectionRange = this.createSelectionRange(
+                document,
                 member.location.line,
                 member.location.column,
-                member.location.line,
-                member.location.column + member.name.length
+                member.name.length,
+                memberRange
             );
             
             children.push(DocumentSymbol.create(
@@ -291,6 +293,79 @@ export class DocumentSymbolService {
             range,
             selectionRange,
             children
+        );
+    }
+
+    /**
+     * Create a range for entire line(s) based on actual document content
+     * This ensures the range is valid and selectionRange can be contained within it
+     */
+    private createRangeForLine(document: TextDocument, startLine: number, endLine: number): Range {
+        // Clamp to document bounds
+        const lineCount = document.lineCount;
+        const safeStartLine = Math.max(0, Math.min(startLine, lineCount - 1));
+        const safeEndLine = Math.max(safeStartLine, Math.min(endLine, lineCount - 1));
+        
+        // Get actual line length for end position
+        const endLineText = document.getText({
+            start: { line: safeEndLine, character: 0 },
+            end: { line: safeEndLine + 1, character: 0 }
+        });
+        const endChar = endLineText.trimEnd().length;
+        
+        return Range.create(
+            Position.create(safeStartLine, 0),
+            Position.create(safeEndLine, endChar)
+        );
+    }
+
+    /**
+     * Create a selection range that is GUARANTEED to be inside the full range
+     * This is critical for LSP validation
+     */
+    private createSelectionRange(
+        document: TextDocument,
+        line: number,
+        column: number,
+        nameLength: number,
+        fullRange: Range
+    ): Range {
+        // Ensure line is within fullRange
+        const safeLine = Math.max(fullRange.start.line, Math.min(line, fullRange.end.line));
+        
+        // Get actual line text to validate column positions
+        const lineText = document.getText({
+            start: { line: safeLine, character: 0 },
+            end: { line: safeLine + 1, character: 0 }
+        }).trimEnd();
+        
+        // Clamp start column to line length
+        const startCol = Math.max(0, Math.min(column, lineText.length));
+        
+        // Clamp end column to line length (startCol + nameLength, but not beyond line end)
+        const endCol = Math.min(startCol + nameLength, lineText.length);
+        
+        // Ensure we're within fullRange bounds
+        let finalStartLine = safeLine;
+        let finalStartCol = startCol;
+        let finalEndLine = safeLine;
+        let finalEndCol = endCol;
+        
+        // If on fullRange.start line, ensure we don't go before fullRange.start.character
+        if (finalStartLine === fullRange.start.line) {
+            finalStartCol = Math.max(finalStartCol, fullRange.start.character);
+            finalEndCol = Math.max(finalEndCol, fullRange.start.character);
+        }
+        
+        // If on fullRange.end line, ensure we don't go beyond fullRange.end.character
+        if (finalEndLine === fullRange.end.line) {
+            finalStartCol = Math.min(finalStartCol, fullRange.end.character);
+            finalEndCol = Math.min(finalEndCol, fullRange.end.character);
+        }
+        
+        return Range.create(
+            Position.create(finalStartLine, finalStartCol),
+            Position.create(finalEndLine, finalEndCol)
         );
     }
 
