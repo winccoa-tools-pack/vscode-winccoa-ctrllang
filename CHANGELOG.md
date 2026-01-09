@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-01-09
+
+### Added
+- **📋 Outline View Support**: Functions, Classes, Methods, Structs, and Enums now appear in VS Code's Outline sidebar
+  - Navigate large CTL libraries with ease
+  - Click on symbol → Jump to definition
+  - Search/filter symbols in real-time
+  - Automatic update when switching files
+  - Hierarchical display (Class → Methods, Enum → Members)
+- **🧭 Breadcrumbs Integration**: Current symbol shown in top navigation bar
+- **📌 Sticky Scroll Support**: Class/function headers remain visible when scrolling
+- **DocumentSymbolProvider**: Full LSP implementation for document symbols
+  - Supports Classes (with members and methods as children)
+  - Supports Structs (with fields as children)
+  - Supports Functions (with full signature)
+  - Supports Methods (with access modifiers)
+  - Supports Global Variables
+  - Supports Enums (with enum members as children)
+
+### Changed
+- Built-in VS Code features now available: sort by name/position, collapse/expand, keyboard navigation
+
 ## [1.3.2] - 2026-01-08
 
 ### Fixed
