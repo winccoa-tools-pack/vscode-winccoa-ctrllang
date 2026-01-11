@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-01-11
+
+### Changed
+- **CI Compatibility**: Added `style-check` and `test:unit` script aliases for standardized CI/CD pipeline
+  - `style-check` → `npm run lint` 
+  - `test:unit` → `npm test`
+  - Ensures compatibility with Martin's CI/CD system
+
+## [1.4.1] - 2026-01-09
+
+### Fixed
+- **Makefile Windows Artifact**: Removed `nul` file creation in package target that caused "unsafe for extraction" error in Marketplace
+  - Changed `2>nul || echo "" >nul` to `2>/dev/null || true` for cross-platform compatibility
+  - VSIX packages are now clean without Windows-specific artifacts
+
 ## [1.4.0] - 2026-01-09
 
 ### Added

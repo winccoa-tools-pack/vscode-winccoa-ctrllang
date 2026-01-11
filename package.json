@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "1.4.0",
+  "version": "1.4.2",
   "author": "RichardJanisch",
   "license": "GNU General Public License v3.0",
   "icon": "resources/wincc_oa_ctrl_lang_512.png",
@@ -224,7 +224,9 @@
     "watch:server": "cd language-server && tsc -watch -p ./",
     "package": "vsce package",
     "lint": "echo \"Lint passed\"",
-    "test": "node ./dist/test/runTest.js"
+    "style-check": "npm run lint",
+    "test": "node ./dist/test/runTest.js",
+    "test:unit": "npm test"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
