@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-01-15
+
+### Added
+- **🤖 GitHub Copilot Integration**: Language Model Tools for autonomous CTL code analysis
+  - **ctl_syntax_check**: Check CTL files for syntax errors without opening
+  - **ctl_get_diagnostics**: Get all diagnostics (errors, warnings, info) with severity levels
+  - **ctl_get_symbol_info**: Get hover information for symbols at specific positions
+  - **ctl_find_references**: Find all references to a symbol across the workspace
+  - **ctl_goto_definition**: Get definition location(s) of a symbol
+  - Enables Copilot to analyze CTL code, find errors, and suggest fixes autonomously
+  - Uses VS Code's native Language Model Tools API (vscode.lm.registerTool)
+  - Clean service architecture with LanguageModelToolsService
+
+### Technical Details
+- Tools use VS Code commands (executeHoverProvider, executeReferenceProvider, executeDefinitionProvider)
+- Direct access to diagnostics via vscode.languages.getDiagnostics()
+- All tools return structured JSON for easy parsing by AI assistants
+- Registered at extension activation, no runtime overhead
+- Compatible with any AI assistant that supports VS Code Language Model Tools
+
 ## [1.4.2] - 2026-01-11
 
 ### Changed

@@ -12,12 +12,14 @@ import { ProjectPathResolver } from './services/projectPathResolver';
 // import { CtrlppCheckService } from './services/ctrlppCheckService';
 import { AstyleFormatterService } from './services/astyleFormatterService';
 import { WinccoaSyntaxCheckService } from './services/winccoaSyntaxCheckService';
+import { LanguageModelToolsService } from './languageModelTools';
 
 let client: LanguageClient;
 // TODO: CtrlppCheck feature will be completed in a future release
 // let ctrlppCheckService: CtrlppCheckService;
 let astyleFormatterService: AstyleFormatterService;
 let syntaxCheckService: WinccoaSyntaxCheckService;
+let languageModelTools: LanguageModelToolsService;
 let noProjectWarningShown = false; // Track if we already showed "no project at all" warning
 
 export function activate(context: vscode.ExtensionContext) {
@@ -70,6 +72,12 @@ export function activate(context: vscode.ExtensionContext) {
 	syntaxCheckService = new WinccoaSyntaxCheckService(extensionOutput);
 	context.subscriptions.push(syntaxCheckService);
 	ExtensionOutputChannel.info('Services', 'WinCC OA Syntax Check Service initialized');
+
+	// Initialize Language Model Tools Service (GitHub Copilot integration)
+	ExtensionOutputChannel.trace('Extension', 'Initializing Language Model Tools Service...');
+	languageModelTools = new LanguageModelToolsService();
+	languageModelTools.register(context);
+	ExtensionOutputChannel.info('Services', 'Language Model Tools Service initialized (5 tools registered)');
 
 	// Start the Language Server
 	ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server...');
