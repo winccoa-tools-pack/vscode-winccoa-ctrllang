@@ -67,15 +67,17 @@ export class DocumentSymbolService {
 
     private createClassSymbol(classSymbol: ClassSymbol, document: TextDocument): DocumentSymbol {
         // Full range: from class start to end (or approximate)
-        const startLine = classSymbol.startLine || classSymbol.location.line;
-        const endLine = classSymbol.endLine || classSymbol.location.line + 20;
+        // NOTE: SymbolTable uses 1-based line numbers, LSP uses 0-based
+        // Use classSymbol.startLine for body start (after {), not for class keyword!
+        const rangeStart = classSymbol.location.line - 1;  // Use location.line for class keyword
+        const rangeEnd = (classSymbol.endLine || classSymbol.location.line + 20) - 1;
         
-        const range = this.createRangeForLine(document, startLine, endLine);
+        const range = this.createRangeForLine(document, rangeStart, rangeEnd);
         
         // Selection range: just the class name (MUST be inside range!)
         const selectionRange = this.createSelectionRange(
             document,
-            classSymbol.location.line,
+            classSymbol.location.line - 1,  // Convert to 0-based
             classSymbol.location.column,
             classSymbol.name.length,
             range
@@ -105,15 +107,16 @@ export class DocumentSymbolService {
 
     private createStructSymbol(structSymbol: StructSymbol, document: TextDocument): DocumentSymbol {
         // Full range: from struct start line to approximate end
-        const startLine = structSymbol.location.line;
-        const endLine = structSymbol.location.line + Math.max(10, structSymbol.fields.length + 2);
+        // NOTE: SymbolTable uses 1-based line numbers, LSP uses 0-based
+        const startLine = structSymbol.location.line - 1;
+        const endLine = (structSymbol.location.line + Math.max(10, structSymbol.fields.length + 2)) - 1;
         
         const range = this.createRangeForLine(document, startLine, endLine);
         
         // Selection range: just the struct name (MUST be inside range!)
         const selectionRange = this.createSelectionRange(
             document,
-            structSymbol.location.line,
+            structSymbol.location.line - 1,  // Convert to 0-based
             structSymbol.location.column,
             structSymbol.name.length,
             range
@@ -138,15 +141,16 @@ export class DocumentSymbolService {
 
     private createFunctionSymbol(funcSymbol: FunctionSymbol, document: TextDocument): DocumentSymbol {
         // Full range: from function start to body end
-        const startLine = funcSymbol.location.line;
-        const endLine = funcSymbol.bodyEndLine || funcSymbol.location.line + 10;
+        // NOTE: SymbolTable uses 1-based line numbers, LSP uses 0-based
+        const startLine = funcSymbol.location.line - 1;
+        const endLine = (funcSymbol.bodyEndLine || funcSymbol.location.line + 10) - 1;
         
         const range = this.createRangeForLine(document, startLine, endLine);
         
         // Selection range: just the function name (MUST be inside range!)
         const selectionRange = this.createSelectionRange(
             document,
-            funcSymbol.location.line,
+            funcSymbol.location.line - 1,  // Convert to 0-based
             funcSymbol.location.column,
             funcSymbol.name.length,
             range
@@ -169,15 +173,16 @@ export class DocumentSymbolService {
 
     private createMethodSymbol(methodSymbol: MethodSymbol, document: TextDocument): DocumentSymbol {
         // Full range: from method start to body end
-        const startLine = methodSymbol.location.line;
-        const endLine = methodSymbol.bodyEndLine || methodSymbol.location.line + 10;
+        // NOTE: SymbolTable uses 1-based line numbers, LSP uses 0-based
+        const startLine = methodSymbol.location.line - 1;
+        const endLine = (methodSymbol.bodyEndLine || methodSymbol.location.line + 10) - 1;
         
         const range = this.createRangeForLine(document, startLine, endLine);
         
         // Selection range: just the method name (MUST be inside range!)
         const selectionRange = this.createSelectionRange(
             document,
-            methodSymbol.location.line,
+            methodSymbol.location.line - 1,  // Convert to 0-based
             methodSymbol.location.column,
             methodSymbol.name.length,
             range
@@ -200,12 +205,14 @@ export class DocumentSymbolService {
 
     private createMemberSymbol(memberSymbol: MemberSymbol, document: TextDocument): DocumentSymbol {
         // Full range: entire line
-        const range = this.createRangeForLine(document, memberSymbol.location.line, memberSymbol.location.line);
+        // NOTE: SymbolTable uses 1-based line numbers, LSP uses 0-based
+        const line = memberSymbol.location.line - 1;
+        const range = this.createRangeForLine(document, line, line);
         
         // Selection range: just the member name (MUST be inside range!)
         const selectionRange = this.createSelectionRange(
             document,
-            memberSymbol.location.line,
+            memberSymbol.location.line - 1,  // Convert to 0-based
             memberSymbol.location.column,
             memberSymbol.name.length,
             range
@@ -225,12 +232,14 @@ export class DocumentSymbolService {
 
     private createGlobalVariableSymbol(varSymbol: VariableSymbol, document: TextDocument): DocumentSymbol {
         // Full range: entire line
-        const range = this.createRangeForLine(document, varSymbol.location.line, varSymbol.location.line);
+        // NOTE: SymbolTable uses 1-based line numbers, LSP uses 0-based
+        const line = varSymbol.location.line - 1;
+        const range = this.createRangeForLine(document, line, line);
         
         // Selection range: just the variable name (MUST be inside range!)
         const selectionRange = this.createSelectionRange(
             document,
-            varSymbol.location.line,
+            varSymbol.location.line - 1,  // Convert to 0-based
             varSymbol.location.column,
             varSymbol.name.length,
             range
@@ -250,15 +259,16 @@ export class DocumentSymbolService {
 
     private createEnumSymbol(enumSymbol: EnumSymbol, document: TextDocument): DocumentSymbol {
         // Full range: from enum start to approximate end
-        const startLine = enumSymbol.location.line;
-        const endLine = enumSymbol.location.line + Math.max(5, enumSymbol.members.length + 2);
+        // NOTE: SymbolTable uses 1-based line numbers, LSP uses 0-based
+        const startLine = enumSymbol.location.line - 1;
+        const endLine = (enumSymbol.location.line + Math.max(5, enumSymbol.members.length + 2)) - 1;
         
         const range = this.createRangeForLine(document, startLine, endLine);
         
         // Selection range: just the enum name (MUST be inside range!)
         const selectionRange = this.createSelectionRange(
             document,
-            enumSymbol.location.line,
+            enumSymbol.location.line - 1,  // Convert to 0-based
             enumSymbol.location.column,
             enumSymbol.name.length,
             range
@@ -268,10 +278,11 @@ export class DocumentSymbolService {
         
         // Add enum members
         for (const member of enumSymbol.members) {
-            const memberRange = this.createRangeForLine(document, member.location.line, member.location.line);
+            const memberLine = member.location.line - 1;  // Convert to 0-based
+            const memberRange = this.createRangeForLine(document, memberLine, memberLine);
             const memberSelectionRange = this.createSelectionRange(
                 document,
-                member.location.line,
+                member.location.line - 1,  // Convert to 0-based
                 member.location.column,
                 member.name.length,
                 memberRange

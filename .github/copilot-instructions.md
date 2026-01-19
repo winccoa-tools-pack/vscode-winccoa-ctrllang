@@ -20,6 +20,113 @@ Erst wenn alles getestet ist und ich das "Go" gebe, soll Copilot committen und d
 
 Es wird nach jeder Änderung kompiliert (`npm run compile`).
 
+## 🤖 Autonomous Testing Workflow - Copilot Superpowers
+
+### CTL Language Tools für selbstständige Entwicklung
+
+Copilot hat jetzt volle **autonome Test- und Entwicklungsfähigkeiten** für CTL Code:
+
+#### Verfügbare Tools
+1. **ctl_syntax_check**: CTL-Dateien auf Syntaxfehler prüfen
+2. **ctl_get_diagnostics**: Alle Diagnostics (Errors, Warnings, Info) mit Severity Levels
+3. **ctl_get_symbol_info**: Hover-Information für Symbole an spezifischen Positionen
+4. **ctl_find_references**: Alle Referenzen zu einem Symbol finden
+5. **ctl_goto_definition**: Definition eines Symbols lokalisieren
+
+#### Autonomous Development Cycle
+
+**1. Feature Development:**
+```workflow
+User Request → Analyze Problem → Write .ctl Test Fixtures
+                                        ↓
+                              Validate with ctl_syntax_check
+                                        ↓
+                                  Write Tests (.test.ts)
+                                        ↓
+                              Implement Feature/Fix
+                                        ↓
+                                  Run npm test
+                                        ↓
+                            Verify with ctl_get_diagnostics
+                                        ↓
+                          Git Flow Feature (if approved)
+```
+
+**2. Self-Validation Workflow:**
+- **BEFORE creating .ctl fixtures**: Use `ctl_syntax_check` to validate syntax
+- **WHILE writing tests**: Use `ctl_goto_definition` and `ctl_find_references` to verify expected behavior
+- **AFTER implementation**: Use `ctl_get_diagnostics` to ensure no regressions
+- **Test execution**: Always run `npm test` before committing
+
+**3. Test-Driven Development:**
+```typescript
+// Example: Testing Go-to-Definition for new feature
+test('Feature X: Should resolve symbol Y', async () => {
+    // 1. Create fixture (validate with ctl_syntax_check first!)
+    const fixture = `...CTL code...`;
+    
+    // 2. Test expected behavior
+    const location = await definitionService.handle(...);
+    
+    // 3. Verify result
+    assert.strictEqual(location.range.start.line, expectedLine);
+});
+```
+
+**4. Proactive Bug Prevention:**
+- Write comprehensive test fixtures covering edge cases
+- Test both flat structures AND subdirectories (learned from v2.0.1 fix!)
+- Validate all .ctl files before adding to test-workspace
+- Run integration tests for cross-file scenarios
+
+#### Best Practices
+
+✅ **DO:**
+- Always validate .ctl syntax with `ctl_syntax_check` before creating test fixtures
+- Write tests FIRST, then implement (TDD)
+- Test edge cases (nested classes, subdirectories, member access chains, etc.)
+- Run full test suite before feature finish
+- Use tools to verify expected LSP behavior
+
+❌ **DON'T:**
+- Skip syntax validation of .ctl fixtures
+- Commit without running tests
+- Assume existing tests cover new features (add specific tests!)
+- Forget to test subdirectory structures (libs/Utils/File.ctl vs libs/File.ctl)
+
+#### Example: Complete Autonomous Fix Workflow
+
+```bash
+# 1. User reports bug: "Goto doesn't work for subdirectory libs"
+
+# 2. Copilot investigates (autonomous):
+ctl_syntax_check(libs/General/MemoryChecker.ctl)  # Validate fixture
+ctl_goto_definition(position on updateDiskInfo)   # Reproduce bug
+ctl_get_diagnostics()                             # Check for errors
+
+# 3. Write test fixtures:
+# - Create libs/Utils/StringHelper.ctl (with ctl_syntax_check validation)
+# - Create TestSubdirectoryGoto.ctl (with ctl_syntax_check validation)
+
+# 4. Write failing tests:
+# - Test 1: toUpperCase() from Utils/StringHelper
+# - Test 2: g_stringOpCount global variable
+# - Test 3: startsWith() function
+
+# 5. Implement fix in definitionService.ts
+
+# 6. Verify:
+npm test  # All tests pass (116/116)
+ctl_get_diagnostics()  # No new errors
+
+# 7. Git Flow (with approval):
+git flow feature start fix-uses-goto
+git commit -m "fix: goto for #uses libs in subdirs"
+git flow feature finish fix-uses-goto
+```
+
+**Result**: Copilot kann jetzt **vollständig autonom** entwickeln, testen und validieren!
+
 ## Wichtige technische Details
 
 ### Script Actions Extension
