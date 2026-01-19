@@ -28,7 +28,7 @@ suite('Enum Hover and Goto-Definition Tests', () => {
     
     setup(() => {
         symbolCache = new SymbolCache();
-        hoverService = new HoverService(symbolCache);
+        hoverService = new HoverService(symbolCache, async () => null);
         definitionService = new DefinitionService(symbolCache, async () => null);
     });
     
