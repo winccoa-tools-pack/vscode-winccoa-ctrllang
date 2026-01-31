@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "author": "RichardJanisch",
   "license": "GNU General Public License v3.0",
   "icon": "resources/wincc_oa_ctrl_lang_512.png",
@@ -131,7 +131,9 @@
               "description": "Absolute path to the CTL file to check"
             }
           },
-          "required": ["file"]
+          "required": [
+            "file"
+          ]
         }
       },
       {
@@ -150,7 +152,9 @@
               "description": "Absolute path to the CTL file"
             }
           },
-          "required": ["file"]
+          "required": [
+            "file"
+          ]
         }
       },
       {
@@ -177,7 +181,11 @@
               "description": "Column number (1-based)"
             }
           },
-          "required": ["file", "line", "column"]
+          "required": [
+            "file",
+            "line",
+            "column"
+          ]
         }
       },
       {
@@ -204,7 +212,11 @@
               "description": "Column number (1-based)"
             }
           },
-          "required": ["file", "line", "column"]
+          "required": [
+            "file",
+            "line",
+            "column"
+          ]
         }
       },
       {
@@ -231,7 +243,32 @@
               "description": "Column number (1-based)"
             }
           },
-          "required": ["file", "line", "column"]
+          "required": [
+            "file",
+            "line",
+            "column"
+          ]
+        }
+      },
+      {
+        "name": "ctl_get_documentation_link",
+        "displayName": "Get CTL Documentation Link",
+        "modelDescription": "Get the official WinCC OA documentation link for a CTL function/method. Returns ONLY the URL to the documentation page. Use when user says 'read the docs', 'check the documentation', or 'you're using this function wrong'. If no link found in database, search the web for 'WinCC OA [functionName] documentation'.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "ctl_docs",
+        "icon": "$(book)",
+        "userDescription": "Get official WinCC OA documentation link for a CTL function",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "functionName": {
+              "type": "string",
+              "description": "Name of the CTL function/method to look up (e.g., 'dpGet', 'dpConnect', 'getValue'). Do not include parentheses."
+            }
+          },
+          "required": [
+            "functionName"
+          ]
         }
       }
     ],
@@ -359,7 +396,7 @@
     "@vscode/vsce": "^3.7.1",
     "eslint": "^9.36.0",
     "glob": "^13.0.0",
-    "mocha": "^11.7.5",
+    "mocha": "^11.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },

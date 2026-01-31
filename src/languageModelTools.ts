@@ -46,10 +46,15 @@ export class LanguageModelToolsService {
             vscode.lm.registerTool('ctl_goto_definition', new GotoDefinitionTool())
         );
 
+        // Tool 6: Get Documentation Link
+        this.disposables.push(
+            vscode.lm.registerTool('ctl_get_documentation_link', new GetDocumentationLinkTool(context))
+        );
+
         // Add to context subscriptions
         context.subscriptions.push(...this.disposables);
 
-        console.log('[LanguageModelTools] ✅ Registered 5 CTL Language Tools');
+        console.log('[LanguageModelTools] ✅ Registered 6 CTL Language Tools');
     }
 
     /**
@@ -420,4 +425,103 @@ interface GotoDefinitionInput {
     file: string;
     line: number;
     column: number;
+}
+
+/**
+ * Tool 6: Get Documentation Link
+ * 
+ * Searches the WinCC OA documentation database for a function/method and returns the documentation URL.
+ */
+class GetDocumentationLinkTool implements vscode.LanguageModelTool<GetDocumentationLinkInput> {
+    private docsData: any[] | null = null;
+    private docsPath: string;
+
+    constructor(private context: vscode.ExtensionContext) {
+        // Path to winccoa-docs-crawled.json
+        this.docsPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'winccoa-docs-crawled.json').fsPath;
+    }
+
+    async invoke(
+        options: vscode.LanguageModelToolInvocationOptions<GetDocumentationLinkInput>,
+        _token: vscode.CancellationToken
+    ): Promise<vscode.LanguageModelToolResult> {
+        try {
+            const input = options.input;
+            console.log(`[GetDocumentationLinkTool] Searching docs for: ${input.functionName}`);
+
+            // Lazy load documentation data
+            if (!this.docsData) {
+                await this.loadDocsData();
+            }
+
+            if (!this.docsData) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(
+                        JSON.stringify({
+                            success: false,
+                            error: 'Documentation database not found'
+                        }, null, 2)
+                    )
+                ]);
+            }
+
+            // Search for the function (case-insensitive)
+            const searchTerm = input.functionName.toLowerCase().replace(/[()]/g, '');
+            const matches = this.docsData.filter(doc => {
+                const docName = doc.name.toLowerCase();
+                return docName === searchTerm || docName.startsWith(searchTerm);
+            });
+
+            if (matches.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(
+                        JSON.stringify({
+                            found: false,
+                            message: `No documentation found for '${input.functionName}' in local database.`,
+                            suggestion: `Search the web for: "WinCC OA ${input.functionName} documentation" or visit https://www.winccoa.com/documentation/WinCCOA/latest/en_US/`
+                        }, null, 2)
+                    )
+                ]);
+            }
+
+            // Return ONLY the link - nothing else
+            const bestMatch = matches[0];
+            const result = {
+                found: true,
+                functionName: bestMatch.name,
+                documentationUrl: bestMatch.sourceUrl
+            };
+
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(JSON.stringify(result, null, 2))
+            ]);
+
+        } catch (error: any) {
+            console.error('[GetDocumentationLinkTool] Error:', error);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(
+                    JSON.stringify({
+                        success: false,
+                        error: error.message
+                    }, null, 2)
+                )
+            ]);
+        }
+    }
+
+    private async loadDocsData(): Promise<void> {
+        try {
+            const fs = require('fs').promises;
+            const content = await fs.readFile(this.docsPath, 'utf8');
+            this.docsData = JSON.parse(content);
+            console.log(`[GetDocumentationLinkTool] Loaded ${this.docsData?.length || 0} documentation entries`);
+        } catch (error: any) {
+            console.error(`[GetDocumentationLinkTool] Failed to load docs: ${error.message}`);
+            this.docsData = null;
+        }
+    }
+}
+
+interface GetDocumentationLinkInput {
+    functionName: string; // Name of the CTL function/method to look up (e.g., "dpGet", "dpConnect")
 }

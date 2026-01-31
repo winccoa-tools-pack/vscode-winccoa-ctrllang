@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.3] - 2026-01-30
+
+### Added
+- **📖 Documentation Link Tool**: New Language Model Tool `ctl_get_documentation_link`
+  - Returns ONLY the official WinCC OA documentation URL for CTL functions/methods
+  - Searches in crawled documentation database (`resources/winccoa-docs-crawled.json`, 30k+ entries)
+  - When no match found: suggests web search for "WinCC OA [function] documentation"
+  - Enables Copilot to provide documentation links when user says "read the docs" or "you're using this wrong"
+  - Minimal response: just function name and URL - no clutter
+
+### Changed
+- LanguageModelToolsService now registers 6 tools (was 5)
+
 ## [2.0.2] - 2026-01-19
 
 ### Fixed
