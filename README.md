@@ -2,9 +2,14 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)
-![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
-![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
+
+![Version](https://img.shields.io/github/v/release/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework?label=version)
+![License](https://img.shields.io/github/license/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework)
+![VS Code](https://img.shields.io/badge/VS%20Code-1.109.2-007ACC.svg)
+[![Coverage](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/graph/badge.svg)](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework)
+[![Quality gate](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/ci-cd.yml)
+[![Released](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/release.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/release.yml)
+
 
 **Language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
 
@@ -194,10 +199,13 @@ WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliate
 
 ---
 
-<div align="center">
+## Quick Links
 
-Made with ❤️ for the WinCC OA community
+- [📦 VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mPokornyETM.wincc-oa-tools-pack)
+- [🐛 Report Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/issues)
+- [📋 Project Board](https://github.com/orgs/winccoa-tools-pack/projects/3)
 
-[GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang) • [Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues) • [WinCC OA Docs](https://www.winccoa.com)
+---
 
-</div>
+<center>Made with ❤️ for and by the WinCC OA community</center>
+

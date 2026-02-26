@@ -7,7 +7,7 @@ async function main() {
         const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
         await runTests({ extensionDevelopmentPath, extensionTestsPath });
-    } catch (err) {
+    } catch (_err) {
         console.error('Failed to run tests');
         process.exit(1);
     }

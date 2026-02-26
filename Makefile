@@ -41,14 +41,14 @@ all: clean install build package
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	@rm -rf out dist node_modules language-server/src/*.js language-server/src/*.js.map
-	@rm -rf $(BIN_DIR)
+	@node -e "const fs=require('fs'); ['out','dist','$(BIN_DIR)'].forEach(d => fs.rmSync(d, {recursive:true, force:true}));"
 	@echo "Clean complete."
 
 # Install dependencies
 install:
 	@echo "Installing dependencies..."
 	@$(NPM) install
+	@cd language-server && $(NPM) install
 	@echo "Dependencies installed."
 
 # Build TypeScript sources
@@ -73,10 +73,6 @@ quick: build package
 watch:
 	@$(NPM) run watch
 
-# Watch language server
-watch-server:
-	@$(NPM) run watch:server
-
 # Local test target - Build, package with local stamp, replace extension, restart VS Code
 test-local:
 	@node scripts/test-local.js $(BIN_DIR) $(EXTENSION_NAME) $(VERSION) $(EXT_ID) $(CODE_BIN) $(TEST_WORKSPACE)
@@ -91,7 +87,6 @@ help:
 	@echo "  package      - Create .vsix package in bin/ directory"
 	@echo "  quick        - Build and package without cleaning"
 	@echo "  watch        - Watch and recompile extension on changes"
-	@echo "  watch-server - Watch and recompile language server on changes"
 	@echo "  test-local   - Build, package with local stamp, replace extension in VS Code, restart with test workspace"
 	@echo "  help         - Show this help message"
 	@echo ""

@@ -14,7 +14,7 @@ export class AstyleFormatterService {
 
     public async formatDocument(document: vscode.TextDocument): Promise<boolean> {
         const config = vscode.workspace.getConfiguration('winccoa.astyleFormatter');
-        
+
         // Check if formatter is enabled
         if (!config.get<boolean>('enabled', true)) {
             ExtensionOutputChannel.trace('Formatter', 'Astyle formatter disabled in settings');
@@ -31,16 +31,21 @@ export class AstyleFormatterService {
 
         try {
             const { astylePath, configPath } = await this.resolveAstylePaths();
-            
+
             if (!astylePath || !configPath) {
-                ExtensionOutputChannel.error('Formatter', 'Could not resolve astyle binary or config path');
+                ExtensionOutputChannel.error(
+                    'Formatter',
+                    'Could not resolve astyle binary or config path',
+                );
                 return false;
             }
 
             await this.runAstyle(astylePath, configPath, filePath);
-            ExtensionOutputChannel.debug('Formatter', `Successfully formatted: ${path.basename(filePath)}`);
+            ExtensionOutputChannel.debug(
+                'Formatter',
+                `Successfully formatted: ${path.basename(filePath)}`,
+            );
             return true;
-
         } catch (error) {
             const err = error as Error;
             ExtensionOutputChannel.error('Formatter', `Error formatting file: ${err.message}`, err);
@@ -48,7 +53,10 @@ export class AstyleFormatterService {
         }
     }
 
-    private async resolveAstylePaths(): Promise<{ astylePath: string | null; configPath: string | null }> {
+    private async resolveAstylePaths(): Promise<{
+        astylePath: string | null;
+        configPath: string | null;
+    }> {
         const config = vscode.workspace.getConfiguration('winccoa.astyleFormatter');
         const customBinaryPath = config.get<string>('binaryPath', '').trim();
         const customConfigPath = config.get<string>('configPath', '').trim();
@@ -56,29 +64,35 @@ export class AstyleFormatterService {
         // Use custom paths if provided
         if (customBinaryPath && customConfigPath) {
             ExtensionOutputChannel.info('Formatter', 'Using custom astyle paths from settings');
-            
+
             // Verify custom paths exist
             if (!fs.existsSync(customBinaryPath)) {
-                ExtensionOutputChannel.error('Formatter', `Custom binary not found: ${customBinaryPath}`);
+                ExtensionOutputChannel.error(
+                    'Formatter',
+                    `Custom binary not found: ${customBinaryPath}`,
+                );
                 vscode.window.showErrorMessage(`Astyle binary not found at: ${customBinaryPath}`);
                 return { astylePath: null, configPath: null };
             }
 
             if (!fs.existsSync(customConfigPath)) {
-                ExtensionOutputChannel.error('Formatter', `Custom config not found: ${customConfigPath}`);
+                ExtensionOutputChannel.error(
+                    'Formatter',
+                    `Custom config not found: ${customConfigPath}`,
+                );
                 vscode.window.showErrorMessage(`Astyle config not found at: ${customConfigPath}`);
                 return { astylePath: null, configPath: null };
             }
 
             ExtensionOutputChannel.debug('Formatter', `  Binary: ${customBinaryPath}`);
             ExtensionOutputChannel.debug('Formatter', `  Config: ${customConfigPath}`);
-            
+
             return { astylePath: customBinaryPath, configPath: customConfigPath };
         }
 
         // Fall back to WinCC OA installation paths
         ExtensionOutputChannel.debug('Formatter', 'Using WinCC OA installation paths (default)');
-        
+
         const resolver = ProjectPathResolver.getInstance();
         const projectPaths = await resolver.getProjectPaths();
 
@@ -89,7 +103,7 @@ export class AstyleFormatterService {
 
         const installPath = projectPaths.installPath;
         const isWindows = process.platform === 'win32';
-        
+
         // Determine binary name based on platform
         const astyleBinary = isWindows ? 'astyle.exe' : 'astyle';
         const astylePath = path.join(installPath, 'bin', astyleBinary);
@@ -114,12 +128,12 @@ export class AstyleFormatterService {
         return { astylePath, configPath };
     }
 
-    private async runAstyle(astylePath: string, configPath: string, filePath: string): Promise<void> {
-        const args = [
-            '--suffix=none',
-            `--options=${configPath}`,
-            filePath
-        ];
+    private async runAstyle(
+        astylePath: string,
+        configPath: string,
+        filePath: string,
+    ): Promise<void> {
+        const args = ['--suffix=none', `--options=${configPath}`, filePath];
 
         ExtensionOutputChannel.trace('Formatter', `Command: ${astylePath} ${args.join(' ')}`);
 
@@ -153,7 +167,11 @@ export class AstyleFormatterService {
             });
 
             process.on('error', (error) => {
-                ExtensionOutputChannel.error('Formatter', `Failed to start process: ${error.message}`, error);
+                ExtensionOutputChannel.error(
+                    'Formatter',
+                    `Failed to start process: ${error.message}`,
+                    error,
+                );
                 reject(error);
             });
         });
