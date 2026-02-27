@@ -65,7 +65,10 @@ export function activate(context: vscode.ExtensionContext) {
     ExtensionOutputChannel.trace('Extension', 'Initializing Language Model Tools Service...');
     languageModelTools = new LanguageModelToolsService();
     languageModelTools.register(context);
-    ExtensionOutputChannel.info('Services', 'Language Model Tools Service initialized (5 tools registered)');
+    ExtensionOutputChannel.info(
+        'Services',
+        'Language Model Tools Service initialized (5 tools registered)',
+    );
 
     // TODO: CtrlppCheck feature will be completed in a future release
     // // Initialize CtrlppCheck Service
@@ -449,12 +452,18 @@ function startLanguageServer(context: vscode.ExtensionContext) {
     startPromise.then(() => {
         // Handle requests from Language Server for project info in automatic mode
         client.onRequest('custom/getProjectFromCore', async () => {
-            ExtensionOutputChannel.debug('LanguageServer', 'Server requested project info from Core');
+            ExtensionOutputChannel.debug(
+                'LanguageServer',
+                'Server requested project info from Core',
+            );
 
             const projectPaths = await ProjectPathResolver.getInstance().getProjectPaths();
 
             if (!projectPaths) {
-                ExtensionOutputChannel.warn('LanguageServer', 'No project paths available for server');
+                ExtensionOutputChannel.warn(
+                    'LanguageServer',
+                    'No project paths available for server',
+                );
 
                 // Show warning only once per session if truly nothing is available
                 if (!noProjectWarningShown) {
@@ -466,14 +475,19 @@ function startLanguageServer(context: vscode.ExtensionContext) {
 
                     if (pathSource === 'automatic') {
                         // In automatic mode: no Core project AND no workspace
-                        vscode.window.showWarningMessage(
-                            'WinCC OA: No project selected and no workspace with config/config found. Please select a project in Project Admin or open a WinCC OA project folder.',
-                            'Open Settings'
-                        ).then(selection => {
-                            if (selection === 'Open Settings') {
-                                vscode.commands.executeCommand('workbench.action.openSettings', 'winccoa.ctrlLang');
-                            }
-                        });
+                        vscode.window
+                            .showWarningMessage(
+                                'WinCC OA: No project selected and no workspace with config/config found. Please select a project in Project Admin or open a WinCC OA project folder.',
+                                'Open Settings',
+                            )
+                            .then((selection) => {
+                                if (selection === 'Open Settings') {
+                                    vscode.commands.executeCommand(
+                                        'workbench.action.openSettings',
+                                        'winccoa.ctrlLang',
+                                    );
+                                }
+                            });
                     }
                 }
 
@@ -488,10 +502,13 @@ function startLanguageServer(context: vscode.ExtensionContext) {
                 logPath: path.join(projectPaths.projectPath, 'log'),
                 installPath: projectPaths.installPath,
                 version: '',
-                subProjects: projectPaths.subProjects
+                subProjects: projectPaths.subProjects,
             };
 
-            ExtensionOutputChannel.debug('LanguageServer', `Sending project info to server: ${projectInfo.projectName}`);
+            ExtensionOutputChannel.debug(
+                'LanguageServer',
+                `Sending project info to server: ${projectInfo.projectName}`,
+            );
             return projectInfo;
         });
     });
