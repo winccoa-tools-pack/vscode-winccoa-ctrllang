@@ -40,7 +40,7 @@ export class CtrlppCheckService {
 
     public async checkFile(document: vscode.TextDocument): Promise<void> {
         const config = vscode.workspace.getConfiguration('winccoa.ctrlppCheck');
-        
+
         // Check if CtrlppCheck is enabled
         if (!config.get<boolean>('enabled', true)) {
             return;
@@ -48,7 +48,9 @@ export class CtrlppCheckService {
 
         const binaryPath = config.get<string>('binaryPath', '');
         if (!binaryPath || binaryPath.trim() === '') {
-            this.outputChannel.appendLine('CtrlppCheck: Binary path not configured. Set "winccoa.ctrlppCheck.binaryPath" in settings.');
+            this.outputChannel.appendLine(
+                'CtrlppCheck: Binary path not configured. Set "winccoa.ctrlppCheck.binaryPath" in settings.',
+            );
             return;
         }
 
@@ -78,11 +80,11 @@ export class CtrlppCheckService {
     private async runCtrlppCheck(
         binaryPath: string,
         filePath: string,
-        config: vscode.WorkspaceConfiguration
+        config: vscode.WorkspaceConfiguration,
     ): Promise<vscode.Diagnostic[]> {
         const projectName = config.get<string>('projectName', 'DevEnv');
         const additionalArgs = config.get<string[]>('additionalArgs', []);
-        
+
         // Create temporary file for XML output
         const tempDir = os.tmpdir();
         const outputFile = path.join(tempDir, `ctrlppcheck_${Date.now()}.xml`);
@@ -92,7 +94,7 @@ export class CtrlppCheckService {
             '--xml',
             `--output-file=${outputFile}`,
             ...additionalArgs,
-            filePath
+            filePath,
         ];
 
         this.outputChannel.appendLine(`CtrlppCheck: Running: ${binaryPath} ${args.join(' ')}`);
@@ -112,7 +114,7 @@ export class CtrlppCheckService {
 
             process.on('close', (code) => {
                 this.outputChannel.appendLine(`CtrlppCheck: Process exited with code ${code}`);
-                
+
                 if (stdout) {
                     this.outputChannel.appendLine(`CtrlppCheck stdout: ${stdout}`);
                 }
@@ -123,14 +125,14 @@ export class CtrlppCheckService {
                 try {
                     this.outputChannel.appendLine(`CtrlppCheck: XML output file: ${outputFile}`);
                     const diagnostics = this.parseXmlOutput(outputFile, filePath);
-                    
+
                     // Keep temp file for debugging - comment out cleanup
                     // try {
                     //     fs.unlinkSync(outputFile);
                     // } catch (err) {
                     //     // Ignore cleanup errors
                     // }
-                    
+
                     resolve(diagnostics);
                 } catch (error) {
                     this.outputChannel.appendLine(`CtrlppCheck: Error parsing output: ${error}`);
@@ -139,7 +141,9 @@ export class CtrlppCheckService {
             });
 
             process.on('error', (error) => {
-                this.outputChannel.appendLine(`CtrlppCheck: Failed to start process: ${error.message}`);
+                this.outputChannel.appendLine(
+                    `CtrlppCheck: Failed to start process: ${error.message}`,
+                );
                 reject(error);
             });
         });
@@ -152,7 +156,9 @@ export class CtrlppCheckService {
         }
 
         const xmlContent = fs.readFileSync(xmlFilePath, 'utf-8');
-        this.outputChannel.appendLine(`CtrlppCheck: Parsing XML output (${xmlContent.length} bytes)`);
+        this.outputChannel.appendLine(
+            `CtrlppCheck: Parsing XML output (${xmlContent.length} bytes)`,
+        );
 
         if (!xmlContent || xmlContent.trim() === '') {
             this.outputChannel.appendLine('CtrlppCheck: XML output is empty');
@@ -169,8 +175,8 @@ export class CtrlppCheckService {
             }
 
             // Handle both single error and array of errors
-            const errors = Array.isArray(result.results.errors.error) 
-                ? result.results.errors.error 
+            const errors = Array.isArray(result.results.errors.error)
+                ? result.results.errors.error
                 : [result.results.errors.error];
 
             for (const error of errors) {
@@ -182,14 +188,13 @@ export class CtrlppCheckService {
 
             this.outputChannel.appendLine(`CtrlppCheck: Found ${diagnostics.length} diagnostic(s)`);
             return diagnostics;
-
         } catch (error) {
             this.outputChannel.appendLine(`CtrlppCheck: XML parsing error: ${error}`);
             return [];
         }
     }
 
-    private createDiagnostic(error: CtrlppCheckError, filePath: string): vscode.Diagnostic | null {
+    private createDiagnostic(error: CtrlppCheckError, _filePath: string): vscode.Diagnostic | null {
         // Determine line number
         let line = 0;
         if (error.location && error.location.line) {

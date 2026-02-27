@@ -1,26 +1,61 @@
-# README für GitHub Copilot: WinCC OA Extensions
+# AI Coding Assistant Instructions
 
-## Allgemeine Projektstruktur und Regeln
+This file provides instructions for AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) working on this repository.
 
-Wir nutzen mehrere VS Code Extensions für WinCC OA, darunter CTL Language, Control, LogViewer, ScriptActions und den TestExplorer.
+## Project Overview
 
-Alle Extensions nutzen eine gemeinsame NPM-Shared-Library als Core, die die Kommunikation mit WinCC OA bereitstellt.
+This is a VS Code extension providing **WinCC OA CTRL/CTRL++ Language Support** — syntax highlighting, go-to-definition, hover, completions, code formatting (Astyle), and native syntax checking.
 
-Wir haben ein einheitliches Logging-Format, ein gemeinsames Makefile für Build-Befehle und ähnliche Projektstrukturen in allen Repos.
+All WinCC OA extensions share a common NPM shared library as core (`@winccoa-tools-pack/npm-winccoa-core`) that provides communication with WinCC OA. We use a unified logging format, a shared Makefile for build commands, and similar project structures across all repos.
 
-## Workflow mit GitHub Copilot
+## Key Technologies
 
-Wenn ein neues Feature gestartet wird, soll Copilot automatisch `git flow feature start <Name>` ausführen.
+- **TypeScript** - Primary language
+- **VS Code Extension API** - Language features, commands, configuration
+- **Language Server Protocol (LSP)** - Separate language-server package for hover, goto, completions, rename
+- **@winccoa-tools-pack/npm-winccoa-core** - WinCC OA project discovery and CTRL execution
+- **Webpack** - Bundling
+- **Mocha** - Testing framework
 
-Bevor ein Feature gemergt wird, tragen wir die Änderungen in den Changelog ein und machen einen finalen Commit.
+## Repository Structure
 
-Commit-Messages beginnen immer mit einem Präfix wie `feat:`, `fix:`, `perf:`, usw. und sind so knapp wie möglich.
+```text
+src/
+├── extension.ts                    # Main entry point, command registrations
+├── extensionOutput.ts              # Logging
+├── services/
+│   ├── astyleFormatterService.ts   # Astyle code formatting
+│   ├── ctrlppCheckService.ts       # CTRL++ checking
+│   ├── projectPathResolver.ts      # WinCC OA project path resolution
+│   └── winccoaSyntaxCheckService.ts # Native syntax check
+└── test/                           # Unit and integration tests
 
-Erst wenn alles getestet ist und ich das "Go" gebe, soll Copilot committen und dann mit `git flow feature finish` mergen.
+language-server/
+├── src/
+│   ├── server.ts                   # LSP glue (~500 LOC after refactor)
+│   ├── symbolFinder.ts             # Symbol finding with member access
+│   ├── symbolTable.ts              # Symbol table and resolution
+│   ├── tokenizer.ts                # CTRL tokenizer
+│   ├── types.ts                    # Type definitions
+│   ├── usesResolver.ts             # #uses directive resolution
+│   ├── builtins.ts                 # Built-in function definitions
+│   ├── core/
+│   │   └── symbolCache.ts          # Centralized caching with mtime invalidation
+│   └── services/
+│       ├── completionService.ts    # Completion logic
+│       ├── configService.ts        # Project config
+│       ├── definitionService.ts    # Go-to-Definition (~315 LOC)
+│       ├── hoverService.ts         # Hover logic (~220 LOC)
+│       ├── renameService.ts        # Symbol rename
+│       └── index.ts                # Service exports
+├── test/                           # Language server tests
+└── docs/
+    └── ARCHITECTURE.md             # Full architecture documentation
 
-Es wird nach jeder Änderung kompiliert (`npm run compile`).
+test-workspace/                     # Test workspace (MUST be at ROOT level)
+```
 
-## 🤖 Autonomous Testing Workflow - Copilot Superpowers
+## Autonomous Testing Workflow
 
 ### CTL Language Tools für selbstständige Entwicklung
 
@@ -127,161 +162,176 @@ git flow feature finish fix-uses-goto
 
 **Result**: Copilot kann jetzt **vollständig autonom** entwickeln, testen und validieren!
 
-## Wichtige technische Details
+## Workflow with GitHub Copilot
 
-### Script Actions Extension
-- Command: `winccoa.executeScriptWithArgs` 
-- **WICHTIG**: Arguments werden als PLAIN STRINGS übergeben - KEIN `-lflag`, KEINE `-` Präfixe, einfach nur die Argumente!
-- Beispiel richtig: `testCaseId` → Command: `/opt/WinCC_OA/bin/WCCOActrl script.ctl -proj DevEnv testCaseId`
-- Beispiel falsch: `-lflag testCaseId` oder `single start testCaseId`
-- Die Extension hängt die Args direkt nach `-proj <projectName>` an
+When a new feature is started, Copilot should automatically run `git flow feature start <Name>`.
 
-### Test Explorer Extension  
-- Parst Test-Dateien nach `class X : OaTest` Pattern
-- Einzelne Tests werden über `TestRunner.executeScriptWithArgs(fileUri, testCaseId)` ausgeführt
-- **WICHTIG**: Nur die `testCaseId` als Argument übergeben, NICHT `single start testCaseId`
-- File Watcher wurde optimiert: Nur geänderte Dateien werden neu geparst, nicht das ganze Projekt
-- Bei File Create: Datei wird einzeln geparst und hinzugefügt
-- Bei File Change: Nur diese Datei wird neu geparst und aktualisiert
-- Bei File Delete: Nur diese Datei wird aus dem Test-Tree entfernt
+Before a feature is merged, we enter the changes in the changelog and make a final commit.
 
-### Performance-Optimierungen
-- File Watcher nutzt `handleFileCreated()`, `handleFileChanged()`, `handleFileDeleted()` für inkrementelle Updates
-- Kein vollständiges `discoverTests()` mehr bei Dateiänderungen
-- `TestDiscovery.parseTestFile(uri)` für einzelne Dateien verwenden
+Commit messages always start with a prefix like `feat:`, `fix:`, `perf:`, etc. and are as concise as possible.
 
-## Aktuelle Probleme und To-Dos
+Only when everything is tested and I give the "go", Copilot should commit and then merge with `git flow feature finish`.
 
-Der LogViewer zeigt aktuell nicht immer die neueste Änderung an, es gibt ein Parsing-Problem.
+Compile after every change (`npm run compile`).
 
-~~Im TestExplorer sollen Tests auch einzeln erkennbar sein~~ ✅ ERLEDIGT (v0.2.1)
+## Contribution Guidelines
 
-~~Der File-Watcher muss so angepasst werden, dass nur die geänderten Dateien neu geparst werden~~ ✅ ERLEDIGT (v0.2.2)
+### 1. Feature Completion First
 
-Für die CTL-Language-Extension soll das Go-to-Feature für Variablen integriert werden, bevor wir den Language-Server später refactoren.
+- **Complete one feature before starting another** - Do not leave partial implementations
+- Verify the feature works end-to-end before moving on
+- Mark todos as completed immediately after finishing each task
 
-Ein Bug im File-Watcher-Menü sorgt dafür, dass aktuell alle Einträge verschwinden, wenn man versucht, Dateien auszuwählen, die ignoriert werden sollen.
+### 2. Documentation Requirements
 
-### Known Issues
-**WinCC OA Limitation**: Beim Ausführen einzelner Testfälle generiert WinCC OA aktuell keinen vollständigen Test-Report. Die Infrastruktur in den Extensions ist vorbereitet, aber die volle Funktionalität hängt von zukünftigen WinCC OA Verbesserungen ab.
+- Document new features, APIs, and commands as you implement them
+- Update `README.md` when adding commands or settings
+- Propose creating screenshots for UX documentation when applicable
 
-## Test-Workspace Management (CRITICAL)
+### 3. Code Quality Standards
 
-### Directory Structure
-- **test-workspace MUSS auf ROOT-Level liegen**: Nicht in language-server/, sondern parallel dazu
-- **Grund**: Professionelle Projekt-Struktur, nicht verschachtelt
-- **Pfade in Tests**: Von dist/language-server/test/ aus: `../../../test-workspace/`
+Before committing any changes:
 
-### Git & VSIX
-- **.gitignore für Runtime-Dateien**: `test-workspace/db/**` sollte NICHT committed werden (Runtime-Artefakte)
-- **.vscodeignore**: `test-workspace/**` MUSS excluded sein, sonst Secrets im VSIX
-- **Große Commits**: Wenn User mit "ne das passt schon" zustimmt, sind auch 1400+ Dateien OK
+```bash
+npm run format      # Format code with Prettier
+npm run lint        # Run ESLint
+npm run lint:md     # Lint Markdown files
+npm run compile     # Build the extension
+npm test            # Run all tests
+```
 
-### Build & Test Paths
-- **copy-fixtures**: `cp -r ../test-workspace/scripts/* ../dist/test-workspace/scripts/`
-- **Unit Tests**: `path.join(__dirname, '../../../test-workspace/scripts/libs/')`
-- **Integration Tests**: `path.join(__dirname, '../../../test-workspace/scripts/fixtures/')`
+### 4. Testing Requirements
 
-## Member Access Navigation (v0.3.0)
+**All new features must have automated tests:**
 
-### Implementation Details
-- **Go-to-Definition**: Works for `obj.method()` and `obj.field` patterns
-- **Hover**: Shows full signatures on member access
-- **Cross-File**: Uses #uses directive for dependency resolution
-- **Symbol Finder**: Enhanced for member access detection in symbolFinder.ts
+- **Unit tests** (`src/test/unit/`) - Focus on code coverage and isolated logic
+- **Integration tests** (`src/test/integration/`) - Test functionality with WinCC OA and OS interactions
 
-### Test Organization
-- **Unit Tests**: language-server/test/simple/ with local fixtures/
-- **Integration Tests**: language-server/test/integration/ (E2E, LSP, Hover)
-- **Fixtures**: Self-contained CTL files in test-workspace/scripts/fixtures/
-- **Libraries**: Cross-file dependencies in test-workspace/scripts/libs/
+Run tests:
 
-## Language Server Architecture (v0.5.0)
+```bash
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests
+npm run test:coverage      # With coverage report
+```
 
-### Service-Based Architecture
+### 5. GitFlow Branching
+
+This project uses GitFlow. The branching model is fully automated via GitHub Actions.
+
+**Branch from `develop` for new work:**
+
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/<issue-id>/<short-description>
+```
+
+**Branch naming convention:**
+
+- `feature/<gh-issue-id>/<what-will-be-done>` - New features
+- `bugfix/<gh-issue-id>/<short-description>` - Bug fixes
+
+Examples:
+
+- `feature/32/config-editor`
+- `bugfix/45/fix-result-parsing`
+
+### 6. Pull Request Format
+
+Use the PR template at `.github/PULL_REQUEST_TEMPLATE/feature-bugfix.md`.
+
+**Link issues using keywords:**
+
+- `Fixes #123` - Closes the issue when merged
+- `Closes #123` - Closes the issue when merged
+- `Related to #123` - References without closing
+
+**PR Description must include:**
+
+- Description of changes
+- Related issue links
+- Testing checklist
+
+## Important Technical Details
+
+## Language Server Architecture (v0.5.0+)
+
 The Language Server was refactored from a monolithic "God Object" (1160 LOC) to a service-based architecture (496 LOC = 57% reduction).
 
 **See full documentation**: [language-server/docs/ARCHITECTURE.md](../language-server/docs/ARCHITECTURE.md)
 
-### Key Components
-```
-language-server/src/
-├── server.ts                 # LSP glue only (~500 LOC)
-├── core/
-│   └── symbolCache.ts        # Centralized caching with mtime invalidation
-├── services/
-│   ├── completionService.ts  # Completion logic
-│   ├── hoverService.ts       # Hover logic (~220 LOC)
-│   ├── definitionService.ts  # Go-to-Definition logic (~315 LOC)
-│   └── configService.ts      # Project config (prepared)
-```
-
 ### Design Principles
+
 - **Dependency Injection**: Services receive SymbolCache via constructor
 - **Single Responsibility**: Each service handles one LSP feature
-- **Centralized Caching**: SymbolCache manages all symbol parsing with automatic invalidation
+- **Centralized Caching**: SymbolCache manages all symbol parsing with automatic mtime-based invalidation
 - **Callback Injection**: For async dependencies like `fetchProjectInfo()`
 
 ### Adding New Services
-1. Create service class in `services/` with SymbolCache dependency
+
+1. Create service class in `language-server/src/services/` with SymbolCache dependency
 2. Export in `services/index.ts`
 3. Instantiate in `server.ts` after dependencies are available
 4. Delegate LSP handler to service method
 
-## CTL Language Support - Status und Roadmap
+## Member Access Navigation (v0.3.0+)
 
-### ✅ **Aktuell unterstützt (v0.5.2)**
+- **Go-to-Definition**: Works for `obj.method()` and `obj.field` patterns
+- **Hover**: Shows full signatures on member access
+- **Cross-File**: Uses `#uses` directive for dependency resolution
+- **Symbol Finder**: Enhanced for member access detection in symbolFinder.ts
 
-#### Basis-Symbole
-- ✅ **Classes**: Parsing, Members, Methods, Constructor, Access Modifiers
-- ✅ **Structs**: Parsing, Fields (immer public)
-- ✅ **Functions**: Global functions mit Parameters, Return Type, Local Variables
-- ✅ **Variables**: Global, Local, Member (mit Scope-aware Resolution)
-- ✅ **Enums**: Implicit/explicit values, :: operator, global enums
-- ✅ **Mappings**: Variable parsing (basic)
+## CTL Language Support — Status and Roadmap
 
-#### Vererbung
-- ✅ **Einfache Vererbung**: `class Dog : Animal` parsing
-- ✅ **BaseClass Member**: `baseClass?: string` im ClassSymbol
-- ⚠️ **Limitiert**: Nur 1 Ebene tief - keine rekursive Vererbungskette
+### Currently Supported (v0.5.2+)
+
+#### Basic Symbols
+
+- Classes: Parsing, Members, Methods, Constructor, Access Modifiers
+- Structs: Parsing, Fields (always public)
+- Functions: Global functions with Parameters, Return Type, Local Variables
+- Variables: Global, Local, Member (with Scope-aware Resolution)
+- Enums: Implicit/explicit values, `::` operator, global enums
+- Mappings: Variable parsing (basic)
+
+#### Inheritance
+
+- Simple inheritance: `class Dog : Animal` parsing
+- BaseClass member: `baseClass?: string` in ClassSymbol
+- **Limited**: Only 1 level deep — no recursive inheritance chain
 
 #### Member Access
-- ✅ **Einfach**: `obj.member` - 1 Ebene
-- ✅ **Chain**: `obj.member.field` - beliebig viele Ebenen
-- ✅ **Enum**: `Color::RED` - :: operator
+
+- Simple: `obj.member` — 1 level
+- Chain: `obj.member.field` — arbitrary depth
+- Enum: `Color::RED` — `::` operator
 
 #### Language Features
-- ✅ **Hover**: Functions, Methods, Variables, Classes, Structs, Enums
-- ✅ **Goto-Definition**: Alle Symbol-Typen, member access chains
-- ✅ **#uses Resolution**: Cross-file dependencies
-- ✅ **Completion**: Basic (CompletionService existiert)
 
-### ❌ **Nicht unterstützt / Gaps**
+- Hover: Functions, Methods, Variables, Classes, Structs, Enums
+- Goto-Definition: All symbol types, member access chains
+- `#uses` Resolution: Cross-file dependencies
+- Completion: Basic (CompletionService exists)
+- Rename: Scope-aware symbol rename
 
-#### 1. **Vererbungsketten-Resolution (CRITICAL)**
+### Not Supported / Gaps
+
+#### 1. Inheritance Chain Resolution (CRITICAL)
+
 ```ctl
 class A { public int x; };
 class B : A { public int y; };
 class C : B { public int z; };
 
 C obj;
-obj.x;  // ❌ Findet x NICHT (ist 2 Ebenen entfernt in A)
+obj.x;  // Does NOT find x (2 levels away in A)
 ```
 
-**Problem**: `resolveMemberByType()` sucht nur in direkter BaseClass, nicht rekursiv
+**Problem**: `resolveMemberByType()` only searches the direct BaseClass, not recursively.
 
-**Aktueller Code**:
-```typescript
-// In SymbolTable.resolveMemberByType():
-if (classSymbol.baseClass) {
-    const baseClass = symbols.classes.find(c => c.name === classSymbol.baseClass);
-    if (baseClass) {
-        // ❌ Stoppt hier - geht nicht weiter zu baseClass.baseClass
-    }
-}
-```
+#### 2. Interfaces (completely missing)
 
-#### 2. **Interfaces** (fehlt komplett)
 ```ctl
 interface IDrawable {
     void draw();
@@ -292,247 +342,145 @@ class Shape : IDrawable {
 };
 ```
 
-**Status**: 
-- Keine Interface-Definition im SymbolTable
-- Keine Interface-Implementierung in ClassSymbol
-- CTL unterstützt Interfaces - wir nicht!
+CTL supports Interfaces — we don't yet! No Interface definition in SymbolTable, no interface implementation in ClassSymbol.
 
-#### 3. **Multiple Inheritance / Interfaces**
-```ctl
-class Shape : IDrawable, ISerializable {
-    // ...
-};
-```
+#### 3. Multiple Inheritance / Interfaces
 
-**Status**: ClassSymbol hat nur `baseClass?: string`, kein `interfaces: string[]`
+ClassSymbol currently has only `baseClass?: string`, no `implements: string[]`.
 
-#### 4. **Method Overriding Detection**
-```ctl
-class Animal {
-    public string makeSound() { return "..."; }
-};
+#### 4. Method Overriding Detection
 
-class Dog : Animal {
-    public string makeSound() { return "Woof"; }  // Override
-};
-```
+- No `isOverride` flag
+- No warning on signature mismatch
+- Goto on overridden method doesn't jump to base
 
-**Status**: 
-- Keine `isOverride` flag
-- Keine Warnung bei signature mismatch
-- Goto auf überschriebene Methode springt nicht zur Base
+#### 5. Constructor Chaining
 
-#### 5. **Constructor Chaining**
-```ctl
-class Dog : Animal {
-    public Dog(string name) : Animal(name) { }  // ✅ Parsing OK
-    //                        ^^^^^^^^^^^^^ Aber kein Goto zur Animal constructor
-};
-```
+Base constructor call (`: Animal(name)`) is NOT resolved for goto.
 
-**Status**: Base constructor call wird NICHT aufgelöst
+#### 6. Mapping Features (incomplete)
 
-#### 6. **Mapping-Features** (unvollständig)
-```ctl
-mapping m = [["key", 123], ["foo", 456]];
-m["key"];  // ❌ Kein Hover, kein Goto
-```
+Only variable parsing — no key-access detection (`m["key"]`), no type inference for values.
 
-**Status**: 
-- Nur Variable-Parsing
-- Keine Key-Access Detection
-- Keine Type Inference für Values
+#### 7. Static Members
 
-#### 7. **Static Members**
-```ctl
-class Utils {
-    public static int counter = 0;
-    public static void increment() { counter++; }
-};
+No `isStatic` flag in MemberSymbol/MethodSymbol. `Class::staticMethod()` is interpreted as Enum!
 
-Utils::increment();  // ❌ :: wird als Enum interpretiert!
-```
+### Known Bugs
 
-**Status**: Keine `isStatic` flag in MemberSymbol/MethodSymbol
+#### "Wrong Lines on Goto" (User Report)
 
-#### 8. **Generics / Templates** (nicht in CTL?)
-Vermutlich nicht in CTL - muss geprüft werden.
+Possible causes:
 
-### 🐛 **Bekannte Bugs**
+- Line offset wrong with comments/whitespace
+- `bodyStartLine`/`bodyEndLine` incorrectly calculated for local variables
+- Member access chain jumps to wrong member definition
 
-#### 1. "Falsche Zeilen beim Goto" (User-Report)
-```
-User: "Wir springen manchmal noch in falsche zeilen"
-```
+**Missing Tests**: Precise goto tests with exact line number validation.
 
-**Mögliche Ursachen**:
-- Zeilen-Offset bei Kommentaren/Whitespace falsch
-- bodyStartLine/bodyEndLine in lokalen Variablen falsch berechnet
-- Member access chain springt zu falscher Member-Definition
+### Recursion Strategy
 
-**Tests fehlen**: Präzise Goto-Tests mit exakter Zeilennummer-Validierung
-
-### 📊 **Rekursions-Strategie**
-
-#### Vorschlag: **2-3 Files tief, 3-5 Vererbungsebenen**
-
-| Feature | Tiefe | Begründung |
+| Feature | Depth | Rationale |
 |---------|-------|-----------|
-| **#uses Dependencies** | 2-3 Files | Aktuell: Unlimitiert (alle #uses werden geladen) |
-| **Vererbungsketten** | 3-5 Ebenen | Real-World: Meist 2-3, Max 5 ist sicher |
-| **Member Access Chains** | Unlimitiert | Aktuell bereits implementiert (rekursiv) |
-| **Interface Implementierungen** | 3 Interfaces | Realistisch für CTL |
+| **#uses Dependencies** | 2-3 Files | Currently: Unlimited (all #uses are loaded) |
+| **Inheritance Chains** | 3-5 Levels | Real-world: Usually 2-3, max 5 is safe |
+| **Member Access Chains** | Unlimited | Already implemented (recursive) |
+| **Interface Implementations** | 3 Interfaces | Realistic for CTL |
 
-**Performance-Limit**: 
-- Maximal 100 Files pro Workspace (aktuell keine Limits)
-- Cache-TTL: 5 Minuten (mtime-basiert)
+**Performance Limits**:
 
-### 🎯 **Roadmap - Nächste Schritte**
+- Max 100 files per workspace (currently no limits)
+- Cache TTL: 5 minutes (mtime-based)
 
-#### **Phase 1: Bug Fixes & Tests (Prio 1)**
-1. **Tests für Goto-Präzision schreiben**
-   - Test: "Goto auf local variable in function body springt zu line X, col Y"
-   - Test: "Goto auf member access a.b.c.d springt zu exakter Position"
-   - Test: "Goto auf überschriebene Methode springt zur richtigen Definition"
+### Roadmap — Next Steps
 
-2. **Bug Fixes basierend auf Test-Failures**
-   - `bodyStartLine/bodyEndLine` Berechnung korrigieren
-   - Location-Offset in definitionService.ts validieren
+#### Phase 1: Bug Fixes & Tests (Priority 1)
 
-#### **Phase 2: Vererbung rekursiv (Prio 2)**
-3. **Rekursive Vererbungsketten-Resolution**
-   ```typescript
-   // In SymbolTable.ts
-   static resolveMemberByType(
-       type: string, 
-       memberName: string, 
-       symbols: FileSymbols,
-       maxDepth: number = 5  // ← NEW
-   ): MemberSymbol | MethodSymbol | null {
-       // Rekursiv baseClass.baseClass.baseClass durchgehen
-   }
-   ```
+1. Write tests for goto precision (exact line + column validation)
+2. Bug fixes based on test failures (`bodyStartLine`/`bodyEndLine` computation, location offset in definitionService.ts)
 
-4. **Tests für Vererbung**
-   - Test: "3-Level inheritance: C:B:A, obj.memberInA resolves"
-   - Test: "Method override: Dog.makeSound() überschreibt Animal.makeSound()"
-   - Test: "Goto auf überschriebene Methode zeigt beide (QuickPick?)"
+#### Phase 2: Recursive Inheritance (Priority 2)
 
-#### **Phase 3: Interfaces (Prio 3)**
-5. **Interface Parsing**
-   ```typescript
-   export interface InterfaceSymbol extends BaseSymbol {
-       kind: SymbolKind.Interface;
-       methods: MethodSymbol[];  // Nur Signaturen, keine Implementierung
-   }
-   
-   export interface ClassSymbol {
-       // ...
-       implements?: string[];  // ← NEW
-   }
-   ```
+3. Recursive inheritance chain resolution in `SymbolTable.resolveMemberByType()` with `maxDepth = 5`
+4. Tests for 3-level inheritance, method overrides
 
-6. **Interface-Resolution in Hover/Goto**
-   - Hover auf Interface zeigt alle Methoden
-   - Goto auf implementierte Methode → QuickPick (Interface oder Implementierung?)
+#### Phase 3: Interfaces (Priority 3)
 
-#### **Phase 4: Advanced Features (Prio 4)**
-7. **Static Members**
-   - `isStatic` flag in MemberSymbol/MethodSymbol
-   - `Class::staticMethod()` detection (unterscheiden von Enums!)
+5. Interface parsing (InterfaceSymbol, `implements?: string[]` in ClassSymbol)
+6. Interface resolution in Hover/Goto
 
-8. **Constructor Chaining**
-   - Base constructor call parsing: `: BaseClass(args)`
-   - Goto auf base constructor
+#### Phase 4: Advanced Features (Priority 4)
 
-9. **Mapping-Features**
-   - Key-Access detection: `m["key"]`
-   - Type inference für mapping values
+7. Static members (`isStatic` flag, distinguish `Class::method()` from enums)
+8. Constructor chaining (base constructor goto)
+9. Mapping features (key-access, type inference)
 
-### 🧪 **Test-Strategie**
+## Test-Workspace Management (CRITICAL)
 
-#### **Fehlende Tests (Critical)**
-1. **Goto-Precision Tests**
-   ```typescript
-   test('Goto: Local variable in line 45 jumps to line 42, col 8', () => {
-       // Exakte Position validieren
-       assert.strictEqual(location.range.start.line, 42);
-       assert.strictEqual(location.range.start.character, 8);
-   });
-   ```
+### Directory Structure
 
-2. **Inheritance Tests**
-   ```typescript
-   test('Hover: Dog.makeSound() shows override + base signature', () => {
-       // Beide Signaturen anzeigen
-   });
-   
-   test('Goto: Member in 3-level inheritance resolves', () => {
-       // C:B:A, obj.memberInA
-   });
-   ```
+- **test-workspace MUST be at ROOT level**: Not inside language-server/, but parallel to it
+- **Reason**: Professional project structure, not nested
+- **Paths in tests**: From dist/language-server/test/: `../../../test-workspace/`
 
-3. **Edge Cases**
-   ```typescript
-   test('Member access on null object returns null gracefully');
-   test('Circular inheritance detection');
-   test('Invalid base class name shows error');
-   ```
+### Git & VSIX
 
-**Zusammenfassung**:
-- ✅ **Basis solide**: Classes, Functions, Enums, Member Access funktionieren
-- ⚠️ **Vererbung limitiert**: Nur 1 Ebene, keine Interfaces
-- ❌ **Goto-Bugs**: User-Report - Tests fehlen
-- 🎯 **Next Steps**: Tests schreiben → Bugs fixen → Vererbung rekursiv → Interfaces
+- **.gitignore for runtime files**: `test-workspace/db/**` should NOT be committed (runtime artifacts)
+- **.vscodeignore**: `test-workspace/**` MUST be excluded, otherwise secrets end up in the VSIX
+- **Large commits**: If user approves with "that's fine", even 1400+ files are OK
+
+### Build & Test Paths
+
+- **copy-fixtures**: `cp -r ../test-workspace/scripts/* ../dist/test-workspace/scripts/`
+- **Unit Tests**: `path.join(__dirname, '../../../test-workspace/scripts/libs/')`
+- **Integration Tests**: `path.join(__dirname, '../../../test-workspace/scripts/fixtures/')`
+
+### Test Organization
+
+- **Unit Tests**: `language-server/test/simple/` with local fixtures
+- **Integration Tests**: `language-server/test/integration/` (E2E, LSP, Hover)
+- **Fixtures**: Self-contained CTL files in `test-workspace/scripts/fixtures/`
+- **Libraries**: Cross-file dependencies in `test-workspace/scripts/libs/`
+
+## Important Files
+
+| File | Purpose |
+|------|---------|
+| `src/extension.ts` | Main entry, commands, activation |
+| `src/services/astyleFormatterService.ts` | Astyle code formatting |
+| `src/services/winccoaSyntaxCheckService.ts` | Native WinCC OA syntax check |
+| `src/services/projectPathResolver.ts` | WinCC OA project path resolution |
+| `language-server/src/server.ts` | LSP server glue code |
+| `language-server/src/symbolTable.ts` | Symbol table and resolution |
+| `language-server/src/symbolFinder.ts` | Symbol finding / member access |
+| `language-server/src/services/` | LSP feature services (hover, goto, completion, rename) |
+| `language-server/docs/ARCHITECTURE.md` | Full architecture documentation |
+| `package.json` | Commands, settings, activation events |
 
 ## Makefile Automation
 
-### Version Badge Auto-Update (v1.0.0+)
-Alle Extensions haben automatische Version Badge Updates im `make package` Target:
+### Version Badge Auto-Update
 
-```makefile
-# Package extension
-package: build
-	@echo "Packaging production release..."
-	@-$(MKDIR) $(BIN_DIR) 2>nul || echo "" >nul
-	@echo "Updating version badge in README.md..."
-	@node -e "const fs=require('fs'); let c=fs.readFileSync('README.md','utf8'); c=c.replace(/!\\[Version\\]\\(https:\\/\\/img\\.shields\\.io\\/badge\\/version-[^)]*\\)/,'![Version](https://img.shields.io/badge/version-$(VERSION)-blue.svg)'); fs.writeFileSync('README.md',c);"
-	@$(VSCE) package -o $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix
-	@echo "Extension packaged to $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix"
-```
+All extensions have automatic version badge updates in the `make package` target using a Node.js-based regex replace (cross-platform, Windows + Linux).
 
-**Funktionsweise:**
-- **Cross-Platform**: Node.js-basierter Regex-Replace funktioniert auf Windows und Linux
-- **Automatic**: Version wird aus package.json gelesen via `$(VERSION)`
-- **No Backups**: Direkte Replacement, kein .bak-File nötig
-- **Error-Tolerant**: `-$(MKDIR)` ignoriert Fehler wenn Directory existiert
-
-**WICHTIG**: Version Badge wird automatisch bei `make package` aktualisiert - NICHT manuell in README.md ändern!
+**IMPORTANT**: Version badge is automatically updated on `make package` — do NOT manually edit it in README.md!
 
 ## Marketplace Discovery
 
-### Keywords für bessere Auffindbarkeit
-Alle Extensions haben `keywords` in package.json für bessere Marketplace Discovery:
+All extensions have `keywords` in package.json for better marketplace discovery. VS Code automatically suggests the extension for `.ctl`/`.ctlpp` files.
 
-```json
-"keywords": [
-  "WinCC OA",
-  "CTRL",
-  "CTRL++",
-  "ctl",
-  "ctlpp",
-  "SCADA",
-  "Siemens",
-  "language support",
-  "syntax highlighting",
-  "intellisense"
-]
-```
+## Known WinCC OA Limitation
 
-**Effekt:**
-- VS Code schlägt Extension automatisch vor bei `.ctl`/`.ctlpp` Dateien
-- Bessere Suchergebnisse im Marketplace
-- Höhere Discovery Rate
+When executing individual test cases, WinCC OA currently does not generate a complete test report. The infrastructure in the extensions is prepared, but full functionality depends on future WinCC OA improvements.
+
+## Do NOT
+
+- Start new features before completing current ones
+- Skip running tests before committing
+- Commit without formatting (`npm run format`)
+- Create PRs without linking issues
+- Push directly to `main` or `develop` branches
+- Manually edit the version badge in README.md
 
 ## LSP DocumentSymbol Range Validation (CRITICAL!)
 

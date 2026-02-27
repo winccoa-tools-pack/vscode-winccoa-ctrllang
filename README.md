@@ -2,13 +2,16 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.0.3-blue.svg)
-![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
-![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
+![Version](https://img.shields.io/github/v/release/winccoa-tools-pack/vscode-winccoa-ctrllang?label=version)
+![License](https://img.shields.io/github/license/winccoa-tools-pack/vscode-winccoa-ctrllang)
+![VS Code](https://img.shields.io/badge/VS%20Code-1.109.2-007ACC.svg)
+[![Coverage](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrllang/graph/badge.svg)](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrllang)
+[![Quality gate](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/ci-cd.yml)
+[![Released](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/release.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/release.yml)
 
-**Language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
+## Language support for WinCC OA CTRL and CTRL++ in Visual Studio Code
 
-[Features](#-features) • [Installation](#-installation) • [Known Issues](#-known-issues)
+[Features](#-features) • [Configuration](#%EF%B8%8F-configuration) • [Known Issues](#-known-issues)
 
 </div>
 
@@ -28,11 +31,13 @@
 ## ✨ Features
 
 ### 🎨 Syntax Highlighting
+
 - Full support for `.ctl` and `.ctlpp` files
 - WinCC OA built-in functions highlighted
 - Classes, structs, enums, and mappings
 
 ### 🧠 IntelliSense & Code Intelligence
+
 - **Hover Information**: See function signatures, variable types, and documentation
 - **Auto-Completion**: WinCC OA built-in functions with parameter hints
 - **Go-to-Definition** (`F12` or `Ctrl+Click`):
@@ -44,20 +49,24 @@
 - **Member Access Navigation**: Chain navigation `obj.member.field`
 
 ### 🔍 Advanced Language Features
+
 - **Enum Support**: Hover and navigation for `enum Color { RED, GREEN }`
 - **Class Inheritance**: Navigate to base classes (single-level)
 - **Scope-Aware Resolution**: Distinguishes local vs. member variables
 - **Cross-File Dependencies**: Automatic `#uses` resolution
 
 ### 📚 Documentation Access
+
 - Quick access to official WinCC OA documentation
 - `Ctrl+Shift+P` → `WinCC OA: Open Documentation for CTRL Function`
 
 ### 🔧 Code Formatting (Optional)
+
 - Astyle-based formatting for `.ctl` and `.ctlpp` files
 - Format on save support
 
 ### ✅ Syntax Checking (Optional)
+
 - Native WinCC OA syntax validation via `WCCOActrl`
 - Inline error highlighting
 
@@ -68,7 +77,7 @@
 ### Essential Settings
 
 | Setting | Default | Description |
-|---------|---------|-------------|
+| ------- | ------- | ----------- |
 | `winccoa.ctrlLang.pathSource` | `automatic` | Project path detection: `workspace` (auto-detect) or `manual` |
 | `winccoa.syntaxCheck.enabled` | `false` | Enable WinCC OA syntax validation |
 | `winccoa.syntaxCheck.executeOnSave` | `false` | Run syntax check automatically on save |
@@ -78,7 +87,7 @@
 ### Logging (for debugging)
 
 | Setting | Default | Description |
-|---------|---------|-------------|
+| ------- | ------- | ----------- |
 | `winccoa.ctrlLang.logLevel` | `INFO` | Log verbosity: `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` |
 
 💡 **Tip**: Set log level to `DEBUG` when reporting bugs for detailed diagnostics.
@@ -109,6 +118,7 @@
 ### Reporting Bugs
 
 Found an issue? Please report it with:
+
 - WinCC OA version
 - Extension version (`1.0.4`)
 - Code example that reproduces the issue
@@ -118,12 +128,12 @@ Found an issue? Please report it with:
 
 ---
 
-##  Commands
+## Commands
 
 Access via `Ctrl+Shift+P`:
 
 | Command | Description |
-|---------|-------------|
+| ------- | ----------- |
 | `WinCC OA: Open Documentation for CTRL Function` | Opens official docs for function under cursor |
 | `WinCC OA: Format Document with Astyle` | Formats current document |
 | `WinCC OA: Run WinCC OA Syntax Check` | Validates syntax with WCCOActrl |
@@ -138,7 +148,7 @@ Access via `Ctrl+Shift+P`:
 - **Project Structure:** Your workspace must contain a `config/config` file (standard WinCC OA project layout) for auto-detection to work.
 
 **Automatic Mode:**
-If the WinCC OA Project Admin Extension is installed, project detection is fully automatic. 
+If the WinCC OA Project Admin Extension is installed, project detection is fully automatic.
 
 ---
 
@@ -156,6 +166,7 @@ Very large projects (1000+ files) may experience performance issues with Intelli
 
 **Extension Not Responding:**  
 If the extension doesn't work as expected (IntelliSense not working, goto-definition fails), reload VS Code:  
+
 1. Press `Ctrl+Shift+P`
 2. Type and select `Reload Window`
 3. This refreshes the language server
@@ -182,6 +193,7 @@ This extension includes code from:
 License: GNU GPL v3.0
 
 Modified files:
+
 - `language-configuration.json`
 - `syntaxes/ctrl.tmLanguage.json`
 - `syntaxes/ctrlpp.tmLanguage.json`
@@ -194,10 +206,12 @@ WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliate
 
 ---
 
-<div align="center">
+## Quick Links
 
-Made with ❤️ for the WinCC OA community
+- [📦 VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mPokornyETM.wincc-oa-tools-pack)
+- [🐛 Report Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues)
+- [📋 Project Board](https://github.com/orgs/winccoa-tools-pack/projects/3)
 
-[GitHub](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang) • [Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues) • [WinCC OA Docs](https://www.winccoa.com)
+---
 
-</div>
+<center>Made with ❤️ for and by the WinCC OA community</center>

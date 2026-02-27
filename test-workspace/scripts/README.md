@@ -5,7 +5,8 @@ This directory contains all test fixtures and libraries for the WinCC OA CTL Lan
 ## Quick Start: Manual Testing
 
 **Open this file for step-by-step manual testing:**
-```
+
+```text
 playground/ManualTestPlayground.ctl
 ```
 
@@ -13,7 +14,7 @@ playground/ManualTestPlayground.ctl
 
 ## Directory Structure
 
-```
+```text
 scripts/
 ├── playground/           # Manual testing (interactive)
 │   └── ManualTestPlayground.ctl   # ALL features in one file
@@ -46,7 +47,9 @@ scripts/
 ## Fixtures Reference
 
 ### fixtures/TestGoToDefinition.ctl
+
 Tests for Go-to-Definition (Ctrl+Click):
+
 - Local variables
 - Function parameters  
 - Global variables
@@ -54,7 +57,9 @@ Tests for Go-to-Definition (Ctrl+Click):
 - Cross-file navigation via #uses
 
 ### fixtures/TestHover.ctl
+
 Tests for Hover information:
+
 - Builtin functions (dpGet, dpSet, etc.)
 - User-defined functions
 - Class and struct types
@@ -62,13 +67,17 @@ Tests for Hover information:
 - Nested member access (obj.member.field)
 
 ### fixtures/TestCrossFile.ctl
+
 Tests for cross-file symbol resolution:
+
 - #uses directive navigation
 - Symbols from dependency files
 - Type resolution across files
 
 ### fixtures/TestClassInheritance.ctl
+
 Tests for OOP features:
+
 - Class inheritance (extends)
 - Base class member access
 - Method overriding
@@ -79,6 +88,7 @@ Tests for OOP features:
 ## Libraries Reference
 
 ### libs/DataStructures.ctl
+
 ```ctl
 struct Point { int x; int y; }
 struct Rectangle { Point topLeft; Point bottomRight; }
@@ -86,6 +96,7 @@ struct Circle { Point center; int radius; }
 ```
 
 ### libs/BaseClass.ctl
+
 ```ctl
 class BaseClass {
     // Base class with virtual methods
@@ -93,6 +104,7 @@ class BaseClass {
 ```
 
 ### libs/DerivedClass.ctl
+
 ```ctl
 class DerivedClass : BaseClass {
     // Extends BaseClass
@@ -104,13 +116,16 @@ class DerivedClass : BaseClass {
 ## Adding New Test Cases
 
 ### For Automated Tests (Unit Tests)
+
 1. Add fixture file to `fixtures/`
 2. Add test case in `language-server/test/`
 3. Reference fixture via `../../../test-workspace/scripts/fixtures/`
 
 ### For Manual Testing
+
 1. Add test section to `playground/ManualTestPlayground.ctl`
 2. Use format:
+
 ```ctl
 // --- TEST X.Y: Description ---
 // ACTION: What to do
@@ -125,6 +140,7 @@ void testSomething()
 ---
 
 ## Version Info
+
 - Last updated: 2025-12-29
 - Extension version: v0.5.0
 - Test count: 84 automated + manual playground

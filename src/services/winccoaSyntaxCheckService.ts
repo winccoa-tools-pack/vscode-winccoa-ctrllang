@@ -5,14 +5,6 @@ import * as path from 'path';
 import { ProjectPathResolver } from './projectPathResolver';
 import { ExtensionOutputChannel } from '../extensionOutput';
 
-interface SyntaxError {
-    severity: 'ERROR' | 'WARNING' | 'INFO';
-    message: string;
-    script: string;
-    line?: number;
-    column?: number;
-}
-
 export class WinccoaSyntaxCheckService {
     private diagnosticCollection: vscode.DiagnosticCollection;
     private outputChannel: vscode.OutputChannel;
@@ -24,7 +16,7 @@ export class WinccoaSyntaxCheckService {
 
     public async checkFile(document: vscode.TextDocument): Promise<void> {
         const config = vscode.workspace.getConfiguration('winccoa.syntaxCheck');
-        
+
         // Check if syntax check is enabled
         if (!config.get<boolean>('enabled', true)) {
             ExtensionOutputChannel.trace('SyntaxCheck', 'Syntax check disabled in settings');
@@ -60,18 +52,25 @@ export class WinccoaSyntaxCheckService {
 
         if (!projectPaths.installPath) {
             ExtensionOutputChannel.error('SyntaxCheck', 'Installation path not found');
-            vscode.window.showWarningMessage('WinCC OA Syntax Check: Installation path not configured');
+            vscode.window.showWarningMessage(
+                'WinCC OA Syntax Check: Installation path not configured',
+            );
             return [];
         }
 
         ExtensionOutputChannel.trace('SyntaxCheck', `Project path: ${projectPaths.projectPath}`);
-        ExtensionOutputChannel.trace('SyntaxCheck', `Installation path: ${projectPaths.installPath}`);
+        ExtensionOutputChannel.trace(
+            'SyntaxCheck',
+            `Installation path: ${projectPaths.installPath}`,
+        );
 
         // Find config file
         const configPath = path.join(projectPaths.projectPath, 'config', 'config');
         if (!fs.existsSync(configPath)) {
             ExtensionOutputChannel.error('SyntaxCheck', `Config file not found: ${configPath}`);
-            vscode.window.showWarningMessage(`WinCC OA Syntax Check: Config file not found at: ${configPath}`);
+            vscode.window.showWarningMessage(
+                `WinCC OA Syntax Check: Config file not found at: ${configPath}`,
+            );
             return [];
         }
 
@@ -82,16 +81,22 @@ export class WinccoaSyntaxCheckService {
 
         if (!fs.existsSync(binaryPath)) {
             ExtensionOutputChannel.error('SyntaxCheck', `Binary not found: ${binaryPath}`);
-            vscode.window.showWarningMessage(`WinCC OA Syntax Check: Binary not found at: ${binaryPath}`);
+            vscode.window.showWarningMessage(
+                `WinCC OA Syntax Check: Binary not found at: ${binaryPath}`,
+            );
             return [];
         }
 
         const args = [
             filePath,
-            '-config', configPath,
-            '-syntax', 'all',
-            '-log', '+stdout',
-            '-log', '-file'
+            '-config',
+            configPath,
+            '-syntax',
+            'all',
+            '-log',
+            '+stdout',
+            '-log',
+            '-file',
         ];
 
         ExtensionOutputChannel.trace('SyntaxCheck', `Command: ${binaryPath} ${args.join(' ')}`);
@@ -111,12 +116,15 @@ export class WinccoaSyntaxCheckService {
 
             process.on('close', (code) => {
                 ExtensionOutputChannel.trace('SyntaxCheck', `Process exited with code ${code}`);
-                
+
                 const output = stdout + stderr;
                 const diagnostics = this.parseOutput(output, filePath);
-                
+
                 if (diagnostics.length > 0) {
-                    ExtensionOutputChannel.debug('SyntaxCheck', `Found ${diagnostics.length} diagnostic(s)`);
+                    ExtensionOutputChannel.debug(
+                        'SyntaxCheck',
+                        `Found ${diagnostics.length} diagnostic(s)`,
+                    );
                 } else {
                     ExtensionOutputChannel.trace('SyntaxCheck', 'No issues found');
                 }
@@ -124,7 +132,11 @@ export class WinccoaSyntaxCheckService {
             });
 
             process.on('error', (error) => {
-                ExtensionOutputChannel.error('SyntaxCheck', `Failed to start process: ${error.message}`, error);
+                ExtensionOutputChannel.error(
+                    'SyntaxCheck',
+                    `Failed to start process: ${error.message}`,
+                    error,
+                );
                 resolve([]);
             });
         });
@@ -136,15 +148,15 @@ export class WinccoaSyntaxCheckService {
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            
+
             // Look for error/warning lines
             // Format: "WCCOActrl (0), ..., CTRL, SEVERE/WARNING, <code>, <message>,"
             // Followed by (possibly indented): "Script: <path>"
             // And optionally: "Line: <num> Column: <num>, <detail>"
-            
+
             if (line.includes('CTRL') && (line.includes('SEVERE') || line.includes('WARNING'))) {
                 const severity = line.includes('SEVERE') ? 'ERROR' : 'WARNING';
-                
+
                 // Extract message from current line
                 const parts = line.split(',');
                 let message = '';
@@ -152,62 +164,67 @@ export class WinccoaSyntaxCheckService {
                     // Get everything after the error code
                     message = parts.slice(3).join(',').trim();
                 }
-                
+
                 // Look ahead for Script: and Line: info (may be on separate indented lines)
                 let foundScript = false;
                 let lineNum: number | undefined;
                 let colNum: number | undefined;
                 let foundScriptLine = false;
-                
+
                 for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
                     const nextLine = lines[j].trim();
-                    
+
                     // Stop looking if we hit another CTRL WARNING/SEVERE line
-                    if (nextLine.includes('CTRL') && (nextLine.includes('SEVERE') || nextLine.includes('WARNING'))) {
+                    if (
+                        nextLine.includes('CTRL') &&
+                        (nextLine.includes('SEVERE') || nextLine.includes('WARNING'))
+                    ) {
                         break;
                     }
-                    
+
                     if (nextLine.startsWith('Script:')) {
                         foundScriptLine = true;
-                        
+
                         // Extract script path - handle different formats:
                         // "Script: /path/to/file.ctl"
                         // "Script: /path/to/file.ctl, Line 1"
                         // "Script: /path/to/file.ctl               , Line 1"
-                        const scriptMatch = nextLine.match(/Script:\s*(.+?)(?:\s*,\s*Line|\s+Line|$)/);
+                        const scriptMatch = nextLine.match(
+                            /Script:\s*(.+?)(?:\s*,\s*Line|\s+Line|$)/,
+                        );
                         if (scriptMatch) {
                             const scriptPath = scriptMatch[1].trim();
-                            
+
                             // Normalize paths for comparison
                             const normalizedScript = scriptPath.replace(/\\/g, '/');
                             const normalizedChecked = checkedFilePath.replace(/\\/g, '/');
-                            
+
                             // Only process if it's the file we're checking
                             if (!normalizedScript.includes(path.basename(normalizedChecked))) {
                                 break;
                             }
-                            
+
                             foundScript = true;
                         }
-                        
+
                         // Check if Line/Column are on the same line as Script:
                         // Handle formats: "Line 1", "Line: 1", ", Line 1"
                         const lineMatch = nextLine.match(/,?\s*Line:?\s*(\d+)/);
                         if (lineMatch) {
                             lineNum = parseInt(lineMatch[1], 10);
                         }
-                        
+
                         const colMatch = nextLine.match(/Column:?\s*(\d+)/);
                         if (colMatch) {
                             colNum = parseInt(colMatch[1], 10);
                         }
-                        
+
                         // Extract additional detail message after column
                         const detailMatch = nextLine.match(/Column:\s*\d+,\s*(.+)$/);
                         if (detailMatch) {
                             message = detailMatch[1].trim();
                         }
-                        
+
                         // If no line number on same line, check next line
                         if (!lineNum && j + 1 < lines.length) {
                             const nextNextLine = lines[j + 1].trim();
@@ -215,27 +232,27 @@ export class WinccoaSyntaxCheckService {
                             if (lineMatch2) {
                                 lineNum = parseInt(lineMatch2[1], 10);
                             }
-                            
+
                             const colMatch2 = nextNextLine.match(/Column:?\s*(\d+)/);
                             if (colMatch2) {
                                 colNum = parseInt(colMatch2[1], 10);
                             }
-                            
+
                             const detailMatch2 = nextNextLine.match(/Column:\s*\d+,\s*(.+)$/);
                             if (detailMatch2) {
                                 message = detailMatch2[1].trim();
                             }
                         }
-                        
+
                         break;
                     }
                 }
-                
+
                 // Skip if we didn't find a Script: line at all (e.g., Library warnings)
                 if (!foundScriptLine) {
                     continue;
                 }
-                
+
                 // Only create diagnostic if we found the script AND have a line number
                 if (foundScript && lineNum !== undefined) {
                     const diagnostic = this.createDiagnostic(severity, message, lineNum, colNum);
@@ -253,7 +270,7 @@ export class WinccoaSyntaxCheckService {
         severity: 'ERROR' | 'WARNING' | 'INFO',
         message: string,
         line?: number,
-        column?: number
+        column?: number,
     ): vscode.Diagnostic | null {
         // Determine line number (0-based)
         let lineNum = 0;
@@ -272,7 +289,7 @@ export class WinccoaSyntaxCheckService {
             lineNum,
             colNum,
             lineNum,
-            colNum + 100 // Highlight a reasonable length
+            colNum + 100, // Highlight a reasonable length
         );
 
         // Determine severity

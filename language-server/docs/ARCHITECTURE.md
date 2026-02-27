@@ -7,6 +7,7 @@ The WinCC OA CTL Language Server was refactored from a monolithic design to a se
 ### Motivation
 
 **Before (v0.4.x):**
+
 - `server.ts` was a "God Object" with 1160+ lines
 - Hover, Definition, Completion - all inline
 - No centralized symbol caching
@@ -14,6 +15,7 @@ The WinCC OA CTL Language Server was refactored from a monolithic design to a se
 - Hard to test and extend
 
 **After (v0.5.0):**
+
 - `server.ts` reduced to 496 lines (57% less)
 - Clear separation of concerns
 - Centralized SymbolCache with mtime invalidation
@@ -22,7 +24,7 @@ The WinCC OA CTL Language Server was refactored from a monolithic design to a se
 
 ## Architecture Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                         server.ts                                │
 │                    (LSP Connection Glue)                         │
@@ -76,7 +78,7 @@ The WinCC OA CTL Language Server was refactored from a monolithic design to a se
 
 ## Directory Structure
 
-```
+```text
 language-server/src/
 ├── server.ts                 # LSP Connection, Handler routing
 ├── core/
@@ -192,6 +194,7 @@ class SymbolCache {
 ### Adding a New Service
 
 1. **Create service class** in `services/`:
+
 ```typescript
 export class MyService {
     private cache: SymbolCache;
@@ -206,30 +209,33 @@ export class MyService {
 }
 ```
 
-2. **Export in `services/index.ts`**:
+1. **Export in `services/index.ts`**:
+
 ```typescript
 export { MyService } from './myService';
 ```
 
-3. **Import and instantiate in `server.ts`**:
+1. **Import and instantiate in `server.ts`**:
+
 ```typescript
 import { MyService } from './services/myService';
 const myService = new MyService(symbolCache);
 ```
 
-4. **Delegate handler**:
+1. **Delegate handler**:
+
 ```typescript
 connection.onMyRequest((params) => myService.handle(params));
 ```
 
 ## Performance Benefits
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Symbol parsing | On every request | Once, then cached |
-| #uses resolution | Duplicated 4x | Once in cache |
-| File mtime check | Never | Automatic |
-| Code duplication | ~400 LOC | 0 |
+| Aspect           | Before           | After             |
+| ---------------- | ---------------- | ----------------- |
+| Symbol parsing   | On every request | Once, then cached |
+| #uses resolution | Duplicated 4x    | Once in cache     |
+| File mtime check | Never            | Automatic         |
+| Code duplication | ~400 LOC         | 0                 |
 
 ## Testability
 
