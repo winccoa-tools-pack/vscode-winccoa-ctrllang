@@ -302,23 +302,7 @@
     "webpack-cli": "^6.0.1"
   },
   "overrides": {
-    "diff": "8.0.3",
-    "minimatch": "10.2.2",
-    "mocha": {
-      "minimatch": "10.2.2"
-    },
-    "@vscode/test-cli": {
-      "minimatch": "10.2.2"
-    },
-    "@typescript-eslint/typescript-estree": {
-      "minimatch": "10.2.2"
-    },
-    "markdownlint-cli": {
-      "minimatch": "10.2.2"
-    },
-    "@vscode/vsce": {
-      "minimatch": "10.2.2"
-    }
+    "diff": "8.0.3"
   },
   "config": {
     "winccoaImage": "mpokornyetm/winccoa-tools-pack-npm-winccoa-core:npm-winccoa-core"
