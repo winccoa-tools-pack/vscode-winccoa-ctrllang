@@ -6,6 +6,12 @@
  */
 
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+
+interface DocEntry {
+    name: string;
+    sourceUrl: string;
+}
 
 /**
  * Language Model Tools Service
@@ -127,14 +133,15 @@ class SyntaxCheckTool implements vscode.LanguageModelTool<SyntaxCheckInput> {
                     ),
                 ),
             ]);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             console.error('[SyntaxCheckTool] Error:', error);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(
                     JSON.stringify(
                         {
                             success: false,
-                            error: error.message,
+                            error: msg,
                         },
                         null,
                         2,
@@ -191,14 +198,15 @@ class GetDiagnosticsTool implements vscode.LanguageModelTool<GetDiagnosticsInput
                     ),
                 ),
             ]);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             console.error('[GetDiagnosticsTool] Error:', error);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(
                     JSON.stringify(
                         {
                             success: false,
-                            error: error.message,
+                            error: msg,
                         },
                         null,
                         2,
@@ -236,7 +244,7 @@ interface GetDiagnosticsInput {
 class GetSymbolInfoTool implements vscode.LanguageModelTool<GetSymbolInfoInput> {
     async invoke(
         options: vscode.LanguageModelToolInvocationOptions<GetSymbolInfoInput>,
-        token: vscode.CancellationToken,
+        _token: vscode.CancellationToken,
     ): Promise<vscode.LanguageModelToolResult> {
         try {
             const input = options.input;
@@ -245,7 +253,7 @@ class GetSymbolInfoTool implements vscode.LanguageModelTool<GetSymbolInfoInput> 
             );
 
             const uri = vscode.Uri.file(input.file);
-            const document = await vscode.workspace.openTextDocument(uri);
+            const _document = await vscode.workspace.openTextDocument(uri);
             const position = new vscode.Position(input.line - 1, input.column - 1); // 0-based
 
             // Get hover information
@@ -297,14 +305,15 @@ class GetSymbolInfoTool implements vscode.LanguageModelTool<GetSymbolInfoInput> 
                     ),
                 ),
             ]);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             console.error('[GetSymbolInfoTool] Error:', error);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(
                     JSON.stringify(
                         {
                             success: false,
-                            error: error.message,
+                            error: msg,
                         },
                         null,
                         2,
@@ -329,7 +338,7 @@ interface GetSymbolInfoInput {
 class FindReferencesTool implements vscode.LanguageModelTool<FindReferencesInput> {
     async invoke(
         options: vscode.LanguageModelToolInvocationOptions<FindReferencesInput>,
-        token: vscode.CancellationToken,
+        _token: vscode.CancellationToken,
     ): Promise<vscode.LanguageModelToolResult> {
         try {
             const input = options.input;
@@ -383,14 +392,15 @@ class FindReferencesTool implements vscode.LanguageModelTool<FindReferencesInput
                     ),
                 ),
             ]);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             console.error('[FindReferencesTool] Error:', error);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(
                     JSON.stringify(
                         {
                             success: false,
-                            error: error.message,
+                            error: msg,
                         },
                         null,
                         2,
@@ -415,7 +425,7 @@ interface FindReferencesInput {
 class GotoDefinitionTool implements vscode.LanguageModelTool<GotoDefinitionInput> {
     async invoke(
         options: vscode.LanguageModelToolInvocationOptions<GotoDefinitionInput>,
-        token: vscode.CancellationToken,
+        _token: vscode.CancellationToken,
     ): Promise<vscode.LanguageModelToolResult> {
         try {
             const input = options.input;
@@ -468,14 +478,15 @@ class GotoDefinitionTool implements vscode.LanguageModelTool<GotoDefinitionInput
                     ),
                 ),
             ]);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             console.error('[GotoDefinitionTool] Error:', error);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(
                     JSON.stringify(
                         {
                             success: false,
-                            error: error.message,
+                            error: msg,
                         },
                         null,
                         2,
@@ -498,7 +509,7 @@ interface GotoDefinitionInput {
  * Searches the WinCC OA documentation database for a function/method and returns the documentation URL.
  */
 class GetDocumentationLinkTool implements vscode.LanguageModelTool<GetDocumentationLinkInput> {
-    private docsData: any[] | null = null;
+    private docsData: DocEntry[] | null = null;
     private docsPath: string;
 
     constructor(private context: vscode.ExtensionContext) {
@@ -572,14 +583,15 @@ class GetDocumentationLinkTool implements vscode.LanguageModelTool<GetDocumentat
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(JSON.stringify(result, null, 2)),
             ]);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             console.error('[GetDocumentationLinkTool] Error:', error);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(
                     JSON.stringify(
                         {
                             success: false,
-                            error: error.message,
+                            error: msg,
                         },
                         null,
                         2,
@@ -591,16 +603,16 @@ class GetDocumentationLinkTool implements vscode.LanguageModelTool<GetDocumentat
 
     private async loadDocsData(): Promise<void> {
         try {
-            const fs = require('fs').promises;
-            const content = await fs.readFile(this.docsPath, 'utf8');
-            this.docsData = JSON.parse(content);
+            const content = await fs.promises.readFile(this.docsPath, 'utf8');
+            this.docsData = JSON.parse(content) as DocEntry[];
             console.log(
                 `[GetDocumentationLinkTool] Loaded ${
                     this.docsData?.length || 0
                 } documentation entries`,
             );
-        } catch (error: any) {
-            console.error(`[GetDocumentationLinkTool] Failed to load docs: ${error.message}`);
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
+            console.error(`[GetDocumentationLinkTool] Failed to load docs: ${msg}`);
             this.docsData = null;
         }
     }

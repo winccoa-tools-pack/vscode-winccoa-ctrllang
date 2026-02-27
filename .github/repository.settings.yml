@@ -28,6 +28,28 @@ topics:
   - ETM
   - test
   - test-automation
+  - ctrl
+  - ctrl++
+  - ctrl-language
+  - ctrl-language-support
+  - ctrl-language-extension
+  - ctrl-lang-support
+  - ctrl-lang-extension
+  - ctrl-lang
+  - ctrl-autocompletion
+  - ctrl-syntax-highlighting
+  - ctrl-code-linting
+  - ctrl-code-formatting
+  - ctrl-code-snippets
+  - ctrl-code-navigation
+  - ctrl-code-intelligence
+  - ctrl-intellisense
+  - ctrlpp-basic-support
+  - ctrl-code-documentation
+  - ctrl-docs
+  - ctrl-language-server
+  - ctrl-lsp
+  - ctrlpp-lsp-basic-support
 
 security:
   enable_vulnerability_alerts: true
