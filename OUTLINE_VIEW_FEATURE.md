@@ -10,14 +10,17 @@
 ## Was wurde implementiert?
 
 ### 1. DocumentSymbolService
+
 **File:** `language-server/src/services/documentSymbolService.ts`
 
 **Funktionalität:**
+
 - Parst CTL-Dateien und extrahiert alle Symbole
 - Nutzt bestehende `SymbolTable` und `SymbolCache` Infrastruktur
 - Gibt Symbole in hierarchischer Struktur an VS Code zurück
 
 **Unterstützte Symbole:**
+
 - ✅ **Classes** (mit Members und Methods als Children)
 - ✅ **Structs** (mit Fields als Children)
 - ✅ **Functions** (mit Signatur: `returnType functionName(params)`)
@@ -26,7 +29,8 @@
 - ✅ **Enums** (mit Enum Members als Children)
 
 **Hierarchie-Beispiel:**
-```
+
+```text
 📁 MyClass
   ├─ 📋 myField: int
   ├─ 📋 name: string
@@ -40,15 +44,18 @@
 ```
 
 ### 2. Server Integration
+
 **File:** `language-server/src/server.ts`
 
 **Änderungen:**
+
 - Import von `DocumentSymbol` aus `vscode-languageserver/node`
 - Service instantiiert: `const documentSymbolService = new DocumentSymbolService(symbolCache)`
 - Capability aktiviert: `documentSymbolProvider: true`
 - Handler registriert: `connection.onDocumentSymbol()`
 
 ### 3. Export
+
 **File:** `language-server/src/services/index.ts`
 
 - Service exportiert für zukünftige Verwendung
@@ -110,7 +117,7 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
 ## Acceptance Criteria - Status
 
 | Kriterium | Status | Details |
-|-----------|--------|---------|
+| --------- | ------ | ------- |
 | **Jump to Function/Method** | ✅ | Klick auf Symbol → Jump to Definition (via `selectionRange`) |
 | **Search/Filter** | ✅ | VS Code's built-in Search im Outline Panel |
 | **Auto-Update bei File-Wechsel** | ✅ | VS Code managed automatisch, keine User-Action nötig |
@@ -120,6 +127,7 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
 ## VS Code Outline View Features (gratis)
 
 **Was wir NICHT implementieren mussten:**
+
 - ✅ **UI Rendering** - VS Code macht das
 - ✅ **Search/Filter** - VS Code built-in
 - ✅ **Icons** - VS Code wählt basierend auf SymbolKind
@@ -132,20 +140,24 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
 ## Performance
 
 **Caching:**
+
 - SymbolCache nutzt mtime-basierte Invalidierung
 - Symbole werden nur neu geparst wenn Datei geändert wurde
 - Sehr schnell auch bei großen Dateien (1000+ Zeilen)
 
 **Beispiel (aes.ctl mit 50+ Functions):**
+
 - First Parse: ~50ms
 - Cached: <1ms
 - Filter: <1ms (VS Code optimiert)
 
 ## Testing
 
-### Manuelles Testing:
+### Manuelles Testing
+
 1. Extension-Host öffnen (F5)
 2. CTL-Datei mit verschiedenen Symbolen öffnen:
+
    ```ctl
    class MyClass {
        public int field1;
@@ -165,6 +177,7 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
    void globalFunction(string input) { }
    int globalVar = 42;
    ```
+
 3. Outline View öffnen → Sollte hierarchisch zeigen:
    - MyClass (expandable)
      - field1: int
@@ -185,7 +198,8 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
 5. **Filter-Test:** Suche nach "field" → Zeigt nur field1, field2
 6. **File-Wechsel-Test:** Andere CTL-Datei öffnen → Outline aktualisiert automatisch
 
-### Unit Testing (TODO):
+### Unit Testing (TODO)
+
 - Test: Class mit Methods wird korrekt hierarchisch geparst
 - Test: Struct mit Fields wird korrekt geparst
 - Test: Enum mit Members wird korrekt geparst
@@ -194,8 +208,10 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
 
 ## Nächste Schritte
 
-### Version & Release:
+### Version & Release
+
 1. **CHANGELOG.md updaten:**
+
    ```markdown
    ## [1.4.0] - 2026-01-09
    ### Added
@@ -216,6 +232,7 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
    - `1.3.2` → `1.4.0` (MINOR - neues Feature)
 
 3. **Git Flow:**
+
    ```bash
    git flow feature start outline-view-support-1.4.0
    git add language-server/src/services/documentSymbolService.ts
@@ -243,7 +260,7 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
 ## Vorteile dieser Lösung
 
 | Aspekt | Custom Sidebar | Outline View (unsere Lösung) |
-|--------|----------------|------------------------------|
+| ------ | -------------- | ---------------------------- |
 | **Development Effort** | Hoch (UI bauen) | Niedrig (nur Service) |
 | **Maintenance** | Hoch (UI bugs) | Niedrig (VS Code managed) |
 | **User Experience** | Neue UI lernen | Bekannte VS Code UI |
@@ -260,6 +277,7 @@ async handle(document: TextDocument): Promise<DocumentSymbol[]> {
 > "As a WinCC-OA developer, I want to see a list of functions of my currently opened control-script in the sidebar, so I can easily jump to a function via its name."
 
 **Unsere Lösung:**
+
 - ✅ **Liste der Functions** - Outline View zeigt alle Functions
 - ✅ **Sidebar** - Outline Panel ist in Sidebar
 - ✅ **Jump via Name** - Klick auf Function → Jump + Search-Filter
