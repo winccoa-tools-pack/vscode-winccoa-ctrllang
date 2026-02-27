@@ -61,6 +61,10 @@ export function activate(context: vscode.ExtensionContext) {
                 ProjectPathResolver.getInstance()['cachedPaths'] = null;
                 setupCoreExtensionIntegration(context);
             }
+            if (e.affectsConfiguration('winccoa.ctrlLang.additionalDefinitions')) {
+                // Re-send install path + new additional paths to language server
+                sendInstallPathToLanguageServer();
+            }
         }),
     );
 
@@ -85,6 +89,13 @@ export function activate(context: vscode.ExtensionContext) {
     // Start the Language Server
     ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server...');
     startLanguageServer(context);
+
+    // v1.4.0: When OA version changes, notify the language server to load ctrl.xml
+    context.subscriptions.push(
+        oaVersionService.onDidChangeVersion((_version) => {
+            sendInstallPathToLanguageServer();
+        }),
+    );
 
     // Watch for newly created .ctl files
     context.subscriptions.push(
@@ -446,7 +457,10 @@ function startLanguageServer(context: vscode.ExtensionContext) {
 
     // Start the client. This will also launch the server
     ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server client...');
-    client.start();
+    client.start().then(() => {
+        // v1.4.0: Once the server is ready, send the initial install path if already known
+        sendInstallPathToLanguageServer();
+    });
 
     ExtensionOutputChannel.success('LanguageServer', 'WinCC OA Language Server started! 🚀');
 }
@@ -681,6 +695,32 @@ async function insertTemplate(
         ExtensionOutputChannel.error('Template', `Failed to insert template: ${error}`);
         vscode.window.showErrorMessage(`Failed to insert template: ${error}`);
     }
+}
+
+/**
+ * v1.4.0: Send the current OA install path and additional definition paths
+ * to the language server so it can load ctrl.xml definitions.
+ */
+function sendInstallPathToLanguageServer(): void {
+    if (!client) {
+        return;
+    }
+
+    const installPath = oaVersionService.getInstallDir();
+    const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
+    const additionalDefinitions = config.get<string[]>('additionalDefinitions', []);
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+    ExtensionOutputChannel.debug(
+        'CtrlXml',
+        `Sending install path to language server: ${installPath ?? '(none)'}`,
+    );
+
+    client.sendNotification('winccoa/setOaInstallPath', {
+        installPath,
+        additionalDefinitions,
+        workspaceRoot,
+    });
 }
 
 async function setupCoreExtensionIntegration(_context: vscode.ExtensionContext) {

@@ -588,7 +588,7 @@ resources/
 |------|-------|--------|-------------|------
 | 1 | — | M | OA version resolution + status bar + `selectOaVersion` command | Done |
 | 2 | 0 | M | Create `ctrlXmlParser.ts` — runtime XML parser → `CtrlXmlData` | Done |
-| 3 | 0 | S | Multi-XML loading: detect ctrl.xml + user-configured files |  |
+| 3 | 0 | S | Multi-XML loading: detect ctrl.xml + user-configured files | Done |
 | 4 | 0 | S | Source tracking + duplicate detection + warnings |  |
 | 5 | 0 | S | `importDefinitionXml` command |  |
 | 6 | 1 | S | Extend `FunctionSignature` interface with new optional fields |  |

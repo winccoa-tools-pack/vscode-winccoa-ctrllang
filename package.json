@@ -177,6 +177,14 @@
           "default": [],
           "description": "Additional scripts folders to search in (only used when pathSource is 'manual')"
         },
+        "winccoa.ctrlLang.additionalDefinitions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional XML definition files for CTRL language metadata (cppcheck format). Absolute paths or relative to the workspace root."
+        },
         "winccoa.ctrlLang.logLevel": {
           "type": "string",
           "enum": [
