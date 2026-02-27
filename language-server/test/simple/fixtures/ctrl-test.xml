@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<!-- Test fixture: minimal ctrl.xml for unit testing the parser.
+     Schema follows cppcheck XML config format v2 as used by WinCC OA. -->
+<def format="2">
+
+  <!-- Constants / Defines -->
+  <define name="FALSE" value="false"/>
+  <define name="TRUE" value="true"/>
+  <define name="M_PI" value="3.1415926535898" type="float"/>
+  <define name="PROJ" value="myProject" type="string"/>
+  <define name="DPEL_INT" value="21"/>
+  <define name="SOME_FLAG" value="1" type="bool"/>
+
+  <!-- Simple function: no args, no return -->
+  <function name="breakExitLoop">
+    <noreturn>false</noreturn>
+  </function>
+
+  <!-- Function with return type and args -->
+  <function name="abs">
+    <returnValue type="int"/>
+    <arg nr="1" type="int" name="value"/>
+    <use-retval/>
+  </function>
+
+  <!-- Function with out-parameters and default -->
+  <function name="dpGet">
+    <returnValue type="int"/>
+    <arg nr="1" type="string" name="dpName">
+      <not-uninit/>
+    </arg>
+    <arg nr="2" direction="out" name="value"/>
+  </function>
+
+  <!-- Comma-separated aliases -->
+  <function name="dpSet,dpSetWait">
+    <returnValue type="int"/>
+    <arg nr="1" type="string" name="dpName"/>
+    <arg nr="variadic"/>
+  </function>
+
+  <!-- Deprecated / obsolescent function -->
+  <function name="oldFunction">
+    <returnValue type="void"/>
+    <warn severity="style" reason="Obsolescent"/>
+  </function>
+
+  <!-- Const function with use-retval and leak-ignore -->
+  <function name="strlen">
+    <returnValue type="uint"/>
+    <arg nr="1" type="string" name="s">
+      <not-uninit/>
+    </arg>
+    <const/>
+    <use-retval/>
+    <leak-ignore/>
+  </function>
+
+  <!-- noreturn function -->
+  <function name="exit">
+    <arg nr="1" type="int" name="exitCode" default="0"/>
+    <noreturn>true</noreturn>
+  </function>
+
+  <!-- Function with optional parameters -->
+  <function name="dpCopy">
+    <returnValue type="int"/>
+    <arg nr="1" type="string" name="source"/>
+    <arg nr="2" type="string" name="target"/>
+    <arg nr="3" direction="out" name="errorMsg"/>
+    <arg nr="4" default="1" name="recursive"/>
+  </function>
+
+  <!-- Function with no return value element and no args (like a simple callback) -->
+  <function name="initialize">
+  </function>
+
+</def>

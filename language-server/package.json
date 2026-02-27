@@ -5,9 +5,9 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc -p . && tsc -p tsconfig.build.json && npm run copy-fixtures",
-    "copy-fixtures": "mkdir -p ../dist/language-server/test/simple/fixtures && cp test/simple/fixtures/*.ctl ../dist/language-server/test/simple/fixtures/ && mkdir -p ../dist/test-workspace/scripts && cp -r ../test-workspace/scripts/* ../dist/test-workspace/scripts/",
-    "test": "npm run build && mocha --ui tdd '../dist/language-server/test/**/*.test.js'",
-    "test:watch": "mocha --ui tdd --watch '../dist/language-server/test/**/*.test.js'"
+    "copy-fixtures": "node scripts/copy-fixtures.mjs",
+    "test": "npm run build && mocha --ui tdd \"../dist/language-server/test/**/*.test.js\"",
+    "test:watch": "mocha --ui tdd --watch \"../dist/language-server/test/**/*.test.js\""
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -17,6 +17,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
+    "fast-xml-parser": "^4.5.4",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"
   }

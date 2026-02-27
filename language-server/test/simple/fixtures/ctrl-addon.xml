@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!-- Test fixture: secondary XML for merge/duplicate testing -->
+<def format="2">
+
+  <!-- Duplicate constant (same name as ctrl-test.xml) -->
+  <define name="DPEL_INT" value="99"/>
+
+  <!-- New constant only in this file -->
+  <define name="ADDON_CONST" value="42"/>
+
+  <!-- Duplicate function (same name as ctrl-test.xml) -->
+  <function name="abs">
+    <returnValue type="float"/>
+    <arg nr="1" type="float" name="value"/>
+    <use-retval/>
+  </function>
+
+  <!-- New function only in this file -->
+  <function name="addonHelper">
+    <returnValue type="string"/>
+    <arg nr="1" type="int" name="code"/>
+    <arg nr="2" type="string" name="prefix" default="true"/>
+  </function>
+
+</def>
