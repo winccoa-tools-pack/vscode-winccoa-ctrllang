@@ -7,6 +7,7 @@
 import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
+import { pathToFileURL } from 'url';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver';
 import { SymbolTable, SymbolKind } from '../../src/symbolTable';
@@ -16,8 +17,9 @@ import { DefinitionService } from '../../src/services/definitionService';
 import { SymbolCache } from '../../src/core/symbolCache';
 
 // Helper to create TextDocument from content
-function createDocumentFromContent(content: string, uri: string = 'file:///tmp/test.ctl'): TextDocument {
-    return TextDocument.create(uri, 'ctl', 1, content);
+function createDocumentFromContent(content: string, uri?: string): TextDocument {
+    const defaultUri = pathToFileURL(path.resolve(__dirname, 'test.ctl')).toString();
+    return TextDocument.create(uri ?? defaultUri, 'ctl', 1, content);
 }
 
 suite('Enum Hover and Goto-Definition Tests', () => {
@@ -28,7 +30,7 @@ suite('Enum Hover and Goto-Definition Tests', () => {
     
     setup(() => {
         symbolCache = new SymbolCache();
-        hoverService = new HoverService(symbolCache);
+        hoverService = new HoverService(symbolCache, async () => null);
         definitionService = new DefinitionService(symbolCache, async () => null);
     });
     

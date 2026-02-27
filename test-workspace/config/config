@@ -1,6 +1,6 @@
 [general]
-pvss_path = "/opt/WinCC_OA/3.20"
-proj_path = "/home/testus/vscode_wincc_extenssion/vscode-winccoa-ctrllang/test-workspace"
+pvss_path = "C:/Siemens/Automation/WinCC_OA/3.20"
+proj_path = "c:/repos/vscode-winccoa-ctrllang/test-workspace"
 proj_version = "3.20"
 useNGA = 1
 useSQLite = 1

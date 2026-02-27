@@ -60,7 +60,7 @@ build:
 # Package extension into .vsix file (production release)
 package:
 	@echo "Packaging production release..."
-	@-$(MKDIR) $(BIN_DIR) 2>nul || echo "" >nul
+	@-$(MKDIR) $(BIN_DIR) 2>/dev/null || true
 	@echo "Updating version badge in README.md..."
 	@node -e "const fs=require('fs'); let c=fs.readFileSync('README.md','utf8'); c=c.replace(/!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-[^)]*\)/,'![Version](https://img.shields.io/badge/version-$(VERSION)-blue.svg)'); fs.writeFileSync('README.md',c);"
 	@$(VSCE) package --out $(BIN_DIR)/$(EXTENSION_NAME)-$(VERSION).vsix

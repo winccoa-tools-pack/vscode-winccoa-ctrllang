@@ -79,13 +79,28 @@ export class DefinitionService {
             if (result) return result;
         }
         
-        // 5. Try Symbol Table resolution
+        // 5. Try Symbol Table resolution in CURRENT FILE first
         const resolved = SymbolTable.resolveSymbol(symbolInfo.name, position, symbols);
         if (resolved) {
             return this.createLocation(doc.uri, resolved);
         }
         
-        // 6. Search in dependencies
+        // 6. Search in ALL DEPENDENCIES (from allSymbols)
+        // Loop through all dependency symbols (skip [0] which is the main file)
+        for (let i = 1; i < allSymbols.length; i++) {
+            const depSymbols = allSymbols[i];
+            const depResolved = SymbolTable.resolveSymbol(symbolInfo.name, position, depSymbols);
+            
+            if (depResolved) {
+                // Find the file path for this dependency
+                const depFilePath = await this.findSymbolFilePath(depSymbols, filePath);
+                if (depFilePath) {
+                    return this.createLocation(pathToFileURL(depFilePath).href, depResolved);
+                }
+            }
+        }
+        
+        // 7. Fallback: Search in dependencies using old method
         const depResult = await this.searchInDependencies(symbolInfo.name, position);
         if (depResult) return depResult;
         
@@ -242,6 +257,33 @@ export class DefinitionService {
         }
         
         return targetUri;
+    }
+    
+    /**
+     * Find the file path for a given FileSymbols object
+     * Matches FileSymbols against cached files from #uses dependencies
+     */
+    private async findSymbolFilePath(depSymbols: FileSymbols, currentFilePath: string): Promise<string | null> {
+        const info = await this.getProjectInfo();
+        if (!info) return null;
+        
+        // Extract #uses from current file
+        const content = fs.readFileSync(currentFilePath, 'utf-8');
+        const usesPaths = this.extractUsesDirectives(content);
+        
+        // Try to match the depSymbols with one of the resolved #uses paths
+        for (const usesPath of usesPaths) {
+            const resolvedPath = resolveUsesPath(usesPath, info);
+            if (!resolvedPath) continue;
+            
+            // Check if this is the file by comparing cached symbols
+            const cachedSymbols = this.cache.getSymbols(resolvedPath);
+            if (cachedSymbols === depSymbols) {
+                return resolvedPath;
+            }
+        }
+        
+        return null;
     }
     
     /**

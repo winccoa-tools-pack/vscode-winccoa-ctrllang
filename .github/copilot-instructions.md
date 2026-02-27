@@ -55,6 +55,113 @@ language-server/
 test-workspace/                     # Test workspace (MUST be at ROOT level)
 ```
 
+## Autonomous Testing Workflow
+
+### CTL Language Tools für selbstständige Entwicklung
+
+Copilot hat jetzt volle **autonome Test- und Entwicklungsfähigkeiten** für CTL Code:
+
+#### Verfügbare Tools
+1. **ctl_syntax_check**: CTL-Dateien auf Syntaxfehler prüfen
+2. **ctl_get_diagnostics**: Alle Diagnostics (Errors, Warnings, Info) mit Severity Levels
+3. **ctl_get_symbol_info**: Hover-Information für Symbole an spezifischen Positionen
+4. **ctl_find_references**: Alle Referenzen zu einem Symbol finden
+5. **ctl_goto_definition**: Definition eines Symbols lokalisieren
+
+#### Autonomous Development Cycle
+
+**1. Feature Development:**
+```workflow
+User Request → Analyze Problem → Write .ctl Test Fixtures
+                                        ↓
+                              Validate with ctl_syntax_check
+                                        ↓
+                                  Write Tests (.test.ts)
+                                        ↓
+                              Implement Feature/Fix
+                                        ↓
+                                  Run npm test
+                                        ↓
+                            Verify with ctl_get_diagnostics
+                                        ↓
+                          Git Flow Feature (if approved)
+```
+
+**2. Self-Validation Workflow:**
+- **BEFORE creating .ctl fixtures**: Use `ctl_syntax_check` to validate syntax
+- **WHILE writing tests**: Use `ctl_goto_definition` and `ctl_find_references` to verify expected behavior
+- **AFTER implementation**: Use `ctl_get_diagnostics` to ensure no regressions
+- **Test execution**: Always run `npm test` before committing
+
+**3. Test-Driven Development:**
+```typescript
+// Example: Testing Go-to-Definition for new feature
+test('Feature X: Should resolve symbol Y', async () => {
+    // 1. Create fixture (validate with ctl_syntax_check first!)
+    const fixture = `...CTL code...`;
+    
+    // 2. Test expected behavior
+    const location = await definitionService.handle(...);
+    
+    // 3. Verify result
+    assert.strictEqual(location.range.start.line, expectedLine);
+});
+```
+
+**4. Proactive Bug Prevention:**
+- Write comprehensive test fixtures covering edge cases
+- Test both flat structures AND subdirectories (learned from v2.0.1 fix!)
+- Validate all .ctl files before adding to test-workspace
+- Run integration tests for cross-file scenarios
+
+#### Best Practices
+
+✅ **DO:**
+- Always validate .ctl syntax with `ctl_syntax_check` before creating test fixtures
+- Write tests FIRST, then implement (TDD)
+- Test edge cases (nested classes, subdirectories, member access chains, etc.)
+- Run full test suite before feature finish
+- Use tools to verify expected LSP behavior
+
+❌ **DON'T:**
+- Skip syntax validation of .ctl fixtures
+- Commit without running tests
+- Assume existing tests cover new features (add specific tests!)
+- Forget to test subdirectory structures (libs/Utils/File.ctl vs libs/File.ctl)
+
+#### Example: Complete Autonomous Fix Workflow
+
+```bash
+# 1. User reports bug: "Goto doesn't work for subdirectory libs"
+
+# 2. Copilot investigates (autonomous):
+ctl_syntax_check(libs/General/MemoryChecker.ctl)  # Validate fixture
+ctl_goto_definition(position on updateDiskInfo)   # Reproduce bug
+ctl_get_diagnostics()                             # Check for errors
+
+# 3. Write test fixtures:
+# - Create libs/Utils/StringHelper.ctl (with ctl_syntax_check validation)
+# - Create TestSubdirectoryGoto.ctl (with ctl_syntax_check validation)
+
+# 4. Write failing tests:
+# - Test 1: toUpperCase() from Utils/StringHelper
+# - Test 2: g_stringOpCount global variable
+# - Test 3: startsWith() function
+
+# 5. Implement fix in definitionService.ts
+
+# 6. Verify:
+npm test  # All tests pass (116/116)
+ctl_get_diagnostics()  # No new errors
+
+# 7. Git Flow (with approval):
+git flow feature start fix-uses-goto
+git commit -m "fix: goto for #uses libs in subdirs"
+git flow feature finish fix-uses-goto
+```
+
+**Result**: Copilot kann jetzt **vollständig autonom** entwickeln, testen und validieren!
+
 ## Workflow with GitHub Copilot
 
 When a new feature is started, Copilot should automatically run `git flow feature start <Name>`.
@@ -374,3 +481,126 @@ When executing individual test cases, WinCC OA currently does not generate a com
 - Create PRs without linking issues
 - Push directly to `main` or `develop` branches
 - Manually edit the version badge in README.md
+
+## LSP DocumentSymbol Range Validation (CRITICAL!)
+
+### Problem: "selectionRange must be contained in fullRange"
+
+**Kontext:**
+DocumentSymbol hat zwei Ranges:
+- **`range`** (fullRange): Gesamter Symbol-Bereich (z.B. ganze Funktion von Start bis Ende)
+- **`selectionRange`**: Bereich des Symbol-Namens (für Click-to-Jump und Highlighting)
+
+**LSP Requirement (CRITICAL):**
+`selectionRange` MUSS **vollständig innerhalb** `range` liegen! VS Code validiert das streng.
+
+**Häufiger Fehler:**
+```typescript
+// ❌ FALSCH - Hardcoded column 1000
+const range = Range.create(
+    Position.create(startLine, 0),
+    Position.create(endLine, 1000)  // ← Kann über echte Zeilenlänge hinaus sein!
+);
+
+const selectionRange = Range.create(
+    Position.create(line, column),
+    Position.create(line, column + nameLength)  // ← Kann außerhalb range sein!
+);
+```
+
+**Richtige Lösung:**
+```typescript
+// ✅ KORREKT - Nutze echte Dokumentzeilen-Längen
+private createRangeForLine(document: TextDocument, startLine: number, endLine: number): Range {
+    const lineCount = document.lineCount;
+    const safeStartLine = Math.max(0, Math.min(startLine, lineCount - 1));
+    const safeEndLine = Math.max(safeStartLine, Math.min(endLine, lineCount - 1));
+    
+    // Echte Zeilenlänge ermitteln!
+    const endLineText = document.getText({
+        start: { line: safeEndLine, character: 0 },
+        end: { line: safeEndLine + 1, character: 0 }
+    }).trimEnd();
+    const endChar = endLineText.length;
+    
+    return Range.create(
+        Position.create(safeStartLine, 0),
+        Position.create(safeEndLine, endChar)
+    );
+}
+
+// ✅ KORREKT - Garantiere Containment
+private createSelectionRange(
+    document: TextDocument,
+    line: number,
+    column: number,
+    nameLength: number,
+    fullRange: Range  // ← WICHTIG: fullRange als Constraint!
+): Range {
+    // 1. Line innerhalb fullRange clampen
+    const safeLine = Math.max(fullRange.start.line, Math.min(line, fullRange.end.line));
+    
+    // 2. Echte Line-Länge holen
+    const lineText = document.getText({
+        start: { line: safeLine, character: 0 },
+        end: { line: safeLine + 1, character: 0 }
+    }).trimEnd();
+    
+    // 3. Columns innerhalb Line-Länge clampen
+    const startCol = Math.max(0, Math.min(column, lineText.length));
+    const endCol = Math.min(startCol + nameLength, lineText.length);
+    
+    // 4. KRITISCH: Innerhalb fullRange.start/end clampen
+    let finalStartCol = startCol;
+    let finalEndCol = endCol;
+    
+    if (safeLine === fullRange.start.line) {
+        finalStartCol = Math.max(finalStartCol, fullRange.start.character);
+        finalEndCol = Math.max(finalEndCol, fullRange.start.character);
+    }
+    
+    if (safeLine === fullRange.end.line) {
+        finalStartCol = Math.min(finalStartCol, fullRange.end.character);
+        finalEndCol = Math.min(finalEndCol, fullRange.end.character);
+    }
+    
+    return Range.create(
+        Position.create(safeLine, finalStartCol),
+        Position.create(safeLine, finalEndCol)
+    );
+}
+```
+
+**Nutzung:**
+```typescript
+const range = this.createRangeForLine(document, startLine, endLine);
+const selectionRange = this.createSelectionRange(
+    document,
+    symbol.location.line,
+    symbol.location.column,
+    symbol.name.length,
+    range  // ← Pass fullRange to ensure containment!
+);
+
+return DocumentSymbol.create(name, detail, kind, range, selectionRange);
+```
+
+**Warum das wichtig ist:**
+- VS Code wirft Error: `"selectionRange must be contained in fullRange"`
+- DocumentSymbol Provider funktioniert nicht → Outline View bleibt leer
+- Breadcrumbs, Sticky Scroll, Quick Open (Ctrl+Shift+O) brechen
+- Extension wird als broken markiert im Marketplace
+
+**Testing:**
+- Teste mit Dateien die unterschiedliche Zeilenlängen haben (kurz + lang)
+- Teste mit Symbolen am Zeilenende
+- Teste mit Symbolen in mehrzeiligen Ranges (Classes, Methods)
+- Validiere dass Outline View ohne Errors funktioniert
+
+## Version History (as of 2026-01-09)
+- **CTL Language**: v1.4.0 - Outline View Support (DocumentSymbolProvider)
+- **LogViewer**: v1.0.3 - Backend file watching + version badge automation
+- **Script Actions**: v0.4.0 - Default commands with -n flag + version badge automation
+- **Test Explorer**: v0.2.4 - Cancel/Stop support + version badge automation
+- **Project Admin**: Latest - Version badge automation
+- **Core Extension**: v0.2.3 - PMON start/stop sequence fix

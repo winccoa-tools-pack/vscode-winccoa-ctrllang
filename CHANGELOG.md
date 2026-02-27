@@ -5,6 +5,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.4] - 2026-01-31
+
+### Changed
+- **🎨 Syntax Highlighting**: `this` keyword now uses dark blue color (variable.language.this)
+  - Matches C/C++ syntax highlighting convention
+  - Changed from light blue (generic variable) to dark blue (language keyword)
+  - TextMate scope: `variable.language.this.ctrl`
+
+## [2.0.3] - 2026-01-30
+
+### Added
+- **📖 Documentation Link Tool**: New Language Model Tool `ctl_get_documentation_link`
+  - Returns ONLY the official WinCC OA documentation URL for CTL functions/methods
+  - Searches in crawled documentation database (`resources/winccoa-docs-crawled.json`, 30k+ entries)
+  - When no match found: suggests web search for "WinCC OA [function] documentation"
+  - Enables Copilot to provide documentation links when user says "read the docs" or "you're using this wrong"
+  - Minimal response: just function name and URL - no clutter
+
+### Changed
+- LanguageModelToolsService now registers 6 tools (was 5)
+
+## [2.0.2] - 2026-01-19
+
+### Fixed
+- Outline View & Ctrl+Shift+O now point to correct line (was 1 line too low)
+- DocumentSymbolProvider: Convert 1-based line numbers from SymbolTable to 0-based for LSP
+- Class symbols: Use `location.line` instead of `startLine` for selection range
+
+## [2.0.1] - 2026-01-19
+
+### Fixed
+- Go-to-Definition for functions/variables from #uses libraries in subdirectories (e.g., `libs/General/MemoryChecker.ctl`)
+- Added comprehensive tests for cross-file goto with subdirectory structures
+
+## [2.0.0] - 2026-01-15
+
+### Added
+- **🤖 GitHub Copilot Integration**: Language Model Tools for autonomous CTL code analysis
+  - **ctl_syntax_check**: Check CTL files for syntax errors without opening
+  - **ctl_get_diagnostics**: Get all diagnostics (errors, warnings, info) with severity levels
+  - **ctl_get_symbol_info**: Get hover information for symbols at specific positions
+  - **ctl_find_references**: Find all references to a symbol across the workspace
+  - **ctl_goto_definition**: Get definition location(s) of a symbol
+  - Enables Copilot to analyze CTL code, find errors, and suggest fixes autonomously
+  - Uses VS Code's native Language Model Tools API (vscode.lm.registerTool)
+  - Clean service architecture with LanguageModelToolsService
+
+### Technical Details
+- Tools use VS Code commands (executeHoverProvider, executeReferenceProvider, executeDefinitionProvider)
+- Direct access to diagnostics via vscode.languages.getDiagnostics()
+- All tools return structured JSON for easy parsing by AI assistants
+- Registered at extension activation, no runtime overhead
+- Compatible with any AI assistant that supports VS Code Language Model Tools
+
+## [1.4.2] - 2026-01-11
+
+### Changed
+- **CI Compatibility**: Added `style-check` and `test:unit` script aliases for standardized CI/CD pipeline
+  - `style-check` → `npm run lint` 
+  - `test:unit` → `npm test`
+  - Ensures compatibility with Martin's CI/CD system
+
+## [1.4.1] - 2026-01-09
+
+### Fixed
+- **Makefile Windows Artifact**: Removed `nul` file creation in package target that caused "unsafe for extraction" error in Marketplace
+  - Changed `2>nul || echo "" >nul` to `2>/dev/null || true` for cross-platform compatibility
+  - VSIX packages are now clean without Windows-specific artifacts
+
+## [1.4.0] - 2026-01-09
+
+### Added
+- **📋 Outline View Support**: Functions, Classes, Methods, Structs, and Enums now appear in VS Code's Outline sidebar
+  - Navigate large CTL libraries with ease
+  - Click on symbol → Jump to definition
+  - Search/filter symbols in real-time
+  - Automatic update when switching files
+  - Hierarchical display (Class → Methods, Enum → Members)
+- **🧭 Breadcrumbs Integration**: Current symbol shown in top navigation bar
+- **📌 Sticky Scroll Support**: Class/function headers remain visible when scrolling
+- **DocumentSymbolProvider**: Full LSP implementation for document symbols
+  - Supports Classes (with members and methods as children)
+  - Supports Structs (with fields as children)
+  - Supports Functions (with full signature)
+  - Supports Methods (with access modifiers)
+  - Supports Global Variables
+  - Supports Enums (with enum members as children)
+
+### Changed
+- Built-in VS Code features now available: sort by name/position, collapse/expand, keyboard navigation
+
+## [1.3.2] - 2026-01-08
+
+### Fixed
+- **🔧 Automatic Mode**: Language Server now properly supports `automatic` pathSource mode
+- Added `fetchFromAutomatic()` to request project info from WinCC OA Project Admin extension
+- Project info cache is now invalidated when project changes in automatic mode
+- Extension notifies Language Server on project changes for immediate symbol cache refresh
+
 ## [1.3.1] - 2026-01-05
 
 ### Fixed

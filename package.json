@@ -3,7 +3,7 @@
   "displayName": "WinCC OA CTRL Language Support",
   "description": "Language support for WinCC OA CTRL and CTRL++ - syntax highlighting, goto definition",
   "publisher": "RichardJanisch",
-  "version": "1.3.1",
+  "version": "2.0.4",
   "author": "RichardJanisch",
   "license": "GNU General Public License v3.0",
   "icon": "resources/wincc_oa_ctrl_lang_512.png",
@@ -126,6 +126,164 @@
         "command": "winccoa.insertScriptTemplate",
         "title": "Insert Script Template",
         "category": "WinCC OA"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "ctl_syntax_check",
+        "displayName": "Check CTL Syntax",
+        "modelDescription": "Check CTL files for syntax errors. Returns list of errors with line numbers, messages, and severity. Use when the user asks to validate code, check for errors, or analyze CTL files.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "ctl_syntax",
+        "icon": "$(warning)",
+        "userDescription": "Check CTL code for syntax errors",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Absolute path to the CTL file to check"
+            }
+          },
+          "required": [
+            "file"
+          ]
+        }
+      },
+      {
+        "name": "ctl_get_diagnostics",
+        "displayName": "Get CTL Diagnostics",
+        "modelDescription": "Get all diagnostics (errors, warnings, info, hints) for a CTL file. Use when the user wants detailed analysis, warnings, or complete diagnostic information about their code.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "ctl_diagnostics",
+        "icon": "$(info)",
+        "userDescription": "Get all diagnostics for a CTL file",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Absolute path to the CTL file"
+            }
+          },
+          "required": [
+            "file"
+          ]
+        }
+      },
+      {
+        "name": "ctl_get_symbol_info",
+        "displayName": "Get CTL Symbol Info",
+        "modelDescription": "Get hover information for a symbol at a specific position in a CTL file. Returns function signatures, variable types, documentation. Use when the user asks what a function does, wants to see a signature, or needs information about a symbol.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "ctl_symbol",
+        "icon": "$(symbol-method)",
+        "userDescription": "Get information about a CTL symbol",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Absolute path to the CTL file"
+            },
+            "line": {
+              "type": "number",
+              "description": "Line number (1-based)"
+            },
+            "column": {
+              "type": "number",
+              "description": "Column number (1-based)"
+            }
+          },
+          "required": [
+            "file",
+            "line",
+            "column"
+          ]
+        }
+      },
+      {
+        "name": "ctl_find_references",
+        "displayName": "Find CTL References",
+        "modelDescription": "Find all references to a symbol across the workspace. Use when the user asks where a function is used, wants to see all usages of a variable, or needs to refactor code.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "ctl_references",
+        "icon": "$(references)",
+        "userDescription": "Find all references to a CTL symbol",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Absolute path to the CTL file"
+            },
+            "line": {
+              "type": "number",
+              "description": "Line number (1-based)"
+            },
+            "column": {
+              "type": "number",
+              "description": "Column number (1-based)"
+            }
+          },
+          "required": [
+            "file",
+            "line",
+            "column"
+          ]
+        }
+      },
+      {
+        "name": "ctl_goto_definition",
+        "displayName": "Go to CTL Definition",
+        "modelDescription": "Get the definition location(s) of a symbol. Use when the user asks where a function is defined, wants to jump to a declaration, or needs to find the source of a symbol.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "ctl_definition",
+        "icon": "$(go-to-file)",
+        "userDescription": "Find the definition of a CTL symbol",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Absolute path to the CTL file"
+            },
+            "line": {
+              "type": "number",
+              "description": "Line number (1-based)"
+            },
+            "column": {
+              "type": "number",
+              "description": "Column number (1-based)"
+            }
+          },
+          "required": [
+            "file",
+            "line",
+            "column"
+          ]
+        }
+      },
+      {
+        "name": "ctl_get_documentation_link",
+        "displayName": "Get CTL Documentation Link",
+        "modelDescription": "Get the official WinCC OA documentation link for a CTL function/method. Returns ONLY the URL to the documentation page. Use when user says 'read the docs', 'check the documentation', or 'you're using this function wrong'. If no link found in database, search the web for 'WinCC OA [functionName] documentation'.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "ctl_docs",
+        "icon": "$(book)",
+        "userDescription": "Get official WinCC OA documentation link for a CTL function",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "functionName": {
+              "type": "string",
+              "description": "Name of the CTL function/method to look up (e.g., 'dpGet', 'dpConnect', 'getValue'). Do not include parentheses."
+            }
+          },
+          "required": [
+            "functionName"
+          ]
+        }
       }
     ],
     "configuration": {
@@ -289,23 +447,7 @@
     "webpack-cli": "^6.0.1"
   },
   "overrides": {
-    "diff": "8.0.3",
-    "minimatch": "10.2.2",
-    "mocha": {
-      "minimatch": "10.2.2"
-    },
-    "@vscode/test-cli": {
-      "minimatch": "10.2.2"
-    },
-    "@typescript-eslint/typescript-estree": {
-      "minimatch": "10.2.2"
-    },
-    "markdownlint-cli": {
-      "minimatch": "10.2.2"
-    },
-    "@vscode/vsce": {
-      "minimatch": "10.2.2"
-    }
+    "diff": "8.0.3"
   },
   "config": {
     "winccoaImage": "mpokornyetm/winccoa-tools-pack-npm-winccoa-core:npm-winccoa-core"

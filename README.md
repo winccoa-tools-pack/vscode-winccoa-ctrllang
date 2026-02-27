@@ -3,12 +3,12 @@
 <div align="center">
 
 
-![Version](https://img.shields.io/github/v/release/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework?label=version)
-![License](https://img.shields.io/github/license/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework)
+![Version](https://img.shields.io/github/v/release/winccoa-tools-pack/vscode-winccoa-ctrllang?label=version)
+![License](https://img.shields.io/github/license/winccoa-tools-pack/vscode-winccoa-ctrllang)
 ![VS Code](https://img.shields.io/badge/VS%20Code-1.109.2-007ACC.svg)
-[![Coverage](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/graph/badge.svg)](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework)
-[![Quality gate](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/ci-cd.yml)
-[![Released](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/release.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/release.yml)
+[![Coverage](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrllang/graph/badge.svg)](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrllang)
+[![Quality gate](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/ci-cd.yml)
+[![Released](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/release.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/release.yml)
 
 
 **Language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
@@ -202,7 +202,7 @@ WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliate
 ## Quick Links
 
 - [📦 VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mPokornyETM.wincc-oa-tools-pack)
-- [🐛 Report Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/issues)
+- [🐛 Report Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues)
 - [📋 Project Board](https://github.com/orgs/winccoa-tools-pack/projects/3)
 
 ---

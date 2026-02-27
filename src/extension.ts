@@ -12,12 +12,15 @@ import { ProjectPathResolver } from './services/projectPathResolver';
 // import { CtrlppCheckService } from './services/ctrlppCheckService';
 import { AstyleFormatterService } from './services/astyleFormatterService';
 import { WinccoaSyntaxCheckService } from './services/winccoaSyntaxCheckService';
+import { LanguageModelToolsService } from './languageModelTools';
 
 let client: LanguageClient;
 // TODO: CtrlppCheck feature will be completed in a future release
 // let ctrlppCheckService: CtrlppCheckService;
 let astyleFormatterService: AstyleFormatterService;
 let syntaxCheckService: WinccoaSyntaxCheckService;
+let languageModelTools: LanguageModelToolsService;
+let noProjectWarningShown = false; // Track if we already showed "no project at all" warning
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize Extension Output Channel
@@ -52,10 +55,17 @@ export function activate(context: vscode.ExtensionContext) {
             if (e.affectsConfiguration('winccoa.ctrlLang.pathSource')) {
                 // Clear cache and re-setup Core integration when mode changes
                 ProjectPathResolver.getInstance()['cachedPaths'] = null;
+                noProjectWarningShown = false; // Reset warning flag on mode change
                 setupCoreExtensionIntegration(context);
             }
         }),
     );
+
+    // Initialize Language Model Tools Service (GitHub Copilot integration)
+    ExtensionOutputChannel.trace('Extension', 'Initializing Language Model Tools Service...');
+    languageModelTools = new LanguageModelToolsService();
+    languageModelTools.register(context);
+    ExtensionOutputChannel.info('Services', 'Language Model Tools Service initialized (5 tools registered)');
 
     // TODO: CtrlppCheck feature will be completed in a future release
     // // Initialize CtrlppCheck Service
@@ -431,9 +441,60 @@ function startLanguageServer(context: vscode.ExtensionContext) {
 
     // Start the client. This will also launch the server
     ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server client...');
-    client.start();
+    const startPromise = client.start();
 
     ExtensionOutputChannel.success('LanguageServer', 'WinCC OA Language Server started! 🚀');
+
+    // Register custom request handler for automatic mode (wait for client to be ready)
+    startPromise.then(() => {
+        // Handle requests from Language Server for project info in automatic mode
+        client.onRequest('custom/getProjectFromCore', async () => {
+            ExtensionOutputChannel.debug('LanguageServer', 'Server requested project info from Core');
+
+            const projectPaths = await ProjectPathResolver.getInstance().getProjectPaths();
+
+            if (!projectPaths) {
+                ExtensionOutputChannel.warn('LanguageServer', 'No project paths available for server');
+
+                // Show warning only once per session if truly nothing is available
+                if (!noProjectWarningShown) {
+                    noProjectWarningShown = true;
+
+                    // Check if we're in automatic mode
+                    const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
+                    const pathSource = config.get<string>('pathSource', 'workspace');
+
+                    if (pathSource === 'automatic') {
+                        // In automatic mode: no Core project AND no workspace
+                        vscode.window.showWarningMessage(
+                            'WinCC OA: No project selected and no workspace with config/config found. Please select a project in Project Admin or open a WinCC OA project folder.',
+                            'Open Settings'
+                        ).then(selection => {
+                            if (selection === 'Open Settings') {
+                                vscode.commands.executeCommand('workbench.action.openSettings', 'winccoa.ctrlLang');
+                            }
+                        });
+                    }
+                }
+
+                return null;
+            }
+
+            // Convert to format expected by language server
+            const projectInfo = {
+                projectPath: projectPaths.projectPath,
+                projectName: path.basename(projectPaths.projectPath),
+                configPath: path.join(projectPaths.projectPath, 'config', 'config'),
+                logPath: path.join(projectPaths.projectPath, 'log'),
+                installPath: projectPaths.installPath,
+                version: '',
+                subProjects: projectPaths.subProjects
+            };
+
+            ExtensionOutputChannel.debug('LanguageServer', `Sending project info to server: ${projectInfo.projectName}`);
+            return projectInfo;
+        });
+    });
 }
 
 async function performStartupDiagnostics(_context: vscode.ExtensionContext) {
@@ -706,8 +767,31 @@ async function setupCoreExtensionIntegration(_context: vscode.ExtensionContext) 
             );
             // Clear cached paths to force re-resolution
             ProjectPathResolver.getInstance()['cachedPaths'] = null;
+            noProjectWarningShown = false; // Reset warning flag when project changes
+
+            // Notify Language Server to invalidate project info cache
+            if (client) {
+                client.sendNotification('custom/projectChanged', {
+                    projectName: project.name,
+                    projectPath: project.projectDir,
+                });
+                ExtensionOutputChannel.debug(
+                    'CoreIntegration',
+                    'Sent project change notification to Language Server',
+                );
+            }
         } else {
             ExtensionOutputChannel.info('CoreIntegration', 'No project selected');
+            noProjectWarningShown = false; // Reset warning flag when project cleared
+
+            // Notify Language Server
+            if (client) {
+                client.sendNotification('custom/projectChanged', null);
+                ExtensionOutputChannel.debug(
+                    'CoreIntegration',
+                    'Sent null project notification to Language Server',
+                );
+            }
         }
     });
 

@@ -17,7 +17,8 @@ import {
     PrepareRenameParams,
     RenameParams,
     WorkspaceEdit,
-    Range
+    Range,
+    DocumentSymbol
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -40,6 +41,7 @@ import { CompletionService } from './services/completionService';
 import { HoverService } from './services/hoverService';
 import { DefinitionService } from './services/definitionService';
 import { RenameService } from './services/renameService';
+import { DocumentSymbolService } from './services/documentSymbolService';
 
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -47,6 +49,7 @@ const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 // v0.4.0: Centralized services (initialized after fetchProjectInfo is defined)
 const symbolCache = new SymbolCache();
 const renameService = new RenameService(symbolCache);  // v1.2.0
+const documentSymbolService = new DocumentSymbolService(symbolCache);  // v1.4.0
 let hoverService: HoverService;  // v1.3.0: Needs getProjectInfo callback
 let completionService: CompletionService;  // v1.1.0: Needs getProjectInfo callback
 let definitionService: DefinitionService;
@@ -56,7 +59,7 @@ let projectInfo: ProjectInfo | null = null;
 
 // Configuration settings
 interface ServerSettings {
-    pathSource: 'api' | 'workspace' | 'manual';
+    pathSource: 'api' | 'workspace' | 'manual' | 'automatic';
     apiUrl: string;
     projectPath: string;
     installPath: string;
@@ -138,6 +141,9 @@ async function fetchProjectInfo(): Promise<ProjectInfo | null> {
             break;
         case 'manual':
             result = await fetchFromConfig();
+            break;
+        case 'automatic':
+            result = await fetchFromAutomatic();
             break;
         default:
             connection.console.log('[fetchProjectInfo] Unknown mode, falling back to workspace');
@@ -293,6 +299,50 @@ function fetchFromConfig(): ProjectInfo | null {
     return projectInfo;
 }
 
+async function fetchFromAutomatic(): Promise<ProjectInfo | null> {
+    connection.console.log('[fetchFromAutomatic] Requesting project info from extension...');
+    
+    try {
+        // Request current project from extension via custom protocol
+        const result = await connection.sendRequest('custom/getProjectFromCore');
+        
+        if (!result) {
+            connection.console.log('[fetchFromAutomatic] No project selected in Core extension');
+            connection.console.log('[fetchFromAutomatic] Falling back to workspace detection...');
+            
+            // Fallback: Try workspace detection if no project selected in Core
+            return await fetchFromWorkspace();
+        }
+        
+        const data = result as any;
+        connection.console.log('[fetchFromAutomatic] Received project from Core: ' + JSON.stringify(data));
+        
+        // Parse subprojects from config if available
+        let subProjectPaths: string[] = [];
+        if (data.configPath && fs.existsSync(data.configPath)) {
+            connection.console.log('[fetchFromAutomatic] Parsing subprojects from config...');
+            subProjectPaths = parseSubProjectsFromConfig(data.configPath, data.projectPath);
+        }
+        
+        projectInfo = {
+            projectPath: data.projectPath || '',
+            projectName: data.projectName || '',
+            configPath: data.configPath || '',
+            logPath: data.logPath || '',
+            installPath: data.installPath || '',
+            version: data.version || '',
+            subProjects: subProjectPaths
+        };
+        
+        connection.console.log('[fetchFromAutomatic] Final projectInfo: ' + JSON.stringify(projectInfo));
+        return projectInfo;
+    } catch (error) {
+        connection.console.log('[fetchFromAutomatic] Error: ' + error);
+        connection.console.log('[fetchFromAutomatic] Falling back to workspace detection...');
+        return await fetchFromWorkspace();
+    }
+}
+
 function detectInstallPath(configPath: string): string {
     try {
         const configContent = fs.readFileSync(configPath, 'utf-8');
@@ -341,6 +391,7 @@ connection.onInitialize((params: InitializeParams) => {
             definitionProvider: true,
             referencesProvider: true,
             renameProvider: { prepareProvider: true },  // v1.2.0
+            documentSymbolProvider: true,  // v1.4.0 - Outline View
             executeCommandProvider: {
                 commands: ['getDocUrl']
             }
@@ -440,6 +491,14 @@ connection.onRenameRequest((params: RenameParams): WorkspaceEdit | null => {
     return renameService.rename(doc, params);
 });
 
+// v1.4.0: Document Symbol Provider for Outline View
+connection.onDocumentSymbol(async (params): Promise<DocumentSymbol[]> => {
+    const doc = documents.get(params.textDocument.uri);
+    if (!doc) return [];
+    
+    return documentSymbolService.handle(doc);
+});
+
 // v0.4.0: Use HoverService for all hover requests
 connection.onHover(async (params: TextDocumentPositionParams): Promise<Hover | null> => {
     const doc = documents.get(params.textDocument.uri);
@@ -523,6 +582,26 @@ connection.onReferences((params: ReferenceParams): Location[] => {
         connection.console.log(`[References] Error: ${error}`);
         return [];
     }
+});
+
+// ============================================================================
+// Custom Notification Handlers (v1.3.2: Automatic mode support)
+// ============================================================================
+
+connection.onNotification('custom/projectChanged', (data: any) => {
+    connection.console.log('[ProjectChanged] Received notification from extension');
+    
+    if (data) {
+        connection.console.log(`[ProjectChanged] New project: ${data.projectName} (${data.projectPath})`);
+    } else {
+        connection.console.log('[ProjectChanged] No project selected');
+    }
+    
+    // Invalidate cached project info to force re-fetch on next request
+    projectInfo = null;
+    symbolCache.invalidateAll();
+    
+    connection.console.log('[ProjectChanged] Project info cache cleared');
 });
 
 documents.listen(connection);
