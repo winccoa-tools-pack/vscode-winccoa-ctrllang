@@ -591,9 +591,9 @@ resources/
 | 3 | 0 | S | Multi-XML loading: detect ctrl.xml + user-configured files | Done |
 | 4 | 0 | S | Source tracking + duplicate detection + warnings |  |
 | 5 | 0 | S | `importDefinitionXml` command |  |
-| 6 | 1 | S | Extend `FunctionSignature` interface with new optional fields |  |
-| 7 | 2 | M | Create `ctrlXmlMerger.ts` — merge XML sources + bundled builtins at runtime |  |
-| 8 | 2 | S | Wire merger into language server startup (SymbolCache integration) |  |
+| 6 | 1 | S | Extend `FunctionSignature` interface with new optional fields | Done |
+| 7 | 2 | M | Create `ctrlXmlMerger.ts` — merge XML sources + bundled builtins at runtime | Done |
+| 8 | 2 | S | Wire merger into language server startup (SymbolCache integration) | Done |
 | 9 | 3 | L | External npm tool: `ctrl-static-analysis` with SARIF output |  |
 | 10 | 3 | M | VS Code integration: invoke tool, display diagnostics |  |
 | 11 | 4 | L | CTL-to-cppcheck AST external tool (future) |  |

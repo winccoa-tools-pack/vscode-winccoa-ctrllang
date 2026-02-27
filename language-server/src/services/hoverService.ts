@@ -22,7 +22,7 @@ interface SymbolInfo {
     memberAccessChain?: string[];
     enumAccess?: { enumName: string };
 }
-import { getBuiltinFunction } from '../builtins';
+import { getBuiltinFunction, getBuiltinConstant } from '../builtins';
 import { SymbolCache } from '../core/symbolCache';
 import { resolveUsesPath, ProjectInfo } from '../usesResolver';
 
@@ -257,22 +257,41 @@ export class HoverService {
         if (!word) return null;
         
         const fn = getBuiltinFunction(word);
-        if (!fn) return null;
+        if (fn) {
+            const paramList = fn.parameters.map(p => {
+                let s = '';
+                if (p.direction === 'out' || p.byRef) s += '&';
+                s += `${p.type} ${p.name}`;
+                if (p.optional) s = `[${s}]`;
+                if (p.variadic) s = `...${s}`;
+                return s;
+            }).join(', ');
+            
+            const sig = `${fn.returnType} ${fn.name}(${paramList})`;
+            let md = `**${fn.name}**`;
+            if (fn.deprecated) md += ' ⚠️ **DEPRECATED**';
+            md += `\n\n\`\`\`ctrl\n${sig}\n\`\`\`\n\n`;
+            if (fn.deprecated && fn.deprecationReason) md += `> ⚠️ ${fn.deprecationReason}\n\n`;
+            if (fn.aliases && fn.aliases.length > 0) md += `*Aliases:* ${fn.aliases.join(', ')}\n\n`;
+            if (fn.description) md += `${fn.description}\n\n`;
+            if (fn.isConst) md += `*Pure function* — no side effects\n\n`;
+            if (fn.useRetval) md += `*Return value should be used*\n\n`;
+            if (fn.docUrl) md += `📖 [Open Documentation](${fn.docUrl})\n`;
+            
+            return { contents: { kind: MarkupKind.Markdown, value: md } };
+        }
         
-        const paramList = fn.parameters.map(p => {
-            let s = p.byRef ? '&' : '';
-            s += `${p.type} ${p.name}`;
-            if (p.optional) s = `[${s}]`;
-            if (p.variadic) s = `...${s}`;
-            return s;
-        }).join(', ');
+        // Try constants
+        const constant = getBuiltinConstant(word);
+        if (constant) {
+            let md = `**${constant.name}**\n\n\`\`\`ctrl\nconst ${constant.type} ${constant.name}`;
+            if (constant.value !== undefined) md += ` = ${constant.value}`;
+            md += `\n\`\`\`\n\n`;
+            if (constant.sourceFile) md += `*Source:* ${constant.sourceFile}\n`;
+            return { contents: { kind: MarkupKind.Markdown, value: md } };
+        }
         
-        const sig = `${fn.returnType} ${fn.name}(${paramList})`;
-        let md = `**${fn.name}**\n\n\`\`\`ctrl\n${sig}\n\`\`\`\n\n`;
-        if (fn.description) md += `${fn.description}\n\n`;
-        if (fn.docUrl) md += `📖 [Open Documentation](${fn.docUrl})\n`;
-        
-        return { contents: { kind: MarkupKind.Markdown, value: md } };
+        return null;
     }
     
     /**

@@ -21,7 +21,8 @@ import {
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getBuiltinFunction, getAllBuiltinFunctions } from './builtins';
+import { getBuiltinFunction, getAllBuiltinFunctions, setActiveFunctions, resetActiveFunctions, setActiveConstants, resetActiveConstants } from './builtins';
+import { mergeXmlWithBuiltins, mergeXmlConstants, getMergeStats } from './ctrlXmlMerger';
 import { resolveUsesPath, getUsesAtPosition, ProjectInfo } from './usesResolver';
 import { 
     findFunctionDefinitions, 
@@ -417,7 +418,13 @@ connection.onDidChangeConfiguration(async () => {
                 const wsRoot = workspaceFolders?.[0]?.uri
                     ? fileURLToPath(workspaceFolders[0].uri)
                     : undefined;
-                await ctrlXmlLoader.reloadWithSettings(additionalDefs, wsRoot);
+                const xmlData = await ctrlXmlLoader.reloadWithSettings(additionalDefs, wsRoot);
+                if (xmlData) {
+                    const merged = mergeXmlWithBuiltins(xmlData);
+                    setActiveFunctions(merged);
+                    const mergedConstants = mergeXmlConstants(xmlData);
+                    setActiveConstants(mergedConstants);
+                }
             }
 
             connection.console.log(`[Config] Settings updated - pathSource: ${globalSettings.pathSource}`);
@@ -570,14 +577,30 @@ connection.onNotification(
 
         if (!params.installPath) {
             ctrlXmlLoader.clear();
+            resetActiveFunctions();
+            resetActiveConstants();
+            connection.console.log('[Notification] Active functions/constants reset to bundled builtins');
             return;
         }
 
-        await ctrlXmlLoader.loadDefinitions(
+        const xmlData = await ctrlXmlLoader.loadDefinitions(
             params.installPath,
             params.additionalDefinitions ?? [],
             params.workspaceRoot
         );
+
+        // Merge ctrl.xml data with bundled builtins and activate
+        if (xmlData) {
+            const merged = mergeXmlWithBuiltins(xmlData);
+            setActiveFunctions(merged);
+            const mergedConstants = mergeXmlConstants(xmlData);
+            setActiveConstants(mergedConstants);
+            const stats = getMergeStats(xmlData, merged);
+            connection.console.log(
+                `[Merger] Active: ${stats.total} functions, ${mergedConstants.size} constants ` +
+                `(${stats.enriched} enriched, ${stats.xmlOnly} XML-only, ${stats.bundledOnly} bundled-only)`
+            );
+        }
     }
 );
 

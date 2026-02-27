@@ -4,19 +4,37 @@
 // Total Functions: 983
 
 // WinCC OA Built-in Functions
+export interface FunctionParameter {
+    name: string;
+    type: string;
+    optional?: boolean;
+    variadic?: boolean;
+    byRef?: boolean;
+    /** Parameter direction: 'in' (default) or 'out' (by-reference). From ctrl.xml. */
+    direction?: 'in' | 'out';
+    /** Default value expression. From ctrl.xml. */
+    defaultValue?: string;
+}
+
 export interface FunctionSignature {
     name: string;
+    /** Alternative function names (from comma-separated names in ctrl.xml) */
+    aliases?: string[];
     returnType: string;
-    parameters: Array<{
-        name: string;
-        type: string;
-        optional?: boolean;
-        variadic?: boolean;
-        byRef?: boolean;
-    }>;
+    parameters: FunctionParameter[];
     description?: string;
     deprecated?: boolean;
+    /** Reason for deprecation (from ctrl.xml <warn> element) */
+    deprecationReason?: string;
+    /** Pure/const function — no side effects (from ctrl.xml <const/>) */
+    isConst?: boolean;
+    /** Return value should be checked (from ctrl.xml <use-retval/>) */
+    useRetval?: boolean;
+    /** Function does not return (from ctrl.xml <noreturn>) */
+    noReturn?: boolean;
     docUrl?: string;
+    /** Source file where this definition originated */
+    sourceFile?: string;
 }
 
 export const BUILTIN_FUNCTIONS: Map<string, FunctionSignature> = new Map([
@@ -6911,14 +6929,87 @@ export const BUILTIN_FUNCTIONS: Map<string, FunctionSignature> = new Map([
     }]
 ]);
 
+// ---------------------------------------------------------------------------
+// Active function registry — allows runtime replacement with merged XML data
+// ---------------------------------------------------------------------------
+
+/** The currently active function map. Starts with bundled builtins. */
+let activeFunctions: Map<string, FunctionSignature> = BUILTIN_FUNCTIONS;
+
+/**
+ * Replace the active function map with merged data (ctrl.xml + bundled).
+ * All consumers of getBuiltinFunction / getAllBuiltinFunctions automatically
+ * pick up the new data.
+ */
+export function setActiveFunctions(merged: Map<string, FunctionSignature>): void {
+    activeFunctions = merged;
+}
+
+/**
+ * Reset to the original bundled builtins (e.g., when OA install path is cleared).
+ */
+export function resetActiveFunctions(): void {
+    activeFunctions = BUILTIN_FUNCTIONS;
+}
+
+/**
+ * Get the number of currently active functions (for diagnostics).
+ */
+export function getActiveFunctionCount(): number {
+    return activeFunctions.size;
+}
+
 export function isBuiltinFunction(name: string): boolean {
-    return BUILTIN_FUNCTIONS.has(name);
+    return activeFunctions.has(name);
 }
 
 export function getBuiltinFunction(name: string): FunctionSignature | undefined {
-    return BUILTIN_FUNCTIONS.get(name);
+    return activeFunctions.get(name);
 }
 
 export function getAllBuiltinFunctions(): FunctionSignature[] {
-    return Array.from(BUILTIN_FUNCTIONS.values());
+    return Array.from(activeFunctions.values());
+}
+
+// ---------------------------------------------------------------------------
+// Constant registry — provides hover/completion for WinCC OA constants
+// ---------------------------------------------------------------------------
+
+/** Information about a WinCC OA constant */
+export interface ConstantInfo {
+    /** Constant name (e.g., 'BIN_REL_PATH') */
+    name: string;
+    /** Literal value (e.g., '0', '"bin/"') */
+    value?: string;
+    /** Type hint */
+    type: string;
+    /** Source file where this constant originated */
+    sourceFile?: string;
+}
+
+/** The currently active constant map. Starts empty, populated from ctrl.xml */
+let activeConstants: Map<string, ConstantInfo> = new Map();
+
+export function setActiveConstants(constants: Map<string, ConstantInfo>): void {
+    activeConstants = constants;
+}
+
+export function resetActiveConstants(): void {
+    activeConstants = new Map();
+}
+
+export function getBuiltinConstant(name: string): ConstantInfo | undefined {
+    return activeConstants.get(name);
+}
+
+export function getAllBuiltinConstants(): ConstantInfo[] {
+    return Array.from(activeConstants.values());
+}
+
+export function isBuiltinConstant(name: string): boolean {
+    return activeConstants.has(name);
+}
+
+export function getActiveConstantCount(): number {
+    return activeConstants.size;
 }
