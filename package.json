@@ -126,6 +126,11 @@
         "command": "winccoa.insertScriptTemplate",
         "title": "Insert Script Template",
         "category": "WinCC OA"
+      },
+      {
+        "command": "winccoa.selectOaVersion",
+        "title": "Select WinCC OA Version",
+        "category": "WinCC OA"
       }
     ],
     "configuration": {
@@ -171,6 +176,14 @@
           },
           "default": [],
           "description": "Additional scripts folders to search in (only used when pathSource is 'manual')"
+        },
+        "winccoa.ctrlLang.additionalDefinitions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional XML definition files for CTRL language metadata (cppcheck format). Absolute paths or relative to the workspace root."
         },
         "winccoa.ctrlLang.logLevel": {
           "type": "string",
@@ -289,23 +302,7 @@
     "webpack-cli": "^6.0.1"
   },
   "overrides": {
-    "diff": "8.0.3",
-    "minimatch": "10.2.2",
-    "mocha": {
-      "minimatch": "10.2.2"
-    },
-    "@vscode/test-cli": {
-      "minimatch": "10.2.2"
-    },
-    "@typescript-eslint/typescript-estree": {
-      "minimatch": "10.2.2"
-    },
-    "markdownlint-cli": {
-      "minimatch": "10.2.2"
-    },
-    "@vscode/vsce": {
-      "minimatch": "10.2.2"
-    }
+    "diff": "8.0.3"
   },
   "config": {
     "winccoaImage": "mpokornyetm/winccoa-tools-pack-npm-winccoa-core:npm-winccoa-core"

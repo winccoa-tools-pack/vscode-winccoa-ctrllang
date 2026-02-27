@@ -8,6 +8,7 @@ import {
 } from 'vscode-languageclient/node';
 import { ExtensionOutputChannel } from './extensionOutput';
 import { ProjectPathResolver } from './services/projectPathResolver';
+import { OaVersionService } from './services/oaVersionService';
 // TODO: CtrlppCheck feature will be completed in a future release
 // import { CtrlppCheckService } from './services/ctrlppCheckService';
 import { AstyleFormatterService } from './services/astyleFormatterService';
@@ -18,6 +19,7 @@ let client: LanguageClient;
 // let ctrlppCheckService: CtrlppCheckService;
 let astyleFormatterService: AstyleFormatterService;
 let syntaxCheckService: WinccoaSyntaxCheckService;
+let oaVersionService: OaVersionService;
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize Extension Output Channel
@@ -40,6 +42,11 @@ export function activate(context: vscode.ExtensionContext) {
     // Perform startup diagnostics
     performStartupDiagnostics(context);
 
+    // Initialize OA Version Service (status bar + version resolution)
+    oaVersionService = OaVersionService.getInstance();
+    context.subscriptions.push(oaVersionService);
+    ExtensionOutputChannel.info('Services', 'OA Version Service initialized');
+
     // Setup Core extension integration if in automatic mode
     setupCoreExtensionIntegration(context);
 
@@ -53,6 +60,10 @@ export function activate(context: vscode.ExtensionContext) {
                 // Clear cache and re-setup Core integration when mode changes
                 ProjectPathResolver.getInstance()['cachedPaths'] = null;
                 setupCoreExtensionIntegration(context);
+            }
+            if (e.affectsConfiguration('winccoa.ctrlLang.additionalDefinitions')) {
+                // Re-send install path + new additional paths to language server
+                sendInstallPathToLanguageServer();
             }
         }),
     );
@@ -78,6 +89,13 @@ export function activate(context: vscode.ExtensionContext) {
     // Start the Language Server
     ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server...');
     startLanguageServer(context);
+
+    // v1.4.0: When OA version changes, notify the language server to load ctrl.xml
+    context.subscriptions.push(
+        oaVersionService.onDidChangeVersion((_version) => {
+            sendInstallPathToLanguageServer();
+        }),
+    );
 
     // Watch for newly created .ctl files
     context.subscriptions.push(
@@ -307,6 +325,14 @@ export function activate(context: vscode.ExtensionContext) {
         }),
     );
 
+    // Register OA version selector command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('winccoa.selectOaVersion', async () => {
+            ExtensionOutputChannel.info('Command', 'Manual OA version selection');
+            await oaVersionService.showVersionPicker();
+        }),
+    );
+
     // Register template insertion commands
     context.subscriptions.push(
         vscode.commands.registerCommand('winccoa.insertTestTemplate', async () => {
@@ -431,7 +457,10 @@ function startLanguageServer(context: vscode.ExtensionContext) {
 
     // Start the client. This will also launch the server
     ExtensionOutputChannel.info('LanguageServer', 'Starting Language Server client...');
-    client.start();
+    client.start().then(() => {
+        // v1.4.0: Once the server is ready, send the initial install path if already known
+        sendInstallPathToLanguageServer();
+    });
 
     ExtensionOutputChannel.success('LanguageServer', 'WinCC OA Language Server started! 🚀');
 }
@@ -668,6 +697,32 @@ async function insertTemplate(
     }
 }
 
+/**
+ * v1.4.0: Send the current OA install path and additional definition paths
+ * to the language server so it can load ctrl.xml definitions.
+ */
+function sendInstallPathToLanguageServer(): void {
+    if (!client) {
+        return;
+    }
+
+    const installPath = oaVersionService.getInstallDir();
+    const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
+    const additionalDefinitions = config.get<string[]>('additionalDefinitions', []);
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+    ExtensionOutputChannel.debug(
+        'CtrlXml',
+        `Sending install path to language server: ${installPath ?? '(none)'}`,
+    );
+
+    client.sendNotification('winccoa/setOaInstallPath', {
+        installPath,
+        additionalDefinitions,
+        workspaceRoot,
+    });
+}
+
 async function setupCoreExtensionIntegration(_context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration('winccoa.ctrlLang');
     const pathSource = config.get<string>('pathSource', 'workspace');
@@ -706,8 +761,18 @@ async function setupCoreExtensionIntegration(_context: vscode.ExtensionContext) 
             );
             // Clear cached paths to force re-resolution
             ProjectPathResolver.getInstance()['cachedPaths'] = null;
+
+            // Auto-detect OA version from the new project
+            // !do not try to parse path for version here, rely on version provided by Core extension (either directly or via install path parsing)
+            const version = project.version as string;
+            if (version) {
+                oaVersionService.setVersion(version);
+            } else {
+                oaVersionService.setVersion(null);
+            }
         } else {
             ExtensionOutputChannel.info('CoreIntegration', 'No project selected');
+            oaVersionService.setVersion(null);
         }
     });
 
@@ -722,6 +787,12 @@ async function setupCoreExtensionIntegration(_context: vscode.ExtensionContext) 
             'CoreIntegration',
             `  Install path: ${currentProject.oaInstallPath}`,
         );
+
+        // Auto-detect OA version from current project
+        const version = currentProject.version as string;
+        if (version && !oaVersionService.getSelectedVersion()) {
+            oaVersionService.setVersion(version);
+        }
     } else {
         ExtensionOutputChannel.debug('CoreIntegration', 'No project currently selected');
     }

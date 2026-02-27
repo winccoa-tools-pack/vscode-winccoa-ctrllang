@@ -3,12 +3,12 @@
 <div align="center">
 
 
-![Version](https://img.shields.io/github/v/release/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework?label=version)
-![License](https://img.shields.io/github/license/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework)
+![Version](https://img.shields.io/github/v/release/winccoa-tools-pack/vscode-winccoa-ctrllang?label=version)
+![License](https://img.shields.io/github/license/winccoa-tools-pack/vscode-winccoa-ctrllang)
 ![VS Code](https://img.shields.io/badge/VS%20Code-1.109.2-007ACC.svg)
-[![Coverage](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/graph/badge.svg)](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework)
-[![Quality gate](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/ci-cd.yml)
-[![Released](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/release.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/actions/workflows/release.yml)
+[![Coverage](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrllang/graph/badge.svg)](https://codecov.io/gh/winccoa-tools-pack/vscode-winccoa-ctrllang)
+[![CI](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/ci-cd.yml)
+[![Release](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/release.yml/badge.svg)](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/actions/workflows/release.yml)
 
 
 **Language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
@@ -115,7 +115,7 @@
 
 Found an issue? Please report it with:
 - WinCC OA version
-- Extension version (`1.0.4`)
+- Extension version (`1.3.1`)
 - Code example that reproduces the issue
 - Enable `DEBUG` logging and attach log output
 
@@ -123,7 +123,7 @@ Found an issue? Please report it with:
 
 ---
 
-##  Commands
+## Commands
 
 Access via `Ctrl+Shift+P`:
 
@@ -139,37 +139,11 @@ Access via `Ctrl+Shift+P`:
 
 - **VS Code:** 1.105.0 or higher
 - **WinCC OA:** 3.19+ (optional, required for syntax checking via `WCCOActrl`)
-- **WinCC OA Core Extension:** (optional, recommended) Enables automatic project detection and management. With the Core extension installed, you can select your active project from a list—the Language extension will automatically detect all local projects with a `config/config` file.
+- **WinCC OA Project Admin Extension:** (optional, recommended) Enables automatic project detection and management. With the Project Admin extension installed, you can select your active project from a list—the Language extension will automatically detect all local projects with a `config/config` file.
 - **Project Structure:** Your workspace must contain a `config/config` file (standard WinCC OA project layout) for auto-detection to work.
 
 **Automatic Mode:**
 If the WinCC OA Project Admin Extension is installed, project detection is fully automatic. 
-
----
-
-## 🐛 Known Issues
-
-### Performance
-
-**Windows Performance:**  
-The extension may run slower on Windows with longer loading times. Linux performs significantly better.
-
-**Large Projects:**  
-Very large projects (1000+ files) may experience performance issues with IntelliSense and navigation.
-
-### General
-
-**Extension Not Responding:**  
-If the extension doesn't work as expected (IntelliSense not working, goto-definition fails), reload VS Code:  
-1. Press `Ctrl+Shift+P`
-2. Type and select `Reload Window`
-3. This refreshes the language server
-
-### Current Limitations
-
-- **Goto Precision**: Sometimes jumps to incorrect lines (minor offset issues)
-- **Inheritance**: Only single-level inheritance supported (no deep chains)
-- **Interfaces**: Not yet implemented
 
 ---
 
@@ -201,8 +175,8 @@ WinCC OA and Siemens are trademarks of Siemens AG. This project is not affiliate
 
 ## Quick Links
 
-- [📦 VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=mPokornyETM.wincc-oa-tools-pack)
-- [🐛 Report Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrl-test-framework/issues)
+- [📦 VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=RichardJanisch.winccoa-ctrllang)
+- [🐛 Report Issues](https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang/issues)
 - [📋 Project Board](https://github.com/orgs/winccoa-tools-pack/projects/3)
 
 ---

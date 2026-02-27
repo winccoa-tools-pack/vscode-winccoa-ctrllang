@@ -14,7 +14,7 @@
 
 import { CompletionItem, CompletionItemKind, TextDocumentPositionParams, Position } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getAllBuiltinFunctions, FunctionSignature } from '../builtins';
+import { getAllBuiltinFunctions, FunctionSignature, getAllBuiltinConstants, ConstantInfo } from '../builtins';
 import { SymbolCache } from '../core/symbolCache';
 import { ProjectInfo } from '../usesResolver';
 import { fileURLToPath } from 'url';
@@ -65,6 +65,9 @@ export class CompletionService {
         items.push(...getAllBuiltinFunctions().map((fn, idx) => 
             this.createBuiltinFunctionItem(fn, idx)
         ));
+        
+        // 1b. Built-in constants (from ctrl.xml + hardcoded)
+        items.push(...getAllBuiltinConstants().map(c => this.createConstantItem(c)));
         
         // 2. Try to resolve #uses dependencies
         try {
@@ -181,7 +184,8 @@ export class CompletionService {
      */
     private createBuiltinFunctionItem(fn: FunctionSignature, idx: number): CompletionItem {
         const paramList = fn.parameters.map(p => {
-            let s = p.byRef ? '&' : '';
+            let s = '';
+            if (p.direction === 'out' || p.byRef) s += '&';
             s += `${p.type} ${p.name}`;
             if (p.optional) s = `[${s}]`;
             if (p.variadic) s = `...${s}`;
@@ -299,6 +303,20 @@ export class CompletionService {
             detail: `${enumName}::${memberName}`,
             insertText: `${enumName}::${memberName}`,
             sortText: `3_${enumName}_${memberName}`
+        };
+    }
+    
+    /**
+     * Create CompletionItem from built-in ConstantInfo
+     */
+    private createConstantItem(c: ConstantInfo): CompletionItem {
+        const valueStr = c.value !== undefined ? ` = ${c.value}` : '';
+        return {
+            label: c.name,
+            kind: CompletionItemKind.Constant,
+            detail: `const ${c.type} ${c.name}${valueStr}`,
+            insertText: c.name,
+            sortText: `1_${c.name}`  // Constants alongside built-ins
         };
     }
 }

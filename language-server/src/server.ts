@@ -21,7 +21,8 @@ import {
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getBuiltinFunction, getAllBuiltinFunctions } from './builtins';
+import { getBuiltinFunction, getAllBuiltinFunctions, setActiveFunctions, resetActiveFunctions, setActiveConstants, resetActiveConstants } from './builtins';
+import { mergeXmlWithBuiltins, mergeXmlConstants, getMergeStats } from './ctrlXmlMerger';
 import { resolveUsesPath, getUsesAtPosition, ProjectInfo } from './usesResolver';
 import { 
     findFunctionDefinitions, 
@@ -40,6 +41,7 @@ import { CompletionService } from './services/completionService';
 import { HoverService } from './services/hoverService';
 import { DefinitionService } from './services/definitionService';
 import { RenameService } from './services/renameService';
+import { CtrlXmlLoader } from './ctrlXmlLoader';
 
 const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -50,6 +52,7 @@ const renameService = new RenameService(symbolCache);  // v1.2.0
 let hoverService: HoverService;  // v1.3.0: Needs getProjectInfo callback
 let completionService: CompletionService;  // v1.1.0: Needs getProjectInfo callback
 let definitionService: DefinitionService;
+let ctrlXmlLoader: CtrlXmlLoader;  // v1.4.0: Runtime ctrl.xml loading
 
 // Cache for project info
 let projectInfo: ProjectInfo | null = null;
@@ -378,6 +381,9 @@ connection.onInitialized(async () => {
     hoverService = new HoverService(symbolCache, fetchProjectInfo);
     completionService = new CompletionService(symbolCache, fetchProjectInfo);
     definitionService = new DefinitionService(symbolCache, fetchProjectInfo);
+
+    // v1.4.0: Initialize ctrl.xml loader
+    ctrlXmlLoader = new CtrlXmlLoader(connection);
     
     connection.console.log('WinCC OA Language Server initialized!');
 });
@@ -404,6 +410,23 @@ connection.onDidChangeConfiguration(async () => {
             projectInfo = null;
             symbolCache.setProjectInfo(null);  // v0.4.0: Clear cache project info
             symbolCache.invalidateAll();       // v0.4.0: Clear symbol cache
+
+            // v1.4.0: Reload ctrl.xml definitions if additionalDefinitions changed
+            if (ctrlXmlLoader) {
+                const additionalDefs: string[] = settings.additionalDefinitions || [];
+                const workspaceFolders = await connection.workspace.getWorkspaceFolders();
+                const wsRoot = workspaceFolders?.[0]?.uri
+                    ? fileURLToPath(workspaceFolders[0].uri)
+                    : undefined;
+                const xmlData = await ctrlXmlLoader.reloadWithSettings(additionalDefs, wsRoot);
+                if (xmlData) {
+                    const merged = mergeXmlWithBuiltins(xmlData);
+                    setActiveFunctions(merged);
+                    const mergedConstants = mergeXmlConstants(xmlData);
+                    setActiveConstants(mergedConstants);
+                }
+            }
+
             connection.console.log(`[Config] Settings updated - pathSource: ${globalSettings.pathSource}`);
         } catch (err) {
             connection.console.log('[Config] Error updating settings: ' + err);
@@ -524,6 +547,62 @@ connection.onReferences((params: ReferenceParams): Location[] => {
         return [];
     }
 });
+
+// ============================================================================
+// Custom Notifications (Extension ↔ Language Server)
+// ============================================================================
+
+/**
+ * v1.4.0: Handle OA install path notification from extension.
+ * Triggered when OA version changes (auto-detect or user selection).
+ * Loads ctrl.xml from the installation and any additional definition files.
+ */
+interface SetOaInstallPathParams {
+    installPath: string | null;
+    additionalDefinitions: string[];
+    workspaceRoot?: string;
+}
+
+connection.onNotification(
+    'winccoa/setOaInstallPath',
+    async (params: SetOaInstallPathParams) => {
+        connection.console.log(
+            `[Notification] winccoa/setOaInstallPath: ${params.installPath ?? '(none)'}`
+        );
+
+        if (!ctrlXmlLoader) {
+            connection.console.log('[Notification] CtrlXmlLoader not initialized yet — ignoring');
+            return;
+        }
+
+        if (!params.installPath) {
+            ctrlXmlLoader.clear();
+            resetActiveFunctions();
+            resetActiveConstants();
+            connection.console.log('[Notification] Active functions/constants reset to bundled builtins');
+            return;
+        }
+
+        const xmlData = await ctrlXmlLoader.loadDefinitions(
+            params.installPath,
+            params.additionalDefinitions ?? [],
+            params.workspaceRoot
+        );
+
+        // Merge ctrl.xml data with bundled builtins and activate
+        if (xmlData) {
+            const merged = mergeXmlWithBuiltins(xmlData);
+            setActiveFunctions(merged);
+            const mergedConstants = mergeXmlConstants(xmlData);
+            setActiveConstants(mergedConstants);
+            const stats = getMergeStats(xmlData, merged);
+            connection.console.log(
+                `[Merger] Active: ${stats.total} functions, ${mergedConstants.size} constants ` +
+                `(${stats.enriched} enriched, ${stats.xmlOnly} XML-only, ${stats.bundledOnly} bundled-only)`
+            );
+        }
+    }
+);
 
 documents.listen(connection);
 connection.listen();

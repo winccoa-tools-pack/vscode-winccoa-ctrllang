@@ -2,27 +2,63 @@
 # VS Code settings and tests
 .vscode/**
 .vscode-test/**
+.vscode-test.mjs
 
 # Git and CI
 .gitignore
 .gitattributes
 .gitflow
 .github/**
+.husky/**
 
 # Build artifacts
 *.vsix
-*.map
 Makefile
 .markdownlint.json
+.markdownlintignore
+.prettierignore
+.prettierrc*
+
+# Source maps (not needed in production)
+**/*.map
 
 # Source and configs
 src/**
 tsconfig.json
+tsconfig.webpack.json
 tsconfig.tsbuildinfo
+
+# Dev tooling configs
+eslint.config.*
+webpack.config.js
+CONTRIBUTING.md
+AGENT.md
+SECURITY.md
+FUNDING.yml
 
 # Node modules (safe because we bundle)
 node_modules/**
 
-# Exceptions for assets
-!resources/**
-!images/**
+# Test and dev content (CRITICAL: test-workspace contains certificates!)
+test-workspace/**
+test-scripts/**
+scripts/**
+tools/**
+docs/**
+out/**
+
+# Language server dev content
+language-server/src/**
+language-server/test/**
+language-server/test-fixtures/**
+language-server/scripts/**
+language-server/docs/**
+language-server/tsconfig*.json
+language-server/package-lock.json
+language-server/node_modules/**
+
+# Compiled test/dev artifacts in dist
+dist/test-workspace/**
+dist/language-server/test/**
+dist/language-server/src/**
+dist/language-server/debug-*.js
