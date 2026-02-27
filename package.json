@@ -126,6 +126,11 @@
         "command": "winccoa.insertScriptTemplate",
         "title": "Insert Script Template",
         "category": "WinCC OA"
+      },
+      {
+        "command": "winccoa.selectOaVersion",
+        "title": "Select WinCC OA Version",
+        "category": "WinCC OA"
       }
     ],
     "configuration": {

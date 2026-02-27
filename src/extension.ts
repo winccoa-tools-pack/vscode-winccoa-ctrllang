@@ -8,6 +8,7 @@ import {
 } from 'vscode-languageclient/node';
 import { ExtensionOutputChannel } from './extensionOutput';
 import { ProjectPathResolver } from './services/projectPathResolver';
+import { OaVersionService } from './services/oaVersionService';
 // TODO: CtrlppCheck feature will be completed in a future release
 // import { CtrlppCheckService } from './services/ctrlppCheckService';
 import { AstyleFormatterService } from './services/astyleFormatterService';
@@ -18,6 +19,7 @@ let client: LanguageClient;
 // let ctrlppCheckService: CtrlppCheckService;
 let astyleFormatterService: AstyleFormatterService;
 let syntaxCheckService: WinccoaSyntaxCheckService;
+let oaVersionService: OaVersionService;
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize Extension Output Channel
@@ -39,6 +41,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Perform startup diagnostics
     performStartupDiagnostics(context);
+
+    // Initialize OA Version Service (status bar + version resolution)
+    oaVersionService = OaVersionService.getInstance();
+    context.subscriptions.push(oaVersionService);
+    ExtensionOutputChannel.info('Services', 'OA Version Service initialized');
 
     // Setup Core extension integration if in automatic mode
     setupCoreExtensionIntegration(context);
@@ -304,6 +311,14 @@ export function activate(context: vscode.ExtensionContext) {
             );
             await syntaxCheckService.checkFile(editor.document);
             vscode.window.showInformationMessage('Syntax check complete');
+        }),
+    );
+
+    // Register OA version selector command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('winccoa.selectOaVersion', async () => {
+            ExtensionOutputChannel.info('Command', 'Manual OA version selection');
+            await oaVersionService.showVersionPicker();
         }),
     );
 
@@ -706,8 +721,18 @@ async function setupCoreExtensionIntegration(_context: vscode.ExtensionContext) 
             );
             // Clear cached paths to force re-resolution
             ProjectPathResolver.getInstance()['cachedPaths'] = null;
+
+            // Auto-detect OA version from the new project
+            // !do not try to parse path for version here, rely on version provided by Core extension (either directly or via install path parsing)
+            const version = project.version as string;
+            if (version) {
+                oaVersionService.setVersion(version);
+            } else {
+                oaVersionService.setVersion(null);
+            }
         } else {
             ExtensionOutputChannel.info('CoreIntegration', 'No project selected');
+            oaVersionService.setVersion(null);
         }
     });
 
@@ -722,6 +747,12 @@ async function setupCoreExtensionIntegration(_context: vscode.ExtensionContext) 
             'CoreIntegration',
             `  Install path: ${currentProject.oaInstallPath}`,
         );
+
+        // Auto-detect OA version from current project
+        const version = currentProject.version as string;
+        if (version && !oaVersionService.getSelectedVersion()) {
+            oaVersionService.setVersion(version);
+        }
     } else {
         ExtensionOutputChannel.debug('CoreIntegration', 'No project currently selected');
     }
