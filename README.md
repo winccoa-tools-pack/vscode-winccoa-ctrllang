@@ -28,11 +28,13 @@
 ## ✨ Features
 
 ### 🎨 Syntax Highlighting
+
 - Full support for `.ctl` and `.ctlpp` files
 - WinCC OA built-in functions highlighted
 - Classes, structs, enums, and mappings
 
 ### 🧠 IntelliSense & Code Intelligence
+
 - **Hover Information**: See function signatures, variable types, and documentation
 - **Auto-Completion**: WinCC OA built-in functions with parameter hints
 - **Go-to-Definition** (`F12` or `Ctrl+Click`):
@@ -44,20 +46,24 @@
 - **Member Access Navigation**: Chain navigation `obj.member.field`
 
 ### 🔍 Advanced Language Features
+
 - **Enum Support**: Hover and navigation for `enum Color { RED, GREEN }`
 - **Class Inheritance**: Navigate to base classes (single-level)
 - **Scope-Aware Resolution**: Distinguishes local vs. member variables
 - **Cross-File Dependencies**: Automatic `#uses` resolution
 
 ### 📚 Documentation Access
+
 - Quick access to official WinCC OA documentation
 - `Ctrl+Shift+P` → `WinCC OA: Open Documentation for CTRL Function`
 
 ### 🔧 Code Formatting (Optional)
+
 - Astyle-based formatting for `.ctl` and `.ctlpp` files
 - Format on save support
 
 ### ✅ Syntax Checking (Optional)
+
 - Native WinCC OA syntax validation via `WCCOActrl`
 - Inline error highlighting
 
@@ -109,6 +115,7 @@
 ### Reporting Bugs
 
 Found an issue? Please report it with:
+
 - WinCC OA version
 - Extension version (`1.0.4`)
 - Code example that reproduces the issue
@@ -118,7 +125,7 @@ Found an issue? Please report it with:
 
 ---
 
-##  Commands
+## Commands
 
 Access via `Ctrl+Shift+P`:
 
@@ -138,7 +145,7 @@ Access via `Ctrl+Shift+P`:
 - **Project Structure:** Your workspace must contain a `config/config` file (standard WinCC OA project layout) for auto-detection to work.
 
 **Automatic Mode:**
-If the WinCC OA Project Admin Extension is installed, project detection is fully automatic. 
+If the WinCC OA Project Admin Extension is installed, project detection is fully automatic.
 
 ---
 
@@ -156,6 +163,7 @@ Very large projects (1000+ files) may experience performance issues with Intelli
 
 **Extension Not Responding:**  
 If the extension doesn't work as expected (IntelliSense not working, goto-definition fails), reload VS Code:  
+
 1. Press `Ctrl+Shift+P`
 2. Type and select `Reload Window`
 3. This refreshes the language server
@@ -182,6 +190,7 @@ This extension includes code from:
 License: GNU GPL v3.0
 
 Modified files:
+
 - `language-configuration.json`
 - `syntaxes/ctrl.tmLanguage.json`
 - `syntaxes/ctrlpp.tmLanguage.json`
