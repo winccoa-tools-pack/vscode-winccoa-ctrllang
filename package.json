@@ -12,7 +12,7 @@
     "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang"
   },
   "engines": {
-    "vscode": "^1.106.0"
+    "vscode": "^1.110.0"
   },
   "categories": [
     "Programming Languages",
@@ -381,22 +381,27 @@
     "watch": "tsc -watch -p ./",
     "watch:server": "cd language-server && tsc -watch -p ./",
     "package": "vsce package",
-    "lint": "echo \"Lint passed\"",
-    "style-check": "npm run lint",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "style-check": "npm run format:check && npm run lint",
     "test": "node ./dist/test/runTest.js",
     "test:unit": "npm test"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "^24.10.4",
-    "@types/vscode": "^1.105.0",
-    "@typescript-eslint/eslint-plugin": "^8.45.0",
-    "@typescript-eslint/parser": "^8.45.0",
-    "@vscode/test-electron": "^2.3.9",
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.110.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.56.0",
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "eslint": "^9.36.0",
-    "glob": "^13.0.0",
-    "mocha": "^11.3.0",
+    "glob": "^13.0.3",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
