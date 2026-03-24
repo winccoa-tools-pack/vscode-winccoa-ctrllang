@@ -826,7 +826,7 @@ async function insertTemplate(
       /\.(ctl|ctrl|ctlpp|ctrlpp)$/,
       "",
     );
-    let origLibName = className;
+    const origLibName = className;
 
     if (templateType === "Test") {
       // Assume tests are in scripts/tests/ and libs are in scripts/libs/

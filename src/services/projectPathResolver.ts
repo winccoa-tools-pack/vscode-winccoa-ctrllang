@@ -385,7 +385,7 @@ export class ProjectPathResolver {
         // Match proj_path = "..." or proj_path = '...'
         const match = trimmed.match(/^proj_path\s*=\s*["']([^"']+)["']/);
         if (match) {
-          let projPath = match[1];
+          const projPath = match[1];
 
           // Normalize for comparison
           const normalizedPath = path.normalize(projPath).toLowerCase();

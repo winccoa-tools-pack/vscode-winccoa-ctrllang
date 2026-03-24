@@ -25,4 +25,4 @@
 
 ## 📋 Additional Notes
 
-/cc @mPokornyETM
+/cc @RichardJanisch
