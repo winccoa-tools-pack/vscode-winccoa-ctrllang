@@ -447,6 +447,9 @@
       "minimatch": "3.1.2"
     }
   },
+  "config": {
+    "winccoaImage": "mpokornyetm/winccoa-tools-pack-npm-winccoa-core:npm-winccoa-core"
+  },
   "dependencies": {
     "fast-xml-parser": "^5.5.9",
     "vscode-languageclient": "^9.0.1",
