@@ -396,7 +396,11 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "style-check": "npm run format:check && npm run lint",
     "test": "node ./dist/test/runTest.js",
-    "test:unit": "npm test"
+    "test:unit": "npm test",
+    "test:integration": "vscode-test --label integrationTests",
+    "test:unit:coverage": "npm run compile:tsc && npm run clean:coverage:unitTests && vscode-test --label unitTests --coverage --coverage-output coverage/unitTests --coverage-reporter lcov --coverage-reporter html --coverage-reporter json-summary --coverage-reporter text-summary",
+    "test:integration:coverage": "npm run compile:tsc && npm run clean:coverage:integrationTests && vscode-test --label integrationTests --coverage --coverage-output coverage/integrationTests --coverage-reporter lcov --coverage-reporter html --coverage-reporter json-summary --coverage-reporter text-summary",
+    "test:coverage": "npm run test:unit:coverage && npm run test:integration:coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
