@@ -12,7 +12,7 @@
     "url": "https://github.com/winccoa-tools-pack/vscode-winccoa-ctrllang"
   },
   "engines": {
-    "vscode": "^1.106.0"
+    "vscode": "^1.110.0"
   },
   "categories": [
     "Programming Languages",
@@ -374,34 +374,84 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "npm run build:functions && tsc -p ./ && cd language-server && tsc -p ./",
     "build": "npm run compile",
     "build:functions": "ts-node tools/scripts/build-functions.ts",
-    "watch": "tsc -watch -p ./",
-    "watch:server": "cd language-server && tsc -watch -p ./",
+    "ci:integration": "npm ci && npm run compile && npm run test:integration",
+    "clean:coverage": "node -e \"require('fs').rmSync('coverage',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })\"",
+    "clean:coverage:integrationTests": "node -e \"require('fs').rmSync('coverage/integrationTests',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })\"",
+    "clean:coverage:unitTests": "node -e \"require('fs').rmSync('coverage/unitTests',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })\"",
+    "clean:dist": "node -e \"require('fs').rmSync('dist',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })\"",
+    "clean:out": "node -e \"require('fs').rmSync('out',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })\"",
+    "clean:out-tests": "node -e \"try{require('fs').rmSync('out/test',{ recursive:true, force:true, maxRetries:10, retryDelay:200 })}catch(e){console.warn('clean:out-tests skipped:', e.message)}\"",
+    "compile": "npm run build:functions && tsc -p ./ && cd language-server && tsc -p ./",
+    "compile:tsc": "tsc -p ./ && npm run copy-fixtures",
+    "copy-fixtures": "node scripts/copy-fixtures.mjs",
+    "dev": "npm run watch",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "lint:md": "markdownlint \"**/*.md\" --ignore node_modules --ignore language-server",
+    "lint:md:fix": "markdownlint \"**/*.md\" --ignore node_modules --ignore language-server --fix",
     "package": "vsce package",
-    "lint": "echo \"Lint passed\"",
-    "style-check": "npm run lint",
+    "pretest": "npm run compile && npm run lint",
+    "start": "code --extensionDevelopmentPath=.",
+    "start:insiders": "code-insiders --extensionDevelopmentPath=.",
+    "style-check": "npm run format:check && npm run lint",
     "test": "node ./dist/test/runTest.js",
-    "test:unit": "npm test"
+    "test:coverage": "npm run test:unit:coverage && npm run test:integration:coverage",
+    "test:integration": "vscode-test --label integrationTests",
+    "test:integration:coverage": "npm run compile:tsc && npm run clean:coverage:integrationTests && vscode-test --label integrationTests --coverage --coverage-output coverage/integrationTests --coverage-reporter lcov --coverage-reporter html --coverage-reporter json-summary --coverage-reporter text-summary",
+    "test:unit": "npm test",
+    "test:unit:coverage": "npm run compile:tsc && npm run clean:coverage:unitTests && vscode-test --label unitTests --coverage --coverage-output coverage/unitTests --coverage-reporter lcov --coverage-reporter html --coverage-reporter json-summary --coverage-reporter text-summary",
+    "vscode:prepublish": "npm run compile",
+    "watch": "tsc -watch -p ./",
+    "watch:server": "cd language-server && tsc -watch -p ./"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^24.10.4",
-    "@types/vscode": "^1.105.0",
-    "@typescript-eslint/eslint-plugin": "^8.45.0",
-    "@typescript-eslint/parser": "^8.45.0",
-    "@vscode/test-electron": "^2.3.9",
+    "@types/node": "^25.5.0",
+    "@types/vscode": "^1.110.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.56.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
-    "eslint": "^9.36.0",
-    "glob": "^13.0.0",
+    "eslint": "^10.0.3",
+    "glob": "^13.0.3",
+    "globals": "^17.4.0",
+    "markdownlint-cli": "^0.48.0",
     "mocha": "^11.3.0",
+    "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.31.0"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "minimatch": "10.2.2",
+    "mocha": {
+      "minimatch": "10.2.2"
+    },
+    "@vscode/test-cli": {
+      "minimatch": "10.2.2"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "10.2.2"
+    },
+    "markdownlint-cli": {
+      "minimatch": "10.2.2"
+    },
+    "@vscode/vsce": {
+      "minimatch": "3.1.2"
+    }
+  },
+  "config": {
+    "winccoaImage": "mpokornyetm/winccoa-tools-pack-npm-winccoa-core:npm-winccoa-core"
   },
   "dependencies": {
-    "fast-xml-parser": "^4.5.0",
+    "fast-xml-parser": "^5.5.9",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"

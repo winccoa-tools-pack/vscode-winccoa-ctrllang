@@ -7,6 +7,7 @@
 **Test File:** `test-basic.ctl`
 
 Open the file and verify:
+
 - [ ] Keywords highlighted (if, else, for, while, switch, case, etc.)
 - [ ] String literals in quotes
 - [ ] Comments in different style
@@ -19,6 +20,7 @@ Open the file and verify:
 **Test File:** `test-basic.ctl`
 
 #### IntelliSense (Auto-completion)
+
 1. Type `dp` and press `Ctrl+Space`
    - [ ] Should show dpGet, dpSet, dpConnect, etc.
 2. Type `Debug` and press `Ctrl+Space`
@@ -27,6 +29,7 @@ Open the file and verify:
    - [ ] Should show local variables
 
 #### Hover Information
+
 1. Hover over `dpGet`
    - [ ] Should show function signature and documentation
 2. Hover over `DebugN`
@@ -69,6 +72,7 @@ Open the file and verify:
 **Test File:** `test-ctrlpp.ctlpp`
 
 Open the file and verify:
+
 - [ ] Class syntax highlighted
 - [ ] `class`, `public`, `private` keywords
 - [ ] Constructor/destructor syntax
@@ -86,6 +90,7 @@ Open the file and verify:
 ### Open Test Files
 
 In the Extension Development Host window:
+
 ```bash
 File → Open Folder → packages/ctrlLang/test-scripts
 ```
@@ -101,6 +106,7 @@ File → Open Folder → packages/ctrlLang/test-scripts
 ### Console Messages
 
 Check **Output** panel → **WinCC OA Language Server**:
+
 ```
 WinCC OA Language Server started! 🚀
 ```
@@ -108,22 +114,26 @@ WinCC OA Language Server started! 🚀
 ### Problems Panel
 
 Should show:
+
 - Syntax errors in test files (if any)
 - Undefined function warnings (for external libraries)
 
 ## Troubleshooting
 
 ### Language Server not starting
+
 - Check Output → WinCC OA Language Server
 - Rebuild: `npm run compile`
 - Restart Extension Development Host
 
 ### No IntelliSense
+
 - Wait 2-3 seconds after opening file
 - Check if file extension is `.ctl` or `.ctrl`
 - Verify language mode shows "ctrl" in status bar
 
 ### Goto Definition not working
+
 - Ensure function is defined in same file or #uses
 - Check language server is running
 - Try "Go to Definition" from right-click menu

@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.4] - 2026-01-31
 
 ### Changed
-- **🎨 Syntax Highlighting**: `this` keyword now uses dark blue color (variable.language.this)
+
+- **🎨 Syntax Highlighting**: `this` keyword now uses dark blue color
+  (variable.language.this)
   - Matches C/C++ syntax highlighting convention
   - Changed from light blue (generic variable) to dark blue (language keyword)
   - TextMate scope: `variable.language.this.ctrl`
@@ -16,33 +18,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.3] - 2026-01-30
 
 ### Added
-- **📖 Documentation Link Tool**: New Language Model Tool `ctl_get_documentation_link`
-  - Returns ONLY the official WinCC OA documentation URL for CTL functions/methods
-  - Searches in crawled documentation database (`resources/winccoa-docs-crawled.json`, 30k+ entries)
-  - When no match found: suggests web search for "WinCC OA [function] documentation"
+
+- **📖 Documentation Link Tool**: New Language Model Tool
+  `ctl_get_documentation_link`
+  - Returns ONLY the official WinCC OA documentation URL for
+    functions/methods
+  - Searches in crawled documentation database
+    (`resources/winccoa-docs-crawled.json`, 30k+ entries)
+  - When no match found: suggests web search for
+    "WinCC OA [function] documentation"
   - Enables Copilot to provide documentation links when user says "read the docs" or "you're using this wrong"
   - Minimal response: just function name and URL - no clutter
 
-### Changed
+### 2.0.3 Changed
+
 - LanguageModelToolsService now registers 6 tools (was 5)
 
 ## [2.0.2] - 2026-01-19
 
-### Fixed
-- Outline View & Ctrl+Shift+O now point to correct line (was 1 line too low)
+### 2.0.2 Fixed
+
+- Outline View & Ctrl+Shift+O now point to correct line
+  (was 1 line too low)
 - DocumentSymbolProvider: Convert 1-based line numbers from SymbolTable to 0-based for LSP
-- Class symbols: Use `location.line` instead of `startLine` for selection range
+- Class symbols: Use `location.line` instead of `startLine` for
+  selection range
 
 ## [2.0.1] - 2026-01-19
 
-### Fixed
-- Go-to-Definition for functions/variables from #uses libraries in subdirectories (e.g., `libs/General/MemoryChecker.ctl`)
-- Added comprehensive tests for cross-file goto with subdirectory structures
+### 2.0.1 Fixed
+
+- Go-to-Definition for functions/variables from #uses libraries in
+  subdirectories (e.g., `libs/General/MemoryChecker.ctl`)
+- Added comprehensive tests for cross-file goto with subdirectory
+  structures
 
 ## [2.0.0] - 2026-01-15
 
-### Added
-- **🤖 GitHub Copilot Integration**: Language Model Tools for autonomous CTL code analysis
+### 2.0.0 Added
+
+- **🤖 GitHub Copilot Integration**: Language Model Tools for
+  autonomous CTL code analysis
   - **ctl_syntax_check**: Check CTL files for syntax errors without opening
   - **ctl_get_diagnostics**: Get all diagnostics (errors, warnings, info) with severity levels
   - **ctl_get_symbol_info**: Get hover information for symbols at specific positions
@@ -53,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clean service architecture with LanguageModelToolsService
 
 ### Technical Details
+
 - Tools use VS Code commands (executeHoverProvider, executeReferenceProvider, executeDefinitionProvider)
 - Direct access to diagnostics via vscode.languages.getDiagnostics()
 - All tools return structured JSON for easy parsing by AI assistants
@@ -62,14 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.2] - 2026-01-11
 
 ### Changed
+
 - **CI Compatibility**: Added `style-check` and `test:unit` script aliases for standardized CI/CD pipeline
-  - `style-check` → `npm run lint` 
+  - `style-check` → `npm run lint`
   - `test:unit` → `npm test`
   - Ensures compatibility with Martin's CI/CD system
 
 ## [1.4.1] - 2026-01-09
 
 ### Fixed
+
 - **Makefile Windows Artifact**: Removed `nul` file creation in package target that caused "unsafe for extraction" error in Marketplace
   - Changed `2>nul || echo "" >nul` to `2>/dev/null || true` for cross-platform compatibility
   - VSIX packages are now clean without Windows-specific artifacts
@@ -77,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] - 2026-01-09
 
 ### Added
+
 - **📋 Outline View Support**: Functions, Classes, Methods, Structs, and Enums now appear in VS Code's Outline sidebar
   - Navigate large CTL libraries with ease
   - Click on symbol → Jump to definition
@@ -94,11 +114,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports Enums (with enum members as children)
 
 ### Changed
+
 - Built-in VS Code features now available: sort by name/position, collapse/expand, keyboard navigation
 
 ## [1.3.2] - 2026-01-08
 
 ### Fixed
+
 - **🔧 Automatic Mode**: Language Server now properly supports `automatic` pathSource mode
 - Added `fetchFromAutomatic()` to request project info from WinCC OA Project Admin extension
 - Project info cache is now invalidated when project changes in automatic mode
@@ -107,21 +129,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.1] - 2026-01-05
 
 ### Fixed
+
 - **📖 Documentation Link in Hover**: Restored clickable "Open Documentation" link when hovering over WinCC OA builtin functions
 
 ## [1.3.0] - 2026-01-04
 
 ### Added
+
 - **#uses Directive Hover**: Hover over #uses lines shows resolved file path or "File not found" message
 - Helps verify dependency resolution without opening files
 
 ### Changed
+
 - **Language Mode Display**: Changed aliases from "WinCC OA Control" to "WinCC OA CTRL" (shorter, more consistent)
 - Affects status bar language mode indicator
 
 ## [1.2.0] - 2026-01-03
 
 ### Added
+
 - **✏️ Symbol Rename Refactoring**: Rename variables, functions, and methods within a file
   - Right-click on a symbol → "Rename Symbol" (or F2)
   - Renames all occurrences in the current file
@@ -129,9 +155,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Preview before applying changes
 
 ### Changed
+
 - **🎨 Updated File Icon**: Improved visual design for .ctl and .ctlpp files
 
 ### Technical
+
 - New RenameService with prepareProvider support
 - Scope-aware symbol resolution for accurate renaming
 - Regex-based whole-word matching to avoid partial renames
@@ -139,6 +167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-01-02
 
 ### Added
+
 - **User-Defined Symbol Completion**: IntelliSense now suggests your own code!
   - Auto-completion for user-defined functions (from current file + #uses dependencies)
   - Class completion with member/method suggestions
@@ -153,6 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Works with any active icon theme (Seti, Material Icons, etc.)
 
 ### Technical
+
 - Enhanced CompletionService with SymbolCache integration
 - Position-aware completion (detects member access context)
 - Dependency-aware symbol resolution via fileURLToPath and getSymbolsWithDependencies()
@@ -161,31 +191,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.5] - 2026-01-02
 
 ### Changed
+
 - **Startup Diagnostics**: Removed unnecessary workspace folder warning in automatic mode
   - Warning was misleading when using Core extension for project path resolution
   - Project path comes from Core extension in automatic mode, workspace folder not required
 
 ### Fixed
+
 - **Makefile**: Fixed `make package` for Windows compatibility
 
 ## [1.0.4] - 2026-01-01
 
 ### Changed
+
 - **Extension Dependency**: Updated from `RichardJanisch.winccoa-control` to `RichardJanisch.winccoa-project-admin` (renamed in v1.0.4)
 
 ## [1.0.3] - 2025-12-30
 
 ### Fixed
+
 - **Code References**: Updated extension ID references from `winccoa-tools-pack.winccoa-core` to `RichardJanisch.winccoa-control` in TypeScript code
 
 ## [1.0.2] - 2025-12-30
 
 ### Fixed
+
 - **Extension Dependency**: Updated from `RichardJanisch.winccoa-core` to `RichardJanisch.winccoa-control` (package name changed in Control extension v1.0.1)
 
 ## [1.0.1] - 2025-12-30
 
 ### Fixed
+
 - **Extension Dependency**: Corrected publisher name from `winccoa-tools-pack.winccoa-core` to `RichardJanisch.winccoa-core` in extensionDependencies
 
 ## [1.0.0] - 2025-12-30
@@ -197,6 +233,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ### ✨ Features Included
 
 #### Language Server
+
 - **Syntax Highlighting**: Full support for `.ctl` and `.ctrlpp` files
 - **IntelliSense**: Auto-completion for 983 WinCC OA built-in functions
 - **Hover Information**: Function signatures, variable types, enum values
@@ -208,15 +245,18 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - **108 Unit Tests**: Comprehensive test coverage
 
 #### Code Quality Tools
+
 - **Syntax Checking**: Native WinCC OA validation via `WCCOActrl`
 - **Code Formatting**: Astyle-based formatting with customizable configs
 - **Documentation Access**: Quick links to official WinCC OA docs
 
 ### 📦 Build
+
 - Production build in `bin/winccoa-ctrllang-1.0.0.vsix`
 - Ready for distribution and installation
 
 ### ⚠️ Known Limitations
+
 - Inheritance limited to 1 level
 - No interface support yet
 - Static members not yet detected
@@ -227,6 +267,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.5.2] - 2025-12-29
 
 ### Added
+
 - **Enum and Mapping Support**: Complete parsing and language features for WinCC OA enums
   - Enum parsing with implicit and explicit values (including negative values)
   - Hover support for enum types showing all members
@@ -239,6 +280,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
   - Integration tests for enum hover and goto-definition features
 
 ### Changed
+
 - `symbolTable.ts`: Added `findEnumDefinitions()` and `findMappingVariables()` methods
 - `symbolFinder.ts`: Enhanced with enum member access detection (`::` operator)
 - `hoverService.ts`: Added enum-specific hover formatting
@@ -248,6 +290,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.5.0] - 2025-12-29
 
 ### Added
+
 - **Architecture Refactoring**: Language Server restructured for better maintainability
   - New `core/symbolCache.ts`: Centralized symbol caching with mtime-based invalidation
   - New `services/completionService.ts`: Completion logic extracted
@@ -256,6 +299,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
   - New `services/configService.ts`: Project configuration handling
 
 ### Changed
+
 - **server.ts reduced from 1160 to 496 lines** (57% reduction)
 - All handlers now use centralized services with dependency injection
 - Symbol caching with mtime-based invalidation for better performance
@@ -264,6 +308,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.4.3] - 2025-12-28
 
 ### Added
+
 - **Custom Astyle Paths**: New settings to specify custom astyle binary and config file paths
   - `winccoa.astyleFormatter.binaryPath`: Custom path to astyle binary
   - `winccoa.astyleFormatter.configPath`: Custom path to astyle config file
@@ -273,6 +318,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.4.2] - 2025-12-28
 
 ### Fixed
+
 - **Core Extension Startup Messages**: Suppressed warning messages during initial startup to reduce noise:
   - "Core extension is not active yet" now logs as debug on first call
   - "No WinCC OA project selected" popup only shows after first startup attempt
@@ -281,6 +327,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.4.1] - 2025-12-28
 
 ### Fixed
+
 - **Method Syntax Highlighting**: Class methods and method calls now use `support.function.ctrl` scope (like built-in functions) for distinct colorization from member variables. Adapted from C++ syntax patterns.
   - Method declarations: `public int testMethod()` now properly highlighted
   - Method calls: `obj.method()` and `this.method()` now properly highlighted
@@ -289,6 +336,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.4.0] - 2025-12-28
 
 ### Added
+
 - **Template Insertion Commands**: New commands `winccoa.insertTestTemplate` and `winccoa.insertScriptTemplate` for inserting pre-formatted templates into .ctl files
   - Test Template: OaTest class structure with setUp/tearDown methods and example test case
   - Script Template: Basic script structure with main() function and placeholder comments
@@ -298,6 +346,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.3.2] - 2025-12-28
 
 ### Fixed
+
 - **Member Variable Resolution in Return Statements**: Fixed `findLocalVariables()` incorrectly parsing `return m_result` as variable declaration by whitelisting valid type keywords (excluded control flow keywords like `return`, `if`, `for`, etc.)
 - **Parameter Shadowing in Method Signatures**: Parameters now correctly resolved when cursor is on parameter declaration (signature line) instead of jumping to shadowed member variables
 - **Global vs Member Variable Shadowing**: Fixed class members being resolved outside of class scope - members now only accessible within their containing class, globals have priority in global scope
@@ -305,12 +354,14 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - **Class Boundary Detection**: Replaced heuristic "+100 lines" approach with precise `startLine`/`endLine` tracking for classes
 
 ### Changed
+
 - `findLocalVariables()`: Added whitelist of valid type keywords (int, float, string, bool, time, dyn_*, mapping, etc.)
 - `findContainingMethod()`: Now includes method signature line in containment check (previously only checked body)
 - `extractClassBody()`: Now returns `endLine` in addition to `startLine` and `content`
 - `ClassSymbol`: Added `startLine` and `endLine` fields for precise class boundary tracking
 
 ### Added
+
 - **Member Access Resolution**: New `resolveMemberAccess()` method for resolving member access patterns (`obj.method()`, `obj.member`)
 - **Struct Field Resolution**: Extended `resolveMemberAccess()` to support struct fields in addition to class members/methods
 - **Nested Member Access Support**: New `resolveMemberByType()` method for resolving nested member access (`circle.center.x`) by type name
@@ -325,11 +376,13 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.3.1] - 2025-12-28
 
 ### Fixed
+
 - **Implicit Global Variables**: Global variables declared without `global` keyword (e.g., `int intVariable = 42;` at file level) are now correctly recognized by hover and go-to-definition
 - **Go-to-Definition Line Offset**: Fixed off-by-one error where go-to-definition jumped one line below the actual definition (SymbolTable 1-based vs LSP 0-based line numbers)
 - **Parameter Hover Priority**: Function/method parameters now have priority over local variables in symbol resolution, fixing cases where shadowed variables showed wrong types (e.g., `value` parameter showing `float` from struct field instead of `int` from parameter)
 
 ### Changed
+
 - `findGlobalVariables()` now detects two patterns:
   - Pattern 1: `global type identifier` (explicit globals)
   - Pattern 2: `type identifier` at file level (implicit globals, braceDepth === 0)
@@ -337,6 +390,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - All Location.create() calls in server.ts adjusted with -1 line offset for LSP compatibility
 
 ### Added
+
 - Integration tests for global variable usage hover and go-to-definition
 - Debug test for main() function parsing and symbol resolution
 - Build configuration for language server tests (tsconfig.build.json)
@@ -344,6 +398,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.3.0] - 2025-12-27
 
 ### Added
+
 - **Member Access Navigation**: Go-to-Definition and Hover now work on member access patterns (e.g., `manager.createDevice()`, `myStruct.id`)
 - Member access detection in `symbolFinder.ts` - detects `object.member` patterns and returns object context
 - Struct field hover support via member access (e.g., `myStruct.id` shows `int id`)
@@ -357,6 +412,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - Test workspace with CTL fixtures and library files for integration testing
 
 ### Changed
+
 - Hover handler refactored to handle member access patterns for classes and structs
 - Go-to-Definition handler extended with member access resolution logic
 - Symbol resolution now checks object type and resolves members through type system
@@ -367,6 +423,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - Build process now copies test fixtures to `dist/` for test execution
 
 ### Fixed
+
 - Hover on struct fields via member access now works correctly
 - Hover on class methods via member access now shows full signatures
 - Test fixtures are excluded from published VSIX package (via `.vscodeignore`)
@@ -374,6 +431,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - Parameter parsing for functions, methods, and constructors now returns actual parameters instead of empty arrays
 
 ### Technical Details
+
 - `getSymbolAtPosition()` enhanced to return `memberAccess?: { objectName }` when detecting `obj.member` pattern
 - Hover handler checks `symbolInfo.memberAccess` and resolves through object type → class/struct → member/method/field
 - Go-to-Definition handler uses same member access resolution strategy
@@ -383,6 +441,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.2.3] - 2025-12-26
 
 ### Added
+
 - Local variable parsing and resolution within function scope
 - Function parameter resolution (parameters treated as local variables)
 - Struct field resolution in hover and go-to-definition
@@ -391,14 +450,17 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - Local variables have higher priority than global variables in scope resolution
 
 ### Changed
+
 - Hover display simplified: removed kind labels (e.g., "local variable", "member variable")
 - Hover now shows clean format: `type name` for all variables
 
 ### Fixed
+
 - Line number indexing consistency (0-based) for LSP compatibility in local variable resolution
 - Struct fields now properly resolved across all structs
 
 ### Technical Details
+
 - Extended FunctionSymbol with localVariables array and body line ranges
 - Function parameters parsed and included in local variable scope
 - Symbol resolution now checks local variables (including parameters) before globals
@@ -407,16 +469,19 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.2.2] - 2025-12-26
 
 ### Fixed
+
 - Legacy function finder now also skips nested scopes (brace depth tracking)
 - Constructor calls after `new` keyword now correctly resolve to class definition
 - Method calls on objects now resolve to method definition in dependency classes (naive implementation - searches all classes)
 
 ### Added
+
 - Method search in cross-file dependency resolution
 - Integration test for constructor calls after `new` keyword
 - E2E test structure (placeholder for future refactoring)
 
 ### Technical Debt
+
 - Legacy symbolFinder.ts still in use alongside Symbol Table (dual code paths)
 - Method resolution is naive - no type inference, searches all classes in dependencies
 - E2E tests require server handler extraction for proper testability
@@ -424,17 +489,20 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.2.1] - 2025-12-26
 
 ### Fixed
+
 - Method parsing now correctly skips nested method bodies, preventing constructor calls inside methods from being parsed as method definitions
 - Cross-file Go-to-Definition now works correctly for class names in variable declarations
 - Added integration tests to verify full code path from LSP request to dependency resolution
 
 ### Added
+
 - Integration test suite for Language Server cross-file resolution
 - Debug logging for Symbol Table dependency parsing
 
 ## [0.2.0] - TBD
 
 ### Added
+
 - Automatic project detection mode via WinCC OA Core extension integration
 - Extension dependency on `winccoa-tools-pack.winccoa-core` (optional)
 - Automatic project path and installation path resolution from selected project
@@ -442,6 +510,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - Real-time project change detection with automatic path updates
 
 ### Changed
+
 - `pathSource` setting now supports `automatic` mode in addition to `workspace` and `manual`
 - Project paths automatically retrieved from Core extension when in automatic mode
 - Improved error handling when automatic mode is selected but Core extension is not installed
@@ -449,6 +518,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 ## [0.1.1] - 2025-12-14
 
 ### Added
+
 - Comprehensive logging system with configurable log levels (ERROR, WARN, INFO, DEBUG, TRACE)
 - New setting: `winccoa.ctrlLang.logLevel` for controlling logging verbosity
 - Structured logging with source/module context in all log messages
@@ -458,17 +528,20 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - Detailed logging documentation in `docs/LOGGING.md`
 
 ### Changed
+
 - All log messages now include source context (e.g., `[Extension]`, `[PathResolver]`)
 - Log output format improved with icons, aligned columns, and timestamps
 - Enhanced path resolution logging with detailed trace information
 - Service initialization logs now more informative with DEBUG/TRACE levels
 
 ### Fixed
+
 - Log level filtering now works correctly (messages below configured level are suppressed)
 
 ## [0.1.0] - 2024-12-12
 
 ### Added
+
 - Full syntax highlighting for `.ctl` and `.ctrlpp` files
 - IntelliSense with auto-completion for 983 WinCC OA built-in functions
 - Function signatures and parameter information on hover
@@ -493,7 +566,7 @@ This is the first stable release of WinCC OA CTRL Language Support, providing co
 - Documentation viewer for built-in functions
 
 ### Known Limitations
+
 - CtrlppCheck feature not yet implemented (planned for future release)
 - Formatter and syntax checker disabled by default (opt-in)
 - Pre-release version - testing in progress
-
