@@ -415,6 +415,7 @@
     "@types/vscode": "^1.110.0",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.56.0",
+    "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "eslint": "^10.0.3",
@@ -426,6 +427,25 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.31.0"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "minimatch": "10.2.2",
+    "mocha": {
+      "minimatch": "10.2.2"
+    },
+    "@vscode/test-cli": {
+      "minimatch": "10.2.2"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "10.2.2"
+    },
+    "markdownlint-cli": {
+      "minimatch": "10.2.2"
+    },
+    "@vscode/vsce": {
+      "minimatch": "3.1.2"
+    }
   },
   "dependencies": {
     "fast-xml-parser": "^5.5.9",
