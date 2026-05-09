@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.0.3-blue.svg)
+![VS Marketplace](https://img.shields.io/visual-studio-marketplace/v/RichardJanisch.winccoa-ctrllang?label=VS%20Marketplace)
 ![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)
-![VS Code](https://img.shields.io/badge/VS%20Code-^1.105.0-007ACC.svg)
+![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.110.0-007ACC.svg)
 
 **Language support for WinCC OA CTRL and CTRL++ in Visual Studio Code**
 
@@ -117,7 +117,7 @@
 Found an issue? Please report it with:
 
 - WinCC OA version
-- Extension version (`1.0.4`)
+- Extension version (see VS Code Extensions view)
 - Code example that reproduces the issue
 - Enable `DEBUG` logging and attach log output
 
@@ -139,7 +139,7 @@ Access via `Ctrl+Shift+P`:
 
 ## 🛠️ Requirements
 
-- **VS Code:** 1.105.0 or higher
+- **VS Code:** 1.110.0 or higher
 - **WinCC OA:** 3.19+ (optional, required for syntax checking via `WCCOActrl`)
 - **WinCC OA Core Extension:** (optional, recommended) Enables automatic project detection and management. With the Core extension installed, you can select your active project from a list—the Language extension will automatically detect all local projects with a `config/config` file.
 - **Project Structure:** Your workspace must contain a `config/config` file (standard WinCC OA project layout) for auto-detection to work.
